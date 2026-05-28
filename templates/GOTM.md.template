@@ -1,0 +1,162 @@
+---
+project: <ProjectName>
+mission: <one-sentence mission>
+shape: g-o-t-m
+target_style: deliverable
+goals_count: <N>
+objectives_count: <N>
+targets_count: <N>
+milestones_count: <N>
+last_updated: <YYYY-MM-DD>
+---
+
+# GOTM — <ProjectName>
+
+<!--
+This is the canonical ledger (R1). Per `docs/03-discipline-rules.md`, all planning
+lives here, not in chat. Discovery during execution expands this ledger per R11.
+
+Frontmatter fields:
+- shape: g-o-t-m (default, full four layers) or g-o-m (Targets folded into Objectives).
+  Locks at init per `docs/02-hierarchy.md` §4.
+- target_style: benchmark | deliverable (default) | workstream.
+  Locks at init per `docs/02-hierarchy.md` §5.
+- last_updated: any change to this file updates this field in the same turn (R5).
+  STATUS.md's last_updated mirrors this value.
+
+Delete this comment block once the scaffold is filled.
+-->
+
+## Mission
+
+<one-sentence mission>
+
+<!--
+One sentence. Reads as "Deliver <outcome> for <audience> by <anchor>."
+If the mission needs a paragraph, the project is two projects pretending to be one.
+-->
+
+---
+
+## Goals
+
+- **G1** — <Goal text> (ratified)
+  - Why: <why this Goal matters; what direction it points>
+  - Done means: <verifiable end state>
+
+<!--
+Goals are broad, long-term outcomes — the project's reason for existing.
+Per `docs/02-hierarchy.md` §2, 1–3 Goals per project. More than three Goals is
+usually two projects bundled together.
+
+Goals carry the highest ratification authority (R11 ladder). The practitioner
+ratifies Goals; the agent does not invent new Goals during execution. New Goal
+discoveries route to OPEN_QUESTIONS.md, not directly into this file.
+
+Mark each ratified Goal with `(ratified)`. Unratified Goals do not belong here —
+they live in OPEN_QUESTIONS.md until the practitioner confirms.
+-->
+
+---
+
+## Objectives
+
+- **O1** (under G1) — <outcome-shaped name>
+- **O2** (under G1) — <outcome-shaped name>
+
+<!--
+Objectives are specific short-to-medium-term results that break a Goal into
+actionable work. 3–10 per Goal per `docs/02-hierarchy.md` §2.
+
+Prefer outcome-shaped names ("Topics locked," "Stakeholders aligned") over
+process-shaped names ("Pull data," "Run analysis"). Per `docs/02-hierarchy.md` §6:
+if an Objective's name could plausibly become a Milestone title, it is probably
+shaped as a process. Reshape it.
+
+Objective additions during execution are agent discretion (R11 ladder). Surface
+material changes that shift what the practitioner thinks the project delivers;
+otherwise append atomically with a one-paragraph rationale in decisions.md.
+-->
+
+---
+
+## Targets
+
+- **T1.1** (under O1) — <target>
+- **T1.2** (under O1) — <target>
+- **T2.1** (under O2) — <target>
+
+<!--
+Targets answer "how much" or "what shape does done take." The target_style
+locks at init and determines the meaning:
+- benchmark: a quantitative metric tied to a deadline.
+- deliverable (default): a named final output file path.
+- workstream: a scoped initiative with its own decision record.
+
+ID convention (`docs/02-hierarchy.md` §3): hierarchical IDs make the parent
+Objective visible. The first Target under O1 is T1.1, the second is T1.2, the
+first under O2 is T2.1. IDs are immutable once written (R9). Sub-letter
+expansion (T1.1a) is reserved for atomicity splits and does not appear at init.
+
+Omit this section entirely if shape is g-o-m. In the flat shape, Milestones
+attach directly to Objectives.
+-->
+
+---
+
+## Milestones
+
+| M-ID | Title | Inputs | Output | Status | Est. pages |
+|---|---|---|---|---|---|
+| M1 | <title> (under T1.1) | <inputs> | `<output/path>` | pending | <N> |
+| M2 | <title> (under T1.1) | <inputs> | `<output/path>` | pending | <N> |
+| M3 | <title> (under T2.1) | <inputs> | `<output/path>` | pending | <N> |
+
+<!--
+Milestones answer "when." One Milestone = one execution pass = one named output
+file (R2). The shape that triggers a split is a title joined by "and" or a row
+whose body would carry bullet sub-items. Split before writing the row.
+
+Milestones use a flat global counter — M1, M2, M3 — so each Milestone ID stays
+unique across the whole project. The "(under T1.1)" tag in the Title column
+names the parent Target. Sub-letter expansion (M1a, M1b) lands when atomic
+units cluster under one row; each sub-letter is its own ledger row per R8.
+
+Status values: pending | in_progress | done | ~~sunset~~.
+Sunset Milestones stay in the ledger forever per R9 (strikethrough, never delete).
+
+Inputs column lists the files the execution pass reads (R3). Anything not listed
+is not in scope for the pass. The pass re-reads the listed Inputs at the start of
+every execution — state does not carry across passes.
+
+Est. pages is a small-integer estimate that helps the dispatch protocol decide
+whether to delegate to a subagent (R10).
+-->
+
+---
+
+## Sunset / dropped milestones
+
+<!--
+Per R9, dropped Milestones, Targets, and Objectives are crossed out and retained
+in the ledger. IDs never recycle. The next Milestone takes the next unused number.
+
+Format:
+- ~~M5~~ — <original title> — sunset YYYY-MM-DD; reason: <one line>
+-->
+
+_None yet._
+
+---
+
+## Notes for resume
+
+When picking this up after a pause:
+
+1. Read this file top-to-bottom.
+2. Read [`STATUS.md`](STATUS.md) for the gap ledger and foundation-gate state.
+3. Read [`decisions.md`](decisions.md) for locked choices.
+4. Read [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md) for anything needing user input.
+5. Identify the next eligible Milestone and execute it.
+
+Do not re-litigate locked decisions. Do not plan in chat. The ledger has the plan.

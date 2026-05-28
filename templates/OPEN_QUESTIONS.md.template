@@ -1,0 +1,54 @@
+# Open Questions — <ProjectName>
+
+> Questions the user needs to answer before related work can proceed.
+
+<!--
+Each entry names which Milestones it blocks and what the practitioner must
+answer. Per R11, Goal-layer discoveries route here for human ratification.
+Objective-layer discoveries route here when they would change what the
+practitioner thinks the project is delivering.
+
+When a question is answered, mark "Status: answered (<one-line resolution>)"
+and either leave the entry in place or archive it under a `## Resolved`
+section. Do not delete answered questions — they document the call.
+
+Delete this comment block once the first questions land.
+-->
+
+---
+
+## Q1 — <Question title>
+
+**Asked:** <YYYY-MM-DD>
+**Blocking:** M<N> (or "non-blocking" or "low priority")
+**Context.** <why this question is open; what work depends on it>
+
+**Need from user:** <specific ask>
+**Status:** open
+
+---
+
+## Q2 — <Question title> (example of an answered question)
+
+**Asked:** <YYYY-MM-DD>
+**Resolved:** <YYYY-MM-DD> — <one-line resolution>
+**Status:** answered (<short resolution tag>)
+
+---
+
+<!--
+Append new questions below this line. When a question is answered, replace the
+"Blocking" line with a "Resolved" line, change Status, and add a one-line
+resolution. If the resolution drove ledger changes, reference them by M-ID.
+
+Format for new questions:
+
+## Q<N> — <one-line question>
+
+**Asked:** YYYY-MM-DD
+**Blocking:** <M-ID list, or "non-blocking", or "low priority">
+**Context.** Why this question came up. What work depends on it.
+
+**Need from user:** What specifically is needed to unblock.
+**Status:** open
+-->

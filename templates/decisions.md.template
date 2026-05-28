@@ -1,0 +1,66 @@
+# Decisions — <ProjectName>
+
+> Append-only ADR ledger. Never edit a prior entry. If a decision is reversed, append a new D# with `Status: superseded by D<n>`.
+
+<!--
+Append-only means you NEVER edit a prior D-entry. Decisions that get reversed
+get a new D# whose Status names the supersession. The original entry stays
+intact so the project's history can be reconstructed by a later reader.
+
+Every meaningful scope, architectural, or process choice that should not be
+re-litigated lands here. Reference D# from the relevant node in GOTM.md.
+
+Delete this comment block once the first decisions land.
+-->
+
+---
+
+## D1 — <Decision title>
+
+**Date:** <YYYY-MM-DD>
+**GOTM node:** project | G<n> | O<n> | T<n.n>
+**Status:** locked | locked-pending-override | superseded by D<n>
+
+**Context.** <what prompted the decision; the constraint, the option set>
+
+**Decision.** <what was decided>
+
+**Consequences.** <how this shapes downstream work>
+
+---
+
+## D2 — <Decision title>
+
+**Date:** <YYYY-MM-DD>
+**GOTM node:** project | G<n> | O<n> | T<n.n>
+**Status:** locked
+
+**Context.** <what prompted the decision>
+
+**Decision.** <what was decided>
+
+**Consequences.** <how this shapes downstream work>
+
+---
+
+<!--
+Append new decisions below this line. Format for new entries:
+
+## D<N> — <one-line headline>
+
+**Date:** YYYY-MM-DD
+**GOTM node:** <id> (e.g., O2, T1.3, M5b, or "project" for project-level)
+**Status:** locked | locked-pending-override | superseded by D<n>
+
+**Context.** What problem or question made this decision necessary.
+
+**Decision.** What was chosen.
+
+**Consequences.** What this locks in or forecloses. What downstream work it enables or blocks.
+
+When superseding:
+- Append a new D-entry with its own number.
+- In the new entry's Context, name the entry being superseded.
+- Edit the old entry's Status field only — to `superseded by D<n>` — and nothing else.
+  The Status field is the one exception to the never-edit-a-prior-entry rule.
+-->

@@ -1,0 +1,61 @@
+# <ProjectName>
+
+<one-line description of the project>
+
+## Mission
+
+<one-sentence mission, copied from GOTM.md>
+
+## Current status
+
+**<phase name>** — <Milestone count> of <total> complete. See [`STATUS.md`](STATUS.md) for the gap ledger and active Milestone.
+
+## Project structure
+
+- [`GOTM.md`](GOTM.md) — canonical ledger (Goals · Objectives · Targets · Milestones)
+- [`STATUS.md`](STATUS.md) — derived view; regenerated from GOTM.md
+- [`decisions.md`](decisions.md) — append-only ADR ledger
+- [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md) — blocking questions for the practitioner
+
+<!-- Common subfolders, added as the project needs them:
+- `discovered/` — foundation-tier outputs read fresh before drafts
+- `drafts/` — draft Milestone outputs in progress
+- `final/` — released Milestone outputs
+- `raw/` — read-only primary evidence (scraped data, transcripts, exports)
+- `research/` — per-Milestone research outputs
+- `synthesized/` — cross-source synthesis outputs that combine multiple research files
+-->
+
+## How this project is organized
+
+This is a [GOTM](https://github.com/<owner>/gotm-framework-for-agentic-development)-orchestrated project. Goals are the why, Objectives are the what, Targets are the how-much, Milestones are the when (atomic execution passes — one Milestone equals one named output file).
+
+The 11 discipline rules from `docs/03-discipline-rules.md` are binding for every Milestone execution:
+
+1. GOTM.md is the single orchestration ledger — no in-chat planning.
+2. Atomic Milestones — one M equals one execution pass equals one output file.
+3. Milestone equals max context unit — read only the listed Inputs.
+4. Foundation before drafts — gates block draft-tier work.
+5. Ledger updates pair with file edits — same turn.
+6. Chat is tight status — one to two sentences, ledger-referenced.
+7. Temp docs liberally — write to the folder, not working memory.
+8. Sub-numbering preserves atomicity — M1a, M1b each get their own row.
+9. No ID recycling — sunset with strikethrough.
+10. Subagent delegation uses the prescribed prompt template — Inputs only.
+11. The ledger expands as we discover — write new scope before acting.
+
+See [`decisions.md`](decisions.md) for the locked decisions and [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md) for outstanding ratifications.
+
+## Resuming after a pause
+
+1. Read [`GOTM.md`](GOTM.md) top-to-bottom.
+2. Read [`STATUS.md`](STATUS.md) for the gap ledger and foundation-gate state.
+3. Read [`decisions.md`](decisions.md) for locked choices.
+4. Read [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md) for anything blocking work.
+5. Identify the next eligible Milestone and execute it.
+
+Do not re-litigate locked decisions. Do not plan in chat. The ledger has the plan.
+
+## License
+
+Apache 2.0 — see LICENSE.
