@@ -1,6 +1,6 @@
 ---
 project: gotm-framework-for-agentic-development
-last_updated: 2026-05-30 (rewrite complete — 16/16 units done; ready for push or meta-audit)
+last_updated: 2026-05-30 (rewrite committed and pushed; 19/19 units done; private; Q2 visibility decision still open)
 ---
 
 # Project ledger
@@ -11,7 +11,9 @@ Distill the GOTM discipline into a public-ready framework — concept docs, a pr
 
 ## Active unit
 
-**U18** — Commit the rewrite (audit passed at HIGH 0 / MED 0 / LOW 3, all within tolerance; no fix units required).
+**(none — rewrite shipped to private GitHub remote)**
+
+All 19 units done. Q2 (visibility flip from PRIVATE to PUBLIC) remains the only open ratification.
 
 ## Units
 
@@ -51,12 +53,13 @@ Distill the GOTM discipline into a public-ready framework — concept docs, a pr
 | U15 | Rewrite `README.md` for the new framing | all prior implementation units | `README.md` (732w) | done |
 | U16 | Light pass on `CONTRIBUTING.md` (remove old-framework references) | U15 | `CONTRIBUTING.md` (~470w) | done |
 | U17 | Meta-validation audit of the rewrite — existence + structure across all claimed-done units (U1-U16) | LEDGER.md as oracle, all U1-U16 outputs as targets, `prompts/audit.md` for shape | `audits/U17.md` (HIGH 0 / MED 0 / LOW 3 within tolerance / UNVERIFIED 0; recommendation: proceed to commit; out-of-kind notes: empty drafts/ cleaned, .DS_Store gitignored) | done |
-| U18 | Commit the rewrite to git (single commit; message captures the reframe) | U17 verdict | git commit on `main` | pending |
-| U19 | Push the rewrite to GitHub (visibility stays PRIVATE) | U18 | remote `main` updated | pending |
+| U18 | Commit the rewrite to git (single commit; message captures the reframe) | U17 verdict | git commit `0f0933e` on `main` | done |
+| U19 | Push the rewrite to GitHub (visibility stays PRIVATE) | U18 | remote `main` at `7f743e8..0f0933e`; Databricks secret-scan: "No Databricks code found" | done |
 
 ## Recent updates
 
-- 2026-05-30: **Rewrite complete.** U15 (README ~732w) and U16 (CONTRIBUTING ~470w) done. All 16 units complete. Ready for meta-audit, commit, push, or visibility flip — each is a discrete next unit awaiting practitioner direction.
+- 2026-05-30: **Rewrite shipped.** U17 meta-audit passed (HIGH 0 / MED 0 / LOW 3 within tolerance). U18 committed (`0f0933e`). U19 pushed to private GitHub. 19/19 units done. Q2 visibility flip remains open.
+- 2026-05-30: U15 (README ~732w) and U16 (CONTRIBUTING ~470w) done. All concept + implementation units complete.
 - 2026-05-30: Prompts phase closed (U13a-c done, 3 prompts ~1,500w). 13 old prompts deleted (U14). Active unit U15.
 - 2026-05-30: Templates phase closed (U12a-e done, 5 templates ~1,200w). Old 5 templates deleted.
 - 2026-05-30: Concept phase closed. Implementation phase opened with U5-U11 done in one batch.
