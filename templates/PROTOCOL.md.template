@@ -1,0 +1,88 @@
+# Project protocol
+
+This file is the operating protocol for this project. Every agent that opens a session here reads this file first and follows it.
+
+The framework this protocol implements is GOTM — described in the framework repo's `docs/`. Read those once for understanding, this file every session.
+
+## Session-start checklist
+
+On opening a session in this project:
+
+1. Read this file (`PROTOCOL.md`).
+2. Read [`LEDGER.md`](LEDGER.md) — the authoritative list of units.
+3. Read [`QUESTIONS.md`](QUESTIONS.md) — any open questions blocking work.
+4. Identify the **active unit** (top non-`done` row whose blockers are clear).
+5. Act on that unit, or — if a higher-priority concern surfaces — surface it.
+6. After acting, write back: update `LEDGER.md`, append to `DECISIONS.md` if a decision was made, update `QUESTIONS.md` if a question opened or closed.
+
+These six steps are not negotiable. The discipline depends on the project's state being the state of these files.
+
+## The five rules
+
+**1. Single ledger.** `LEDGER.md` is authoritative. State that is not in the ledger is not real state. If two documents disagree, the ledger wins.
+
+**2. Atomic units.** Each row in the ledger is one execution pass producing one named output file. Not two outputs. Not "and a small revision." Not "while we're at it." If a planned unit hides more than one output, split it before work starts.
+
+**3. Foundation before drafts.** Some units are foundation (gather source, lock decisions, map terrain). Some are drafts (produce on top of foundation). Foundation precedes drafts. Drafts that begin before foundation closes fail by producing fluent prose grounded in nothing.
+
+**4. Audit before downstream consumes.** Every claimed-done unit gets a mechanical check before downstream work depends on it. The check looks at: does the named output exist; does its content match what was promised; do its citations trace. Findings become new ledger units, not edits to closed ones.
+
+**5. Ratification ladder routes human decisions.** Some decisions are the human's. The ladder names which and routes them to `QUESTIONS.md`. See next section.
+
+## The ratification ladder
+
+When a question or decision arises during work, the agent classifies it and routes:
+
+| Layer | What it covers | What happens |
+|---|---|---|
+| **Mission** | mission, audience, scope, license, what counts as done | Route to `QUESTIONS.md`. Agent waits. |
+| **Execution** | next unit, sequencing, word count, atomic split, in-loop vs dispatch | Agent decides, records in `LEDGER.md` or `DECISIONS.md`, proceeds. |
+| **Ambiguous** | could be either; agent judges materiality | Agent surfaces with `MATERIAL?` flag. Human routes it. |
+
+The boundary is fixed. The human is not surprised by mission-level decisions made unilaterally; the human is not pulled into execution-level choices.
+
+## Unit lifecycle
+
+A unit moves through states: **pending → in_progress → done**, or **pending → superseded** if scope changes mid-flight.
+
+A unit is "done" when:
+
+- The named output file exists at the stated path.
+- The content matches what the unit promised (sections, structure, word count if specified).
+- An audit has run on it — or, if explicitly deferred, the deferral is recorded with a reason and a follow-up unit appended.
+
+Mark done by updating the unit's row in `LEDGER.md`. Never edit a done unit's output to "fix" it later; append a new unit that supersedes or follows on. The ledger grows; it does not drift.
+
+## When to dispatch a subagent
+
+Dispatch a subagent when:
+
+- The unit's work exceeds the current session's bandwidth (long deliverable, large input set).
+- An audit needs an independent context — the agent that did the work cannot audit the same work (Rule 4).
+- Multiple atomic units can run in parallel without shared state.
+
+The dispatch prompt carries:
+
+- A pointer to `PROTOCOL.md` (this file) — so the worker reads the discipline.
+- The bounded inputs the worker is allowed to read.
+- The single named output path.
+- The output spec (sections, word count, voice).
+- The constraints (banned phrases, format, etc.).
+
+The worker does not see the rest of the project. The worker reads the protocol and its own task and produces one output. See `prompts/subagent-dispatch.md` for the canonical dispatch template.
+
+## Common moves
+
+| Move | Use |
+|---|---|
+| Starting a session | `prompts/session-start.md` for the kickoff template |
+| Dispatching a subagent | `prompts/subagent-dispatch.md` |
+| Running an audit | `prompts/audit.md` |
+
+If a move does not have a prompt yet, do it carefully and add the prompt as you go.
+
+## Mission (this project)
+
+> <one-sentence mission: what done looks like for this project>
+
+Replace the line above with your project's mission before starting work.

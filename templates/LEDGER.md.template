@@ -1,0 +1,36 @@
+---
+project: <project-name>
+last_updated: <YYYY-MM-DD>
+---
+
+# Project ledger
+
+## Mission
+
+<one-sentence mission: what done looks like>
+
+## Active unit
+
+**U1** — <first unit title>
+
+## Units
+
+> Grouping by phase (e.g., "Foundation", "Drafting", "Wrapping") is convenience only. There is no hierarchy — only an ordered list of atomic units.
+
+| ID | Title | Inputs | Output | Status |
+|---|---|---|---|---|
+| U1 | <first unit title> | — | `<output/path>` | pending |
+| U2 | <second unit title> | U1 | `<output/path>` | pending |
+
+## Recent updates
+
+- <YYYY-MM-DD>: Project initialized.
+
+<!--
+Conventions:
+- IDs are flat (U1, U2, U3...). No prefixes for hierarchy.
+- Each row produces ONE named output file (atomicity rule).
+- `Inputs` lists prior units whose outputs this one consumes (foundation gate).
+- Status: pending | in_progress | done | superseded.
+- Done units are never edited. To revise, append a follow-on unit.
+-->

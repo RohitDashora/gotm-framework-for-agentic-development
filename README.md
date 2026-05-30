@@ -1,92 +1,65 @@
-# GOTM — Goals · Objectives · Targets · Milestones
+# GOTM
 
-A framework for running complex multi-pass agentic work without losing the thread.
+A discipline for surviving bounded-context agentic execution — when complex work spans hundreds of LLM sessions and many subagents and can't fit in any one of them.
 
 ## The problem GOTM solves
 
-You are four sessions into a multi-week research project. The plan lives in your head. At the start of each session you paste the goals, the open questions, and the current best guess at the framing back into the conversation. The re-grounding step takes fifteen minutes at the top of every session. It feels like overhead.
+Complex work with AI agents falls apart in predictable ways. State that an agent built up in one session evaporates at the session boundary. The next session starts cold and re-derives — usually slightly differently — and the project's working understanding drifts. Drafts run ahead of the evidence the agent never wrote down. Subagents inherit the task but not the project's discipline. "Done" markers accumulate without independent audit. Mission-level decisions get made unilaterally by the agent; trivial choices get escalated to the human. Session-level tooling — slash commands, custom instructions, system prompts — dies when the session does.
 
-Session four, you are tired, and you skip it. The LLM has no memory of the prior three. It picks up from the last message in scrollback, which happens to be a follow-up about something tangential. The model returns confident output that draws on the wrong assumption about the core question. The output reads clean. You build a follow-on analysis on top of it the next morning. Two days later a peer reviewer catches the mismatch. Both deliverables are rewritten. The original plan had never lived anywhere outside the chat window.
-
-This is the *vanishing plan* — one of three recurring failure shapes when an LLM-driven workflow spans more than a single sitting. The other two: drafts built on partial evidence that nobody can feel are partial, and "milestones" that quietly contain six sub-tasks hiding under one row. All three are invisible from inside the work and obvious from outside it. GOTM is the discipline that prevents them.
+None of these are fixable inside the agent. The agent is, by construction, a bounded-context worker. The thing that gives the worker continuity has to live outside.
 
 ## What GOTM is
 
-GOTM is a four-layer hierarchy — Goals (why), Objectives (what), Targets (how much), Milestones (when) — held in a single external ledger file the next session reads fresh. The discipline runs on three load-bearing rules: the ledger is the project, Milestones are atomic (one pass, one output file), and the foundation closes before any draft begins. A small mode set (`plan`, `init`, `run`, `audit`) operationalizes the hierarchy as paste-able prompts you drop into your LLM.
+GOTM is the discipline of moving continuity outside the agent and into the **project filesystem**. The project carries five primitives — a mission, a ledger, atomic units of work, a foundation-before-drafts gate, and an audit cycle — plus a ratification ladder that says which decisions are the human's. Every agent that opens a session in the project reads the protocol, reads the ledger, and operates under the discipline. Subagents inherit the discipline through the dispatch. The agent stays stateless; the project stays stateful.
 
-GOTM is not a tool. There is no runtime to install, no agent framework to adopt, no SaaS to subscribe to, and no opinion about which model provider you use. It is a discipline and a set of prompts. The LLM you already use runs it.
+GOTM is not a hierarchy. It is not project management. It is not a methodology. It tells you how to carry context across many sessions of whatever methodology you use to plan the work.
 
-## When to use GOTM
+## When to use it
 
-Use GOTM when:
+Use GOTM when the work is multi-session, when the cost of drift is high, and when an agent (or several) will be doing meaningful chunks of the execution. Multi-week deliverables. Multi-author research projects. Systems that span hundreds of LLM sessions and dispatched subagents.
 
-- The work has five or more distinct execution passes
-- The work spans days or weeks and must survive context resets
-- The deliverable is evidence-heavy and a draft on partial data destroys credibility
-- Sub-passes will be delegated to subagents or sub-sessions
-- Discovery during execution routinely surfaces new scope
-- A reviewer or future-you needs to audit the work later
-
-Do not use GOTM when:
-
-- The work fits one sitting
-- The pace is real-time operational (incident response, live ops)
-- The deliverable is content writing with no research phase
-- The spec is stable — two or three known steps and done
-- The work is open-ended exploration with no goal yet
-- Several humans need to write to the shared plan at the same time
-
-Rule of thumb: if you can credibly imagine three sessions where the second needs context from the first, GOTM is worth it. If two sessions get you done and the second is mostly polish, a task list is enough.
+Do not use GOTM for one-shot tasks. A one-off email or a five-line script does not need a ledger. The ceremony is more than the work.
 
 ## What's in this repo
 
 ```
-docs/         6 concept chapters (~15k words)
-prompts/      13 self-contained prompts you paste into your LLM
-templates/    5 scaffold files you copy into a new project folder
+docs/         3 concept chapters (~3,900 words) — the framework from first principles
+prompts/      3 operational prompts a practitioner pastes into their LLM
+templates/    5 scaffold files to copy into a new project's root
+PROTOCOL.md   the project's own protocol (working example)
+LEDGER.md     the project's own ledger (working example)
+DECISIONS.md  the project's own append-only decision log (working example)
+QUESTIONS.md  the project's own open-questions file (working example)
 ```
 
-`docs/` carries the concept material — why the discipline exists, the four layers, the eleven rules, the modes, the audit family, the project archetypes. `prompts/` carries the orchestration prompts (`plan`, `init`, `run`), eight audit prompts, and two subagent dispatch templates. `templates/` carries the five ledger scaffolds (`GOTM`, `STATUS`, `decisions`, `OPEN_QUESTIONS`, `README`) you fork into your project folder.
+Everything is platform-neutral markdown. Paste any prompt body into ChatGPT, Cursor, Cline, Claude API, or raw chat — it works. The repo's own root files (`PROTOCOL.md`, `LEDGER.md`, `DECISIONS.md`, `QUESTIONS.md`) are visible as a working meta-example: this project is itself GOTM-orchestrated.
 
-Everything is platform-neutral markdown. Paste any prompt into ChatGPT, Cursor, Cline, Claude API, or raw chat — it works.
+## Quickstart — your first GOTM project in five steps
 
-## Quickstart — your first GOTM project in 5 steps
+1. **Pick work that fits.** Multi-session, drift-cost high. See [When to use it](#when-to-use-it).
+2. **Copy the templates into your project root.** From `templates/`: `PROTOCOL.md.template` → `PROTOCOL.md`; `LEDGER.md.template` → `LEDGER.md`; `DECISIONS.md.template` → `DECISIONS.md`; `QUESTIONS.md.template` → `QUESTIONS.md`. Fill in the mission line in `PROTOCOL.md` and `LEDGER.md`. Sketch your first two or three units in `LEDGER.md` (foundation first).
+3. **Open `prompts/session-start.md` in your LLM.** Paste the body. The LLM reads `PROTOCOL.md`, `LEDGER.md`, and `QUESTIONS.md`, identifies the active unit, and reports back.
+4. **Direct the LLM to act on the active unit.** When it finishes, it updates `LEDGER.md` and either appends a decision to `DECISIONS.md` or surfaces a question to `QUESTIONS.md`.
+5. **When work exceeds a session or needs independent context, dispatch.** Use `prompts/subagent-dispatch.md` to construct a worker prompt that points back at `PROTOCOL.md`. Use `prompts/audit.md` to run a mechanical check before downstream work consumes any claimed-done output.
 
-1. **Pick a piece of work that fits.** Run the §When to use checklist against the work in front of you. Three or more use-when signals true, fewer than three do-not-use signals true, at least five multi-pass Milestones in view. If the work does not clear the test, stop here. A task list is enough.
-
-2. **Plan.** Open [`prompts/plan.md`](prompts/plan.md), paste it into your LLM, and append one paragraph describing your ask. Add optional anchors (delivery date, audience, hard constraints) below the ask. The LLM returns a proposed Goal → Objective → Target → Milestone hierarchy with the Goals routed to a ratification block.
-
-3. **Ratify the Goals.** Review the proposed Goals. Accept or comment. The Objectives, Targets, and Milestones below are the LLM's discretion to propose — you override later if needed.
-
-4. **Init.** Open [`prompts/init.md`](prompts/init.md), paste it into your LLM along with your ratified plan. The LLM emits five scaffold files — `GOTM.md`, `STATUS.md`, `decisions.md`, `OPEN_QUESTIONS.md`, `README.md`. Save them in a new folder. That folder is now your project.
-
-5. **Run.** Open [`prompts/run.md`](prompts/run.md) and use it iteratively. Each invocation advances one Milestone, either in-loop or by returning a subagent dispatch prompt you paste into a worker LLM. The ledger updates pair with the file edits — same turn, not later.
-
-From there, the audit prompts (`prompts/audit-*.md`) let you verify your work as you go. See `docs/` for the concept chapters.
+From there, the loop repeats. Pick the next active unit. Act. Write back. Audit when called for.
 
 ## Concept chapters
 
-- [`docs/01-why.md`](docs/01-why.md) — why GOTM exists; the three failure archetypes; the four foundational principles; the fit-test
-- [`docs/02-hierarchy.md`](docs/02-hierarchy.md) — the four layers; ID scheme; two project shapes; three target styles; layer disambiguation
-- [`docs/03-discipline-rules.md`](docs/03-discipline-rules.md) — the eleven R-rules and the ratification ladder
-- [`docs/04-modes.md`](docs/04-modes.md) — the eight modes and their dispatch rules
-- [`docs/05-audit-family.md`](docs/05-audit-family.md) — the eight audit kinds and the severity tiers
-- [`docs/06-archetypes.md`](docs/06-archetypes.md) — four project archetypes and which one fits your work
+- [`docs/01-what-is-gotm.md`](docs/01-what-is-gotm.md) — what GOTM is, from first principles
+- [`docs/02-what-agents-are-missing.md`](docs/02-what-agents-are-missing.md) — the specific gaps in agentic work today
+- [`docs/03-gotm-with-agents.md`](docs/03-gotm-with-agents.md) — how the framework closes them
 
-## Prompts and templates
+## Operational prompts and templates
 
-- [`prompts/plan.md`](prompts/plan.md), [`prompts/init.md`](prompts/init.md), [`prompts/run.md`](prompts/run.md) — orchestration prompts
-- [`prompts/audit-*.md`](prompts/) — eight audit prompts, one per audit kind
-- [`prompts/subagent-execution.md`](prompts/subagent-execution.md), [`prompts/subagent-audit.md`](prompts/subagent-audit.md) — worker-prompt conventions
-- [`templates/`](templates/) — copy-and-fill scaffolds for `GOTM.md`, `STATUS.md`, `decisions.md`, `OPEN_QUESTIONS.md`, and the per-project `README.md`
-
-## Status
-
-This repo is itself a GOTM-orchestrated project — a worked meta-example. The framework was distilled and assembled using the discipline the framework describes. The project's own [`GOTM.md`](GOTM.md), [`STATUS.md`](STATUS.md), and [`decisions.md`](decisions.md) are visible in the repo root; read them as a reference for what a real ledger looks like in flight, including sub-lettered Milestones, sunset rows, and a locked-decision chain.
+- [`prompts/session-start.md`](prompts/session-start.md) — kickoff template; first move of every session
+- [`prompts/subagent-dispatch.md`](prompts/subagent-dispatch.md) — how the orchestrator builds a bounded worker prompt
+- [`prompts/audit.md`](prompts/audit.md) — generic audit template; one kind per dispatch
+- [`templates/`](templates/) — copy-and-fill scaffolds for the four root files plus a project README
 
 ## License
 
-Apache 2.0 — see [`LICENSE`](LICENSE). Apache 2.0 includes an explicit patent grant, which matters for adopters who plan to build on top of the prompts or templates.
+Apache 2.0 — see [`LICENSE`](LICENSE). Contains an explicit patent grant.
 
 ## Contributing
 

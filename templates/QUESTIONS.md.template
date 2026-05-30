@@ -1,0 +1,27 @@
+# Open questions — <project-name>
+
+> Questions whose resolution requires the human. When answered, the resolution moves into `DECISIONS.md` (with a new D-entry) and any blocked units become unblocked.
+
+---
+
+## Q1 — <question title>
+
+**Asked:** <YYYY-MM-DD>
+**Blocking:** <unit ID(s) or "non-blocking">
+**Context.** <why this question is open; what depends on the answer>
+
+**Need from human:** <specific ask>
+**Status:** open | answered (see D<n>)
+
+---
+
+<!--
+Conventions:
+- Open the question with a one-line title.
+- Name the units that are blocked on the answer.
+- When answered, mark status and reference the D# in DECISIONS.md that resolved it.
+- Resolved questions stay in this file for audit-trail purposes; do not delete.
+- New questions appended below the marker.
+-->
+
+<!-- Append new questions below this line. -->

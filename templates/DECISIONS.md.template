@@ -1,0 +1,21 @@
+# Decisions — <project-name>
+
+> Append-only ADR ledger. Never edit a prior entry. If a decision is reversed, append a new D# with `Status: superseded by D<n>`.
+
+---
+
+## D1 — <decision title>
+
+**Date:** <YYYY-MM-DD>
+**Scope:** project | unit-group | one-off
+**Status:** locked | locked-pending-override | superseded by D<n>
+
+**Context.** <what prompted the decision; the option set considered>
+
+**Decision.** <what was decided>
+
+**Consequences.** <how this shapes downstream work>
+
+---
+
+<!-- Append new decisions below this line. -->
