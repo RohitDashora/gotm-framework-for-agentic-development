@@ -17,7 +17,7 @@ GOTM rests on five working primitives. None is theoretical; each is a file or a 
 
 **Mission.** A single sentence that names what done looks like. It sits at the top of the project's working notes. It exists so that a stranger to the project — or yourself in three weeks — can answer "why are we doing this" in one read.
 
-**Ledger.** A single file that holds every unit of work the project is committed to, in the order they should be done. The ledger is authoritative. State that isn't in the ledger isn't really state. If two documents disagree, the ledger wins.
+**Ledger.** A single file that holds every unit of work the project is committed to, in the order they should be done. The ledger is authoritative. State that isn't in the ledger isn't really state. If two documents disagree, the ledger wins. Because the ledger *is* the project's state, it is also its recovery point: the files on disk — not the chat history — must be enough to resume, whether the last session ended cleanly or crashed mid-step.
 
 **Atomic unit.** Each row in the ledger is one execution pass — one working session that produces one named output file. Not two outputs. Not "and also a small revision." Not "while we're at it." One. If a planned unit hides more than one output, it gets split before work starts.
 

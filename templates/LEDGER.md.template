@@ -33,4 +33,11 @@ Conventions:
 - `Inputs` lists prior units whose outputs this one consumes (foundation gate).
 - Status: pending | in_progress | done | superseded.
 - Done units are never edited. To revise, append a follow-on unit.
+- Mark a unit `in_progress` BEFORE producing its output (crash-safe ordering);
+  see PROTOCOL.md -> Resilience.
+- Stamp `last_updated` (front matter) on every write-back, so the ledger's age
+  is honest.
+- Off-mission artifacts (work that does not serve the mission) do NOT go in the
+  Units table. Produce the file, then add a "Recent updates" line marked
+  `(not a mission unit)`. See PROTOCOL.md -> Off-mission artifacts.
 -->

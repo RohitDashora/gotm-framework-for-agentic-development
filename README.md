@@ -10,7 +10,7 @@ None of these are fixable inside the agent. The agent is, by construction, a bou
 
 ## What GOTM is
 
-GOTM is the discipline of moving continuity outside the agent and into the **project filesystem**. The project carries five primitives — a mission, a ledger, atomic units of work, a foundation-before-drafts gate, and an audit cycle — plus a ratification ladder that says which decisions are the human's. Every agent that opens a session in the project reads the protocol, reads the ledger, and operates under the discipline. Subagents inherit the discipline through the dispatch. The agent stays stateless; the project stays stateful.
+GOTM is the discipline of moving continuity outside the agent and into the **project filesystem**. The project carries five primitives — a mission, a ledger, atomic units of work, a foundation-before-drafts gate, and an audit cycle — plus a ratification ladder that says which decisions are the human's, anti-drift safeguards that make the rules catchable instead of remembered, and resilience rules that keep the on-disk state recoverable after any session end. Every agent that opens a session in the project reads the protocol, reads the ledger, and operates under the discipline. Subagents inherit the discipline through the dispatch. The agent stays stateless; the project stays stateful.
 
 GOTM is not a hierarchy. It is not project management. It is not a methodology. It tells you how to carry context across many sessions of whatever methodology you use to plan the work.
 
@@ -23,9 +23,9 @@ Do not use GOTM for one-shot tasks. A one-off email or a five-line script does n
 ## What's in this repo
 
 ```
-docs/         3 concept chapters (~3,900 words) — the framework from first principles
+docs/         3 concept chapters (~4,800 words) — the framework from first principles
 prompts/      3 operational prompts a practitioner pastes into their LLM
-templates/    5 scaffold files to copy into a new project's root
+templates/    5 scaffold files to copy into a new project (root, or a .gotm/ subfolder)
 PROTOCOL.md   the project's own protocol (working example)
 LEDGER.md     the project's own ledger (working example)
 DECISIONS.md  the project's own append-only decision log (working example)
@@ -37,7 +37,7 @@ Everything is platform-neutral markdown. Paste any prompt body into ChatGPT, Cur
 ## Quickstart — your first GOTM project in five steps
 
 1. **Pick work that fits.** Multi-session, drift-cost high. See [When to use it](#when-to-use-it).
-2. **Copy the templates into your project root.** From `templates/`: `PROTOCOL.md.template` → `PROTOCOL.md`; `LEDGER.md.template` → `LEDGER.md`; `DECISIONS.md.template` → `DECISIONS.md`; `QUESTIONS.md.template` → `QUESTIONS.md`. Fill in the mission line in `PROTOCOL.md` and `LEDGER.md`. Sketch your first two or three units in `LEDGER.md` (foundation first).
+2. **Copy the templates into your project.** From `templates/`: `PROTOCOL.md.template` → `PROTOCOL.md`; `LEDGER.md.template` → `LEDGER.md`; `DECISIONS.md.template` → `DECISIONS.md`; `QUESTIONS.md.template` → `QUESTIONS.md`. Put them at the repo root for a writing/research project, or in a `.gotm/` subfolder for a software/multi-asset project (keep a thin pointer at the root so your tool's session-context file still auto-loads — see the Layout note in `PROTOCOL.md.template`). Fill in the mission line in `PROTOCOL.md` and `LEDGER.md`. Sketch your first two or three units in `LEDGER.md` (foundation first).
 3. **Open `prompts/session-start.md` in your LLM.** Paste the body. The LLM reads `PROTOCOL.md`, `LEDGER.md`, and `QUESTIONS.md`, identifies the active unit, and reports back.
 4. **Direct the LLM to act on the active unit.** When it finishes, it updates `LEDGER.md` and either appends a decision to `DECISIONS.md` or surfaces a question to `QUESTIONS.md`.
 5. **When work exceeds a session or needs independent context, dispatch.** Use `prompts/subagent-dispatch.md` to construct a worker prompt that points back at `PROTOCOL.md`. Use `prompts/audit.md` to run a mechanical check before downstream work consumes any claimed-done output.

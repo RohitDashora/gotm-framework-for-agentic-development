@@ -1,6 +1,6 @@
 # Decisions — <project-name>
 
-> Append-only ADR ledger. Never edit a prior entry. If a decision is reversed, append a new D# with `Status: superseded by D<n>`.
+> Append-only ADR ledger. Never edit a prior entry's substance. If a decision is reversed, append a new D# and update the old entry's **Status** line to `superseded by D<n>` — that one Status-line edit is the documented mechanism, not a substantive rewrite.
 
 ---
 

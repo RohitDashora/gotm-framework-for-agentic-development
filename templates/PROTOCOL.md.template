@@ -2,7 +2,11 @@
 
 This file is the operating protocol for this project. Every agent that opens a session here reads this file first and follows it.
 
-The framework this protocol implements is GOTM — described in the framework repo's `docs/`. Read those once for understanding, this file every session.
+The framework this protocol implements is described in [`docs/`](docs/01-what-is-gotm.md) — read those once for understanding, this file every session.
+
+> **Layout.** Two layouts work. *Root layout* (the default shown below): the file-set sits at the project root — fine for a writing/research project that produces few files of its own. *Subfolder layout*: put the file-set in a folder like `.gotm/` to keep the root reserved for produced assets (code, docs) — better for software or multi-asset projects.
+>
+> If you use the subfolder layout, mind the **session-context dependency**: many agent tools auto-load a context file from the *project root* on session start (a root `CLAUDE.md`, `.cursorrules`, or equivalent). Moving that file into the subfolder silently stops the auto-load — no error, just quiet erosion. Keep a thin pointer file at the root that references the protocol inside the subfolder, and adjust the relative paths below to match your layout.
 
 ## Session-start checklist
 
@@ -11,11 +15,12 @@ On opening a session in this project:
 1. Read this file (`PROTOCOL.md`).
 2. Read [`LEDGER.md`](LEDGER.md) — the authoritative list of units.
 3. Read [`QUESTIONS.md`](QUESTIONS.md) — any open questions blocking work.
-4. Identify the **active unit** (top non-`done` row whose blockers are clear).
-5. Act on that unit, or — if a higher-priority concern surfaces — surface it.
-6. After acting, write back: update `LEDGER.md`, append to `DECISIONS.md` if a decision was made, update `QUESTIONS.md` if a question opened or closed.
+4. **Reconcile the ledger against disk** (crash recovery) — heal any drift before acting; see *Resilience* below.
+5. Identify the **active unit** (top non-`done` row whose blockers are clear).
+6. Act on that unit, or — if a higher-priority concern surfaces — surface it.
+7. After acting, write back **in the same turn** — this is a hard gate, see *Anti-drift safeguards* below: update `LEDGER.md`, append to `DECISIONS.md` if a decision was made, update `QUESTIONS.md` if a question opened or closed.
 
-These six steps are not negotiable. The discipline depends on the project's state being the state of these files.
+These seven steps are not negotiable. The discipline depends on the project's state being the state of these files.
 
 ## The five rules
 
@@ -51,7 +56,64 @@ A unit is "done" when:
 - The content matches what the unit promised (sections, structure, word count if specified).
 - An audit has run on it — or, if explicitly deferred, the deferral is recorded with a reason and a follow-up unit appended.
 
+**Audit deferral is sanctioned, not skipping.** During an interactive design phase where the human reviews each output as it lands, human review *is* the gate — a separate mechanical audit per unit would be friction. In that case, defer the mechanical audit: record the deferral on the unit's row (reason + a follow-up audit unit appended to `LEDGER.md`). Deferral that is written down stays honest; deferral that is forgotten is just skipping.
+
 Mark done by updating the unit's row in `LEDGER.md`. Never edit a done unit's output to "fix" it later; append a new unit that supersedes or follows on. The ledger grows; it does not drift.
+
+## Anti-drift safeguards (operational)
+
+The five rules say *what* the discipline is. These checks make the two ways it erodes — **silent work** (acting without writing back) and **quiet edits** (changing a frozen artifact instead of appending) — catchable in the moment. Run them; do not rely on memory. (Memory-based discipline is the exact thing this framework exists to not rely on.)
+
+**Pre-edit check — run before every edit/write:**
+
+1. Is the target path the `Output` of a unit whose Status is `done` in `LEDGER.md`? → **STOP. Do not edit it.** A done unit's output is frozen. Append a follow-on / superseding unit and put the change in the *new* unit's output.
+2. Is the target a prior substantive entry in `DECISIONS.md` or `QUESTIONS.md`? → **Append a new entry instead.** (Allowed exception: updating a Status line to mark a question `answered` or a decision `superseded by D<n>` — that is the documented mechanism, not a substantive edit.)
+3. Otherwise — a **living governance doc** (`PROTOCOL.md`, `README.md`, the root session-context file) or a `pending` / `in_progress` unit's output → editing is allowed. The immutability rule applies to unit outputs and closed decision/question entries, *not* to the living governance docs, which must evolve.
+
+**Write-back gate — a unit's work and its ledger write-back are one turn, not two.** You may not end a turn in which you created or changed a unit's output without, in that same turn: updating the unit's row in `LEDGER.md`, appending to `DECISIONS.md` if a decision was made, and updating `QUESTIONS.md` if a question opened or closed. Output produced but not written back = the unit is **not** done; write back before yielding.
+
+**Done-means-written.** Never set a unit's Status to `done` unless its named output file actually exists at the stated path with the promised content. Verify, don't assume.
+
+**Turn-end self-check — before yielding any turn that touched the project, answer three questions:**
+
+- Did I produce or change a unit output? → Is its `LEDGER.md` row updated to match?
+- Did I make an execution decision? → Is it in `DECISIONS.md` (or captured as a new unit)?
+- Did a question open or get answered? → Is `QUESTIONS.md` updated?
+
+Any "no, but I should have" → fix it before the turn ends.
+
+> **Mechanical enforcement is optional and lives in tooling.** The pre-edit check can be *enforced* rather than remembered — a pre-tool hook in your agent harness can refuse an edit whose target is a `done` unit's frozen output. The discipline in this repo is paste-able prompts by design; runtime enforcement bindings belong in adopter tooling (for example, a Claude Code plugin), not in this framework.
+
+## Resilience — no context loss across any session end
+
+The framework's core promise is that the on-disk state alone reconstructs full working context — so an accidental session end (crash, closed terminal, killed process) with **no resume** loses nothing. The write-back gate covers clean turn-ends; these rules close the mid-turn crash window and make cold restarts self-healing.
+
+**Invariant — transcript independence.** At every yield point, the project files must be sufficient to resume *without* the chat transcript. Never hold decision-relevant state only in conversation. Treat `LEDGER.md` → Recent updates as the recovery log — rich enough that a cold session understands not just what is done but where we are and why.
+
+**Crash-safe write ordering (journaling).** When executing a unit:
+
+1. Mark the unit `in_progress` in `LEDGER.md` **before** producing its output.
+2. Produce the single output file.
+3. Mark the unit `done` and append any `DECISIONS.md` / `QUESTIONS.md` entries.
+
+A crash between (1) and (3) leaves a recoverable trail — never a silent gap.
+
+**Bound the loss — size units to their loop (heavy/iterative work).** Never wrap a long loop (columns, tables, batches) in one un-checkpointed pass. Either split into per-iteration units, or checkpoint per iteration to the working state so reconciliation resumes at the last completed iteration — a crash then costs one iteration, not the whole unit.
+
+**Session-start reconciliation (crash recovery).** Before acting (checklist step 4), reconcile the ledger against disk and heal drift:
+
+- `done` row whose output file is **missing** → reopen the unit; note in Recent updates.
+- Output file **exists** for a non-`done` unit → an interrupted unit: inspect, then finalize to `done` (if complete) or supersede with a follow-on unit (if partial).
+- `in_progress` unit → resume/verify exactly that unit.
+- Record what reconciliation found/did in Recent updates (recovery is auditable).
+
+Recovery produces new ledger entries, never silent edits to closed units. This does not make the crash window literally zero (a crash *during* the ledger write itself still exists), but it makes every outcome **recoverable** — the bar is "no *unrecoverable* context loss."
+
+## Off-mission artifacts
+
+Sometimes the human asks for something that does not serve the mission — a side note, a one-off export, meta-feedback about the process itself. "Single ledger / everything is a unit" tempts you to file it as a unit, but it isn't mission work and adding it to the unit table pollutes the unit graph.
+
+Convention: **produce the file, then drop a one-line breadcrumb in `LEDGER.md` → Recent updates marked _not a mission unit_.** Do not add it to the Units table. This keeps traceability without distorting scope.
 
 ## When to dispatch a subagent
 

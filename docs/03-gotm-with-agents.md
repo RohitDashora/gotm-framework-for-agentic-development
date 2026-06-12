@@ -5,7 +5,7 @@ last_updated: 2026-05-29
 
 # GOTM with agents
 
-The previous chapter listed what falls apart when complex work is attempted inside agent sessions without external scaffolding. State evaporates between sessions. Drafts run ahead of evidence. Subagents inherit only the task. Self-marking replaces audit. The human/agent decision boundary is improvised. Session-level tooling cannot persist across hundreds of sessions. Every gap had the same shape: something needed to live outside the agent.
+The previous chapter listed what falls apart when complex work is attempted inside agent sessions without external scaffolding. State evaporates between sessions. Drafts run ahead of evidence. Subagents inherit only the task. Self-marking replaces audit. The human/agent decision boundary is improvised. Session-level tooling cannot persist across hundreds of sessions. Written-down rules still lean on the agent remembering them. Hard session ends leave the project's state inconsistent with what is on disk. Every gap had the same shape: something needed to live outside the agent.
 
 This chapter names what that something is.
 
@@ -53,7 +53,7 @@ What the diagram shows: the project is the only thing that persists. Sessions co
 
 ## 3. The session-start protocol
 
-Every session in this project begins the same way. The agent reads the protocol. The agent reads the ledger. The agent reads the open questions. The agent identifies the active unit. The agent acts.
+Every session in this project begins the same way. The agent reads the protocol. The agent reads the ledger. The agent reads the open questions. The agent reconciles the ledger against what is actually on disk — healing any drift a previous hard end may have left. The agent identifies the active unit. The agent acts.
 
 The reading is not optional and not perfunctory. The agent does not skim. The protocol exists so that the agent's first move is to align with whatever state the project is in — including any state put there by an entirely different agent in an earlier session.
 
@@ -94,7 +94,17 @@ The audits are themselves files in the project. Each audit is a prompt that name
 
 The findings are not consumed inside the audit. They are written down. The main agent reads them and, for findings above the trivial bar, appends new units to the ledger — fix units that name the gap and the file to change. The audit-and-fix cycle becomes part of the project's normal forward motion. Drift is not avoided by being careful; drift is caught by being checked.
 
-## 7. What still requires the agent
+## 7. Keeping the discipline honest
+
+Chapter 2 ended on two gaps that the file-set alone does not close. A protocol can *say* "never edit a finished output" and "write back every turn," but saying is not catching — the rules still lean on the agent remembering them (§8 there). And a project's state only survives a session boundary if it stays consistent with what is on disk, which graceful ends preserve and hard ends do not (§9 there). The framework answers both with operational rules, not exhortation.
+
+**Safeguards against the two erosion modes.** The protocol carries a small set of checks that make *silent work* and *quiet edits* catchable in the moment rather than in hindsight. A **pre-edit check** runs before any write: if the target is the output of a unit already marked done, it is frozen — the change becomes a new appended unit, not an in-place edit. (Living governance docs — the protocol itself, the README — are explicitly exempt; the freeze is for unit outputs and closed log entries.) A **write-back gate** ties a unit's work and its ledger update into the same turn: output produced but not recorded means the unit is not done. A **turn-end self-check** asks, before yielding, whether the ledger, decisions, and questions reflect what just happened.
+
+These are paste-able discipline — prose the agent reads and applies. Where the surrounding tooling allows it, the pre-edit check can also be *enforced* rather than remembered: a pre-tool hook in the agent's harness can refuse an edit whose target is a frozen output, moving the guarantee from "the agent follows the doc" to "the harness will not let it." The framework describes that enforcement path; it does not ship a runtime. Such bindings are platform-specific and live in adopter tooling, not in the platform-neutral framework.
+
+**Resilience against hard ends.** Three rules make the on-disk state self-sufficient and self-healing. *Transcript independence:* at every yield point the project files alone must be enough to resume, with no reliance on the chat history — the recent-updates log is written as a recovery log, not a changelog. *Crash-safe write ordering:* a unit is marked in-progress before its output is produced and marked done only after, so a crash mid-unit leaves a recoverable trail instead of a silent gap. *Session-start reconciliation:* before acting, a session compares the ledger against disk and heals what it finds — a done row with no file is reopened, an orphaned file from an interrupted unit is finalized or superseded, an in-progress unit is resumed — recording the recovery as new ledger entries. This does not shrink the crash window to zero; it makes every outcome recoverable, which is the achievable bar. The promise is not "nothing ever interrupts" but "no interruption loses context that the project cannot reconstruct."
+
+## 8. What still requires the agent
 
 The project carries the structure. The agent does the work.
 
@@ -102,7 +112,7 @@ The agent generates the prose, writes the code, designs the schema. The agent re
 
 What the framework removes from the agent is the burden of remembering the project across session boundaries, of inferring the discipline from scratch each session, of deciding alone what only the human can decide. What the framework leaves with the agent is the work itself.
 
-## 8. What's next
+## 9. What's next
 
 This chapter is the concept. The rest of this repository is the implementation.
 

@@ -12,14 +12,12 @@
 
 ---
 
-## Q2 — Push timing for public GitHub
+## Q2 — Push timing for public GitHub (partially resolved)
 
 **Asked:** 2026-05-27
-**Blocking:** Out-of-scope for MVP build; user decision post-MVP
-**Context.** Delivery anchor in GOTM.md is "TBD by user." MVP build can complete in local workspace; pushing to public GitHub is a separate action requiring user account + repo creation.
-
-**Need from user:** post-MVP, decide push timing + any final pre-publication review.
-**Status:** open (low priority; surfaces at M16 close)
+**Partially resolved:** 2026-05-28 — pushed to user's personal GitHub as PRIVATE at https://github.com/RohitDashora/gotm-framework-for-agentic-development. Databricks pre-push secret-scanning hook ran and confirmed no internal code detected (independent verification that anonymization held).
+**Still open:** when to flip visibility from PRIVATE to PUBLIC.
+**Status:** push done, visibility decision pending
 
 ---
 

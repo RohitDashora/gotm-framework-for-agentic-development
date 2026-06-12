@@ -91,7 +91,23 @@ Complex work spans hundreds of sessions. The persistence horizon of the tooling 
 
 The mismatch is not addressed by remembering to re-invoke the tooling every session, because remembering is itself a form of state that has to live somewhere — and the somewhere it has to live is outside the agent. The same problem, recursively.
 
-## 8. The agent cannot fix this alone
+## 8. The discipline rules rely on memory
+
+Suppose a project does write things down — a protocol that says never edit a finished output, a habit of recording each decision as it is made. Two failure modes still slip through, and both are invisible at the moment they happen.
+
+The first is **silent work**: the agent does a unit, produces the output, and moves on without recording it. The work exists on disk; the project's bookkeeping does not know about it. The second is the **quiet edit**: the agent reopens a finished output and changes it in place rather than appending a correction — erasing the trail of what changed and why.
+
+Nothing catches either in the moment. The only thing standing between the discipline and its erosion is the agent *remembering* to follow it — and remembering is a property of the same bounded context that closes at the session boundary. A discipline that depends on the worker's memory has quietly reintroduced the exact dependency it was meant to remove.
+
+## 9. Session ends are not always graceful
+
+The picture so far assumes sessions end cleanly — the agent finishes a turn, writes its notes, yields. Real sessions also end the other way: a crash, a killed process, a closed terminal, a resume prompt that never gets answered. The session ends mid-turn, and there may be no resume at all.
+
+When that happens, the project can be left in a state no one chose. An output file written, but the bookkeeping never updated to say so. A unit marked started, with nothing to show for it. On the next cold start there is no procedure to notice: the new session reads the bookkeeping, trusts it, and either redoes work that was silently finished or builds on work that was silently abandoned.
+
+The promise that a project's state survives session boundaries is only as strong as that state staying *consistent* with what is actually on disk. Graceful ends keep them consistent; hard ends do not, and nothing reconciles them.
+
+## 10. The agent cannot fix this alone
 
 Every gap above has the same shape. Something needs to persist past a session boundary. Something needs to carry from main agent to subagent. Something needs to judge work from outside the work. Something needs to know which decisions are yours.
 

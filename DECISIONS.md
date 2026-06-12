@@ -132,5 +132,89 @@ Deferred to Phase 3:
 
 ---
 
+## D9 — Drop the four-layer hierarchy; adopt the five-primitive model
+
+**Date:** 2026-05-29
+**Scope:** framework
+**Status:** locked (supersedes the load-bearing structure implied by D1-D7)
+
+**Context.** Observed across multiple GOTM-orchestrated projects: the Goals/Objectives/Targets layers were filing labels — present in specs, absent from the actual decisions that moved work forward. The strategic decomposition was post-hoc; the real work happened at the Milestone layer. The framework's stated value (strategic hierarchy) and its actual mechanism (atomic units + ledger + foundation gate + audit) had drifted apart.
+
+**Decision.** GOTM is reframed as a discipline for surviving bounded-context agentic execution, not as a strategic decomposition framework. The framework reduces to five primitives — mission, ledger, atomic unit, foundation gate, audit cycle — plus the ratification ladder. Hierarchy becomes optional grouping, not load-bearing structure. The acronym G-O-T-M is retained as a name but is no longer a structural claim.
+
+**Consequences.** The four-layer hierarchy is removed from concept docs, prompts, and templates. Concept chapters `docs/01-06` deleted; replaced by three first-principles chapters at `docs/01-what-is-gotm.md`, `02-what-agents-are-missing.md`, `03-gotm-with-agents.md`. Prompts and templates require a full rewrite.
+
+---
+
+## D10 — `PROTOCOL.md` canonical; `CLAUDE.md` references it
+
+**Date:** 2026-05-30
+**Scope:** framework
+**Status:** locked
+
+**Context.** The reframe in D9 implies the discipline must live in the project filesystem, not in agent tooling. A single canonical protocol file is needed that every agent reads on session start. Two paths considered: a tool-specific name (e.g., `CLAUDE.md` as protocol) or a concept-pure name (`PROTOCOL.md`) with tool-specific files pointing to it.
+
+**Decision.** `PROTOCOL.md` at project root is canonical. `CLAUDE.md` (and analogous files for other tools — `.cursorrules`, etc.) point to `PROTOCOL.md`. This keeps the protocol portable across tools and leaves `CLAUDE.md` free to carry tool-specific guidance that is not part of the discipline itself.
+
+**Consequences.** Every project bootstrapped from this framework gets `PROTOCOL.md` at root. Tool-specific pointer files are minimal — a few lines naming the protocol.
+
+---
+
+## D11 — Keep the framework repo as a working meta-example
+
+**Date:** 2026-05-30
+**Scope:** framework
+**Status:** locked
+
+**Context.** The framework repo can either be pure documentation (just templates and prompts), or it can dogfood itself by maintaining its own `LEDGER.md`, `DECISIONS.md`, `QUESTIONS.md`, and `PROTOCOL.md` at the project root.
+
+**Decision.** Keep the framework repo as a working meta-example. The repo's own files use the new model. Forkers see a working project, and bugs in the framework surface here first.
+
+**Consequences.** The old `GOTM.md` + `STATUS.md` collapse into a single `LEDGER.md` at root. `decisions.md` is renamed `DECISIONS.md`; `OPEN_QUESTIONS.md` is renamed `QUESTIONS.md`. The `discovered/` directory (foundation outputs from the old build) is deleted; its content audited the old framework and is not relevant under the new model.
+
+---
+
+## D12 — Two repos: public-idea framework vs private runtime plugin
+
+**Date:** 2026-06-11
+**Scope:** framework
+**Status:** locked
+
+**Context.** Field feedback from running GOTM on a real software project (`geniefy-v3`) recommended shipping a `PreToolUse` enforcement hook "in the framework." That collides with this repo's stated scope (`CONTRIBUTING.md`: runtime enforcement is out of scope; "the discipline is paste-able prompts, not a runtime"). The author resolved it by naming the structure explicitly.
+
+**Decision.** GOTM lives in **two repos with a deliberate boundary.** (1) This repo — `gotm-framework-for-agentic-development` — is the *idea*: concept docs, platform-neutral prompts, scaffold templates, publishable publicly. It stays prompts-not-a-runtime. (2) The `gotm` Claude Code plugin is the *runtime*: the `/gotm` bootstrap, the `.gotm/` layout, the immutability hook + `settings.json` wiring — private, internal-marketplace-bound. Runtime/enforcement bindings live in the plugin, never here.
+
+**Consequences.** Conceptual feedback (paste-able discipline) folds into this repo's docs + templates; runtime feedback (the hook, harness wiring) folds only into the plugin. `CONTRIBUTING.md` is refined to point enforcement at adopter tooling rather than forbid it outright. This repo keeps its root layout and meta-example role (D11); the plugin defaults to `.gotm/`.
+
+---
+
+## D13 — Adopt anti-drift safeguards + resilience as paste-able discipline
+
+**Date:** 2026-06-11
+**Scope:** framework
+**Status:** locked
+
+**Context.** The original five rules stated *what* the discipline is but had no operational catch for the two ways it erodes — silent work (acting without writing back) and quiet edits (mutating a frozen artifact). Both relied on agent memory, the exact dependency GOTM exists to remove. A further gap (G10): the "no context loss" promise held only at clean turn-ends; a mid-turn crash or cold restart with no resume could leave on-disk state inconsistent with the ledger, with no procedure to heal it.
+
+**Decision.** Add an **Anti-drift safeguards** section (pre-edit check, write-back gate, done-means-written, turn-end self-check) and a **Resilience** section (transcript independence, crash-safe write ordering, size-to-the-loop, session-start reconciliation) to `PROTOCOL.md.template`, plus a session-start reconciliation step and the governance-docs-vs-frozen-outputs carve-out. All as paste-able prose. Mechanical *enforcement* of the pre-edit check is described as an option that lives in adopter tooling (per D12), not shipped here.
+
+**Consequences.** Concept chapters gain two gaps (docs/02 §8–§9) and one solution section (docs/03 §7). The bar for the core promise is restated as "no *unrecoverable* context loss" — the achievable guarantee under accidental ends.
+
+---
+
+## D14 — Document the `.gotm/` subfolder layout as a first-class option
+
+**Date:** 2026-06-11
+**Scope:** framework
+**Status:** locked
+
+**Context.** The bootstrap dropped the file-set at the project root. For software/multi-asset projects that produce many files, mixing orchestration with deliverables clutters the root. But cross-session continuity depends on a root-level session-context file (e.g. `CLAUDE.md`) auto-loading — moving the whole set into a subfolder silently breaks that.
+
+**Decision.** Document two layouts in the framework: *root* (default; writing/research) and *subfolder* (`.gotm/`; software/multi-asset). For the subfolder layout, require a thin pointer file kept at the root so the tool's auto-load still works; call out the silent-break failure mode. The framework states this tool-agnostically; the plugin makes `.gotm/` its default with a concrete root `CLAUDE.md` bridge.
+
+**Consequences.** `PROTOCOL.md.template` gains a Layout note; README quickstart and repo-tree mention the subfolder option. No change to this repo's own (root) layout.
+
+---
+
 <!-- Append new decisions below this line. -->
 

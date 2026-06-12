@@ -27,10 +27,10 @@ See `docs/` for the full framework and `PROTOCOL.md` for the operating contract.
 
 ## What is out of scope
 
-- Platform-specific bindings — runtime skill files, command shims, or raw-API wrappers belong elsewhere
+- Platform-specific bindings — runtime skill files, command shims, IDE plugins, or raw-API wrappers belong in adopter tooling, not here
 - Marketing material, slide decks, talks
 - Branded assets or visual identity
-- Tooling for automated GOTM-discipline enforcement — the discipline is paste-able prompts, not a runtime
+- Runtime enforcement of the discipline — e.g. a pre-tool hook that *blocks* an edit to a frozen output. The protocol's anti-drift safeguards are paste-able prompts and are in scope; the *mechanical enforcement* of them is a platform binding that lives in adopter tooling (for example, a Claude Code plugin). The framework describes the enforcement path; it does not ship a runtime.
 - Vendor-coupled examples that name a specific model provider, cloud, or commercial tool
 
 ## How to contribute
