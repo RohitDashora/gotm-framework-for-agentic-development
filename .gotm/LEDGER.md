@@ -1,6 +1,6 @@
 ---
 project: gotm-framework-for-agentic-development
-last_updated: 2026-06-11 (README orchestrator diagram U48; machinery migrated into .gotm/ U47; docs rewritten U38-U46; publication-ready; Q2 visibility still open)
+last_updated: 2026-06-12 (meta-example governance docs synced to current discipline U49-U51, audit PASS; diagram U48; .gotm migration U47; docs rewrite U38-U46; publication-ready; Q2 visibility still open)
 ---
 
 # Project ledger
@@ -11,9 +11,9 @@ Distill the GOTM discipline into a public-ready framework — concept docs, a pr
 
 ## Active unit
 
-**(none active)** — concept docs rewritten from scratch into a 5-chapter arc (D17, U38-U45) and independently audited (U46 → **PASS-FINDINGS**, HIGH 0 / MED 0 / LOW 1 accepted). Repo is publication-ready.
+**(none active)** — the repo's own governance docs are now synced to the current discipline (U49 `.gotm/PROTOCOL.md`, U50 `CLAUDE.md`), independently audited (U51 → **PASS**). The meta-example now runs the full protocol it teaches.
 
-The rewrite (U39-U43 chapters, U44 prompts, U45 README) passed the independent publication audit `.gotm/audits/U46.md`; the one LOW (a cosmetic ch3 filename slug) is consciously accepted, not fixed. Earlier passes audited via `.gotm/audits/U28.md` and `.gotm/audits/U36.md`. Q2 (visibility flip from PRIVATE to PUBLIC) remains the standing open ratification — the docs are now ready for it.
+Recent arc: docs rewritten to a 5-chapter arc (D17, U38-U46, audit `.gotm/audits/U46.md`); machinery migrated into `.gotm/` (D18, U47); README orchestrator diagram (U48); governance-doc sync (U49-U51). Every pass independently audited (`.gotm/audits/U28.md`, `U36.md`, `U46.md`, `U51.md`). Q2 (visibility flip from PRIVATE to PUBLIC) remains the standing open ratification — the repo is publication-ready.
 
 ## Units
 
@@ -120,8 +120,19 @@ The rewrite (U39-U43 chapters, U44 prompts, U45 README) passed the independent p
 | U47 | Migrate machinery into `.gotm/` (PROTOCOL/LEDGER/DECISIONS/QUESTIONS/audits); root `CLAUDE.md` → bridge; update refs in README/CONTRIBUTING/PROTOCOL + relocate audit paths | D18 | repo layout (`.gotm/` + root bridge) | done | mechanical link-resolution check passed |
 | U48 | Add a Mermaid orchestrator/architecture diagram to the README (What GOTM is) | docs/01,03,04 | `README.md` | done | mermaid render check passed (mmdc, exit 0) |
 
+### Meta-example sync phase (2026-06-12)
+
+> The repo's own governance docs had fallen behind the discipline they teach. Bring them up to the current protocol (D13 anti-drift, D15/D16 audit gates, D18 layout). Governance docs are living (editable), per the pre-edit carve-out.
+
+| ID | Title | Inputs | Output | Status | Audit |
+|---|---|---|---|---|---|
+| U49 | Sync `.gotm/PROTOCOL.md` to the current protocol (anti-drift, resilience, audit gates, reconcile step, .gotm Layout note) — instantiate `templates/PROTOCOL.md.template` with the framework's mission + `../` links | D13, D15, D16, D18, `templates/PROTOCOL.md.template` | `.gotm/PROTOCOL.md` | done | PASS→.gotm/audits/U51.md |
+| U50 | Sync root `CLAUDE.md` — add the four Non-negotiables (frozen units · write-back · resilience/cold-start · audit independence) | D13, D15, D16, U49 | `CLAUDE.md` | done | PASS→.gotm/audits/U51.md |
+| U51 | **Independent** audit of the meta-example sync (U49-U50) — dispatched fresh auditor | U49, U50 | `.gotm/audits/U51.md` | done | — |
+
 ## Recent updates
 
+- 2026-06-12: **Synced the repo's own governance docs to the current discipline (U49-U51).** `.gotm/PROTOCOL.md` was behind its own template — brought up to the current protocol (Anti-drift safeguards, Resilience, Audit gates, reconcile step, `.gotm/` Layout note), instantiating `templates/PROTOCOL.md.template` with the framework's real mission + `../` links. Root `CLAUDE.md` gained the four Non-negotiables (frozen units · write-back · resilience/cold-start · audit independence). Independent audit U51 → **PASS** (one pre-existing LOW noted in `docs/04` prose, accepted). The meta-example now runs the full protocol it teaches.
 - 2026-06-11: **Added a Mermaid orchestrator diagram to the README (U48).** Designed by a dispatched subagent, render-checked with `mmdc` (exit 0). One at-a-glance picture: stateless session loop (read+reconcile → act → write-back) around the stateful project file-set, subagent dispatch incl. the independent auditor → audit gate, and the human entering only via the ratification ladder.
 - 2026-06-11: **Migrated the repo's own machinery into `.gotm/` (D18, U47).** PROTOCOL/LEDGER/DECISIONS/QUESTIONS/audits moved under `.gotm/`; deliverables (`docs/`, `prompts/`, `templates/`) stay at root; root `CLAUDE.md` is now a thin bridge into `.gotm/PROTOCOL.md`. The repo is now a live demonstration of the subfolder layout it recommends. Audit paths relocated `audits/…` → `.gotm/audits/…` (mechanical).
 - 2026-06-11: **Concept docs rewritten from scratch → 5-chapter arc (D17, U38-U45).** Now that the framework is battle-tested: ch1 What GOTM is · ch2 Why agents need it · ch3 How the project carries the discipline · ch4 Keeping it honest (anti-drift + resilience + audit gates) · ch5 In practice. Renamed ch2/ch3 files to match titles (old files deleted). Refreshed prompts (session-start reconcile, subagent-dispatch independence) + README. Independent publication audit U46 → **PASS-FINDINGS** (HIGH 0 / MED 0 / LOW 1 cosmetic, accepted; UNVERIFIED Apache-section citation verified correct). docs/ now ~6,650w. Repo publication-ready.
