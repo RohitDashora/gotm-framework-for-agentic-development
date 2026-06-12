@@ -2,7 +2,7 @@
 
 This file is the operating protocol for this project. Every agent that opens a session here reads this file first and follows it.
 
-The framework this protocol implements is described in [`docs/`](docs/01-what-is-gotm.md) — read those once for understanding, this file every session.
+The framework this protocol implements is described in [`docs/`](../docs/01-what-is-gotm.md) — read those once for understanding, this file every session.
 
 ## Session-start checklist
 

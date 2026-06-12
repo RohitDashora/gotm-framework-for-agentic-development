@@ -258,5 +258,19 @@ Deferred to Phase 3:
 
 ---
 
+## D18 — Migrate the repo's own machinery into `.gotm/` (dogfood the subfolder layout)
+
+**Date:** 2026-06-11
+**Scope:** framework
+**Status:** locked
+
+**Context.** The repo's own GOTM files lived at the root (a legacy of D11, before the `.gotm/` layout existed). The framework now documents `.gotm/` as the recommended subfolder layout (D14) and ships a plugin that defaults to it. For a repo about to be published, a reader seeing the machinery strewn across the root — while the docs tout `.gotm/` — reads as not eating our own cooking. Root layout is a *sanctioned* choice for a writing/research project, but the showcase value of conforming won out.
+
+**Decision.** Move `PROTOCOL.md`, `LEDGER.md`, `DECISIONS.md`, `QUESTIONS.md`, and `audits/` into `.gotm/`. Keep the deliverables at the root (`docs/`, `prompts/`, `templates/`, `README.md`, `CONTRIBUTING.md`, `LICENSE`). Convert the root `CLAUDE.md` into a thin bridge that points into `.gotm/PROTOCOL.md` (so the discipline still auto-loads at session start — the exact pattern from D14 / ch5). Update all references in `README.md`, `CONTRIBUTING.md`, and this file-set to the `.gotm/` paths.
+
+**Consequences.** The repo is now a live demonstration of the `.gotm/` subfolder layout. Audit-output paths in `LEDGER.md` were relocated `audits/…` → `.gotm/audits/…` — a mechanical path relocation, not a substantive revision of any unit's content or verdict (the immutability rule governs *what a unit produced and how it was judged*, not where a documented restructure later moves the file). Generic `audits/U<id>.md` references in the templates and in prior decision text stay root-relative, since those describe the neutral default layout, not this repo's instance.
+
+---
+
 <!-- Append new decisions below this line. -->
 

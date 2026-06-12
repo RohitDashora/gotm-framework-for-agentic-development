@@ -26,13 +26,12 @@ Do not use GOTM for one-shot tasks. A one-off email or a five-line script does n
 docs/         5 concept chapters (~6,650 words) — the framework from first principles
 prompts/      3 operational prompts a practitioner pastes into their LLM
 templates/    5 scaffold files to copy into a new project (root, or a .gotm/ subfolder)
-PROTOCOL.md   the project's own protocol (working example)
-LEDGER.md     the project's own ledger (working example)
-DECISIONS.md  the project's own append-only decision log (working example)
-QUESTIONS.md  the project's own open-questions file (working example)
+.gotm/        this repo's own GOTM machinery — a working meta-example:
+                PROTOCOL.md · LEDGER.md · DECISIONS.md · QUESTIONS.md · audits/
+CLAUDE.md     thin root bridge → .gotm/PROTOCOL.md (auto-loads the discipline each session)
 ```
 
-Everything is platform-neutral markdown. Paste any prompt body into ChatGPT, Cursor, Cline, Claude API, or raw chat — it works. The repo's own root files (`PROTOCOL.md`, `LEDGER.md`, `DECISIONS.md`, `QUESTIONS.md`) are visible as a working meta-example: this project is itself GOTM-orchestrated.
+Everything is platform-neutral markdown. Paste any prompt body into ChatGPT, Cursor, Cline, Claude API, or raw chat — it works. The repo's own machinery lives in [`.gotm/`](.gotm/) (`PROTOCOL.md`, `LEDGER.md`, `DECISIONS.md`, `QUESTIONS.md`, `audits/`) as a working meta-example: this project is itself GOTM-orchestrated, and it uses the `.gotm/` subfolder layout — with a thin root `CLAUDE.md` bridge — as a live demonstration of the layout described in `docs/05-in-practice.md`.
 
 ## Quickstart — your first GOTM project in five steps
 

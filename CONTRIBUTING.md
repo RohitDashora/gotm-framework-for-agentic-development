@@ -6,15 +6,15 @@ This repo holds the GOTM framework — concept chapters, platform-neutral prompt
 
 ## How GOTM itself is organized
 
-This project is itself GOTM-orchestrated. The operating protocol is `PROTOCOL.md`. The ledger is `LEDGER.md`. Ratified decisions live in `DECISIONS.md`. Unresolved questions blocking work live in `QUESTIONS.md`. New work follows the same five rules:
+This project is itself GOTM-orchestrated, using the `.gotm/` subfolder layout. The operating protocol is `.gotm/PROTOCOL.md`. The ledger is `.gotm/LEDGER.md`. Ratified decisions live in `.gotm/DECISIONS.md`. Unresolved questions blocking work live in `.gotm/QUESTIONS.md`. New work follows the same five rules:
 
-1. Single ledger — `LEDGER.md` is authoritative.
+1. Single ledger — `.gotm/LEDGER.md` is authoritative.
 2. Atomic units — one execution pass produces one named output file.
 3. Foundation before drafts — foundation work precedes drafting.
 4. Audit before downstream consumes — claimed-done units are checked.
 5. Ratification ladder — the human owns mission-level decisions; the agent owns execution-level ones.
 
-See `docs/` for the full framework and `PROTOCOL.md` for the operating contract.
+See `docs/` for the full framework and `.gotm/PROTOCOL.md` for the operating contract.
 
 ## What we welcome
 
