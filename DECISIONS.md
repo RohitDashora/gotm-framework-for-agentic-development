@@ -244,5 +244,19 @@ Deferred to Phase 3:
 
 ---
 
+## D17 — Rewrite the concept docs from scratch into a 5-chapter arc
+
+**Date:** 2026-06-11
+**Scope:** framework
+**Status:** locked
+
+**Context.** The three concept chapters predated real use. The hardening that running GOTM for real produced — anti-drift safeguards, resilience, audit gates (D13–D16) — had been folded into the docs as bolt-on sections (§7–§9 of chapter 3). Now that the framework is battle-tested, a from-scratch rewrite was warranted: give the operational discipline first-class treatment and add a practitioner-facing chapter.
+
+**Decision.** Rewrite `docs/` as **five** chapters: (1) What GOTM is — five primitives + ratification ladder; (2) Why agents need it — the gaps, including the battle-tested ones; (3) How the project carries the discipline — the mechanism; (4) Keeping it honest under real conditions — anti-drift + resilience + audit gates as a first-class chapter; (5) In practice — layouts, the loop end to end, a worked software example. Rename the middle two files to match their new titles (`02-what-agents-are-missing.md` → `02-why-agents-need-it.md`; `03-gotm-with-agents.md` → `03-how-the-project-carries-it.md`) and add `04-keeping-it-honest.md` + `05-in-practice.md`. Refresh `prompts/` (session-start reconcile step; subagent-dispatch audit-independence note) and `README.md` for consistency. Keep the docs platform-neutral; bootstrap/runtime detail stays in adopter tooling.
+
+**Consequences.** `docs/` is now five chapters (~6,650 words). The old chapter files are deleted; historical ledger rows (U2, U3, U20, U21, U32) and decision D9 still name them — that is append-only history and is left intact, with the rename documented here. The rewrite was checked by an independent publication audit (U46 → PASS-FINDINGS; one accepted cosmetic LOW on a filename slug). `README.md` chapter list, word count, and prompt descriptions updated.
+
+---
+
 <!-- Append new decisions below this line. -->
 

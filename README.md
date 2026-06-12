@@ -23,7 +23,7 @@ Do not use GOTM for one-shot tasks. A one-off email or a five-line script does n
 ## What's in this repo
 
 ```
-docs/         3 concept chapters (~4,950 words) — the framework from first principles
+docs/         5 concept chapters (~6,650 words) — the framework from first principles
 prompts/      3 operational prompts a practitioner pastes into their LLM
 templates/    5 scaffold files to copy into a new project (root, or a .gotm/ subfolder)
 PROTOCOL.md   the project's own protocol (working example)
@@ -46,16 +46,18 @@ From there, the loop repeats. Pick the next active unit. Act. Write back. Audit 
 
 ## Concept chapters
 
-- [`docs/01-what-is-gotm.md`](docs/01-what-is-gotm.md) — what GOTM is, from first principles
-- [`docs/02-what-agents-are-missing.md`](docs/02-what-agents-are-missing.md) — the specific gaps in agentic work today
-- [`docs/03-gotm-with-agents.md`](docs/03-gotm-with-agents.md) — how the framework closes them
+- [`docs/01-what-is-gotm.md`](docs/01-what-is-gotm.md) — what GOTM is, from first principles: the five primitives and the ratification ladder
+- [`docs/02-why-agents-need-it.md`](docs/02-why-agents-need-it.md) — the specific gaps in agentic work, including the ones real use surfaced
+- [`docs/03-how-the-project-carries-it.md`](docs/03-how-the-project-carries-it.md) — the mechanism: the file-set, the session loop, subagent inheritance, ratification
+- [`docs/04-keeping-it-honest.md`](docs/04-keeping-it-honest.md) — the battle-tested operational layer: anti-drift safeguards, resilience, audit gates
+- [`docs/05-in-practice.md`](docs/05-in-practice.md) — layouts, the loop end to end, and a worked software example
 
 ## Operational prompts and templates
 
-- [`prompts/session-start.md`](prompts/session-start.md) — kickoff template; first move of every session
-- [`prompts/subagent-dispatch.md`](prompts/subagent-dispatch.md) — how the orchestrator builds a bounded worker prompt
-- [`prompts/audit.md`](prompts/audit.md) — generic audit template; one kind per dispatch
-- [`templates/`](templates/) — copy-and-fill scaffolds for the four root files plus a project README
+- [`prompts/session-start.md`](prompts/session-start.md) — kickoff + crash-recovery reconcile; the first move of every session
+- [`prompts/subagent-dispatch.md`](prompts/subagent-dispatch.md) — how the orchestrator builds a bounded worker prompt (and why audit dispatches must be independent)
+- [`prompts/audit.md`](prompts/audit.md) — the independent audit: a 5-point checklist and a three-way verdict (`PASS` / `PASS-FINDINGS` / `FAIL`)
+- [`templates/`](templates/) — copy-and-fill scaffolds for the four working files plus a project README
 
 ## License
 

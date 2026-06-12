@@ -11,6 +11,8 @@ Use this template when a unit's work needs a subagent — either because the wor
 
 Two things go into every dispatch: a pointer to `PROTOCOL.md` (so the worker reads the discipline) and the bounded task (inputs, output, spec, constraints). The worker does not see the broader project.
 
+When the dispatch *is* an audit, this isolation is the whole point: the auditor must be a context that did not author the unit, and it receives only the target, the oracle, and the checklist — never the authoring session's reasoning. See `prompts/audit.md` for the audit-specific shape and the three-way verdict.
+
 ---
 
 ## Paste this into the orchestrating LLM
@@ -79,8 +81,8 @@ What the worker reports back when done:
 
 When the worker returns:
 
-- Fold the output into the project — update `LEDGER.md` to mark the unit `done`, append a recent-updates entry.
-- Audit the output if rule 4 calls for it (see `prompts/audit.md`).
+- Fold the output into the project — update `LEDGER.md` to mark the unit `done`, append a recent-updates entry. This write-back happens in the same turn as folding the output in.
+- Audit the output before anything downstream consumes it (rule 4). Dispatch the audit as its own independent subagent — never let the author bless its own work — and stamp the unit's `Audit` cell with the verdict (`PASS` / `PASS-FINDINGS` / `FAIL`). See `prompts/audit.md`.
 - If the worker stopped due to missing inputs or ambiguous spec, treat the gap as a new question — route to `QUESTIONS.md` if it is mission-level, refine the dispatch if it is execution-level, then re-dispatch.
 
 The dispatch never short-circuits the discipline. The worker reads the protocol, does one task, returns one output, and reports.

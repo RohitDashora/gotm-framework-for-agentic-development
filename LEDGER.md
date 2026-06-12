@@ -1,6 +1,6 @@
 ---
 project: gotm-framework-for-agentic-development
-last_updated: 2026-06-11 (verdict-refinement U33-U35 done & Audit:PASS-FINDINGS via independent U36; LOW closed by U37; Q2 visibility still open)
+last_updated: 2026-06-11 (concept docs rewritten 5-chapter arc U38-U45, independent audit U46 PASS-FINDINGS, publication-ready; Q2 visibility still open)
 ---
 
 # Project ledger
@@ -11,9 +11,9 @@ Distill the GOTM discipline into a public-ready framework — concept docs, a pr
 
 ## Active unit
 
-**(none active)** — U36 independent audit returned **PASS-FINDINGS** (HIGH 0 / MED 0 / LOW 1); the one LOW was closed by U37. U33-U35 stamped `Audit: PASS-FINDINGS`.
+**(none active)** — concept docs rewritten from scratch into a 5-chapter arc (D17, U38-U45) and independently audited (U46 → **PASS-FINDINGS**, HIGH 0 / MED 0 / LOW 1 accepted). Repo is publication-ready.
 
-Verdict-refinement (U33-U35, D16) done and independently audited (`audits/U36.md`). Prior passes audited via `audits/U28.md` (PASS). Q2 (visibility flip from PRIVATE to PUBLIC) remains the standing open ratification.
+The rewrite (U39-U43 chapters, U44 prompts, U45 README) passed the independent publication audit `audits/U46.md`; the one LOW (a cosmetic ch3 filename slug) is consciously accepted, not fixed. Earlier passes audited via `audits/U28.md` and `audits/U36.md`. Q2 (visibility flip from PRIVATE to PUBLIC) remains the standing open ratification — the docs are now ready for it.
 
 ## Units
 
@@ -95,8 +95,25 @@ Verdict-refinement (U33-U35, D16) done and independently audited (`audits/U36.md
 | U36 | **Independent** audit of the verdict-refinement edits (U33-U35) — dispatched fresh auditor | U33-U35 | `audits/U36.md` | done | — |
 | U37 | Close U36 LOW: align `prompts/audit.md` §4 labels ("cross-reference integrity" / "internal consistency") with PROTOCOL/D16 | U36 | `prompts/audit.md` | done | — |
 
+### Docs rewrite phase (2026-06-11)
+
+> D17. Concept docs rewritten from scratch into a 5-chapter arc now that the framework is battle-tested. U40/U41 supersede U2/U3 and rename their files (old files deleted; historical rows above left intact per append-only). Foundation outline was a temp doc, consumed and deleted.
+
+| ID | Title | Inputs | Output | Status | Audit |
+|---|---|---|---|---|---|
+| U38 | Lay rewrite foundation — 5-chapter arc, per-chapter beats, voice guide | D17 | (temp outline → arc, deleted; locked as D17) | done | — |
+| U39 | Rewrite ch1 — What GOTM is | D17, U38 | `docs/01-what-is-gotm.md` | done | PASS→audits/U46.md |
+| U40 | Rewrite + rename ch2 — Why agents need it (supersedes U2) | D17, U38 | `docs/02-why-agents-need-it.md` | done | PASS→audits/U46.md |
+| U41 | Rewrite + rename ch3 — How the project carries the discipline (supersedes U3) | D17, U38 | `docs/03-how-the-project-carries-it.md` | done | PASS-FINDINGS→audits/U46.md |
+| U42 | New ch4 — Keeping it honest under real conditions (anti-drift + resilience + audit gates) | D17, U38 | `docs/04-keeping-it-honest.md` | done | PASS→audits/U46.md |
+| U43 | New ch5 — In practice (layouts, the loop, worked software example) | D17, U38 | `docs/05-in-practice.md` | done | PASS→audits/U46.md |
+| U44 | Refresh prompts for consistency (session-start reconcile; subagent-dispatch independence) | D17 | `prompts/session-start.md` + `prompts/subagent-dispatch.md` | done | PASS→audits/U46.md |
+| U45 | README sync — 5-chapter list, word count, prompt descriptions | D17, U39-U44 | `README.md` | done | PASS→audits/U46.md |
+| U46 | **Independent** publication audit of the rewrite (docs + prompts + README) — dispatched fresh auditor | U39-U45 | `audits/U46.md` | done | — |
+
 ## Recent updates
 
+- 2026-06-11: **Concept docs rewritten from scratch → 5-chapter arc (D17, U38-U45).** Now that the framework is battle-tested: ch1 What GOTM is · ch2 Why agents need it · ch3 How the project carries the discipline · ch4 Keeping it honest (anti-drift + resilience + audit gates) · ch5 In practice. Renamed ch2/ch3 files to match titles (old files deleted). Refreshed prompts (session-start reconcile, subagent-dispatch independence) + README. Independent publication audit U46 → **PASS-FINDINGS** (HIGH 0 / MED 0 / LOW 1 cosmetic, accepted; UNVERIFIED Apache-section citation verified correct). docs/ now ~6,650w. Repo publication-ready.
 - 2026-06-11: **U36 independent audit → PASS-FINDINGS** (HIGH 0 / MED 0 / LOW 1 → `audits/U36.md`; dispatched fresh auditor, dogfooding the new 5-point checklist + three-way verdict — the `PASS-FINDINGS` state exercised itself). The one LOW (audit.md §4 label shorthand) closed by U37. U33-U35 stamped `Audit: PASS-FINDINGS`.
 - 2026-06-11: **Audit-verdict refinement done (U33-U35).** D16 locked from updated `geniefy-v3` feedback (G11 + Appendix D): three-way verdict (`PASS`/`PASS-FINDINGS`/`FAIL`), a default 5-point checklist (existence/spec-match/cross-ref/consistency/decision-fidelity), and deferral-can't-outlast-the-code-gate.
 - 2026-06-11: **U28 independent audit PASSED** (HIGH 0 / MED 0 / LOW 1 within tolerance → `audits/U28.md`). Ran via a *dispatched fresh auditor* (not the authoring session), dogfooding the new audit gate; U20-U27 + U29-U32 stamped `Audit: PASS`. The one LOW (README word count) was fixed.
