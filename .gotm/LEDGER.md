@@ -1,6 +1,6 @@
 ---
 project: gotm-framework-for-agentic-development
-last_updated: 2026-06-11 (machinery migrated into .gotm/ U47 per D18; docs rewritten U38-U46; publication-ready; Q2 visibility still open)
+last_updated: 2026-06-11 (README orchestrator diagram U48; machinery migrated into .gotm/ U47; docs rewritten U38-U46; publication-ready; Q2 visibility still open)
 ---
 
 # Project ledger
@@ -118,9 +118,11 @@ The rewrite (U39-U43 chapters, U44 prompts, U45 README) passed the independent p
 | ID | Title | Inputs | Output | Status | Audit |
 |---|---|---|---|---|---|
 | U47 | Migrate machinery into `.gotm/` (PROTOCOL/LEDGER/DECISIONS/QUESTIONS/audits); root `CLAUDE.md` → bridge; update refs in README/CONTRIBUTING/PROTOCOL + relocate audit paths | D18 | repo layout (`.gotm/` + root bridge) | done | mechanical link-resolution check passed |
+| U48 | Add a Mermaid orchestrator/architecture diagram to the README (What GOTM is) | docs/01,03,04 | `README.md` | done | mermaid render check passed (mmdc, exit 0) |
 
 ## Recent updates
 
+- 2026-06-11: **Added a Mermaid orchestrator diagram to the README (U48).** Designed by a dispatched subagent, render-checked with `mmdc` (exit 0). One at-a-glance picture: stateless session loop (read+reconcile → act → write-back) around the stateful project file-set, subagent dispatch incl. the independent auditor → audit gate, and the human entering only via the ratification ladder.
 - 2026-06-11: **Migrated the repo's own machinery into `.gotm/` (D18, U47).** PROTOCOL/LEDGER/DECISIONS/QUESTIONS/audits moved under `.gotm/`; deliverables (`docs/`, `prompts/`, `templates/`) stay at root; root `CLAUDE.md` is now a thin bridge into `.gotm/PROTOCOL.md`. The repo is now a live demonstration of the subfolder layout it recommends. Audit paths relocated `audits/…` → `.gotm/audits/…` (mechanical).
 - 2026-06-11: **Concept docs rewritten from scratch → 5-chapter arc (D17, U38-U45).** Now that the framework is battle-tested: ch1 What GOTM is · ch2 Why agents need it · ch3 How the project carries the discipline · ch4 Keeping it honest (anti-drift + resilience + audit gates) · ch5 In practice. Renamed ch2/ch3 files to match titles (old files deleted). Refreshed prompts (session-start reconcile, subagent-dispatch independence) + README. Independent publication audit U46 → **PASS-FINDINGS** (HIGH 0 / MED 0 / LOW 1 cosmetic, accepted; UNVERIFIED Apache-section citation verified correct). docs/ now ~6,650w. Repo publication-ready.
 - 2026-06-11: **U36 independent audit → PASS-FINDINGS** (HIGH 0 / MED 0 / LOW 1 → `.gotm/audits/U36.md`; dispatched fresh auditor, dogfooding the new 5-point checklist + three-way verdict — the `PASS-FINDINGS` state exercised itself). The one LOW (audit.md §4 label shorthand) closed by U37. U33-U35 stamped `Audit: PASS-FINDINGS`.

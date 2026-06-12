@@ -14,6 +14,49 @@ GOTM is the discipline of moving continuity outside the agent and into the **pro
 
 GOTM is not a hierarchy. It is not project management. It is not a methodology. It tells you how to carry context across many sessions of whatever methodology you use to plan the work.
 
+**At a glance:**
+
+```mermaid
+flowchart TB
+    Human["**The human**<br/>owns mission &middot; audience &middot; scope"]
+
+    subgraph Session["**Session** &mdash; stateless main agent"]
+        direction LR
+        Read["**read +<br/>reconcile**"] --> Act["**act on<br/>active unit**"] --> Write["**write<br/>back**"]
+    end
+
+    subgraph Project["**Project filesystem** &mdash; stateful, outlives every session &nbsp;<i>(.gotm/ or root)</i>"]
+        direction LR
+        Protocol["**Protocol**<br/>how this<br/>project works"]
+        Ledger["**Ledger**<br/>ordered atomic units<br/>+ done / passed state"]
+        Decisions["**Decisions**<br/>append-only:<br/>the why"]
+        Questions["**Open questions**<br/>parked for<br/>the human"]
+        Audits["**Audit outputs**<br/>findings +<br/>verdicts"]
+    end
+
+    subgraph Dispatch["**Subagent dispatch** &mdash; bounded, protocol-bound"]
+        direction TB
+        Sub["**Subagent**<br/>writes one<br/>named output"]
+        Auditor["**Independent auditor**<br/>auditor &ne; author<br/>target + oracle"]
+    end
+
+    Project ==>|"on start: read protocol,<br/>ledger, questions"| Read
+    Write ==>|"same turn:<br/>status &middot; decision &middot; question"| Project
+
+    Act -.->|"dispatch bounded work"| Sub
+    Act -.->|"dispatch independent check"| Auditor
+    Sub ==>|"output"| Project
+
+    Auditor ==>|"PASS / PASS-FINDINGS / FAIL"| Gate{"**Audit gate**"}
+    Gate -->|"PASS"| Open["downstream<br/>may consume"]
+    Gate -->|"FAIL"| Hold["gate holds &mdash;<br/>findings become fix units"]
+    Gate -.->|"findings<br/>(never silent edits)"| Audits
+
+    Human -.->|"**ratification ladder**<br/>mission / audience / scope"| Questions
+```
+
+<sub>The agent is stateless; the project is stateful. Each session reads the project on start, acts, and writes back in the same turn. Bounded work and an independent auditor (auditor &ne; author) are dispatched as subagents; the auditor's verdict drives the gate that downstream units wait on. The human enters only through the ratification ladder — mission, audience, scope — while execution decisions stay in the loop.</sub>
+
 ## When to use it
 
 Use GOTM when the work is multi-session, when the cost of drift is high, and when an agent (or several) will be doing meaningful chunks of the execution. Multi-week deliverables. Multi-author research projects. Systems that span hundreds of LLM sessions and dispatched subagents.
