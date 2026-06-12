@@ -55,12 +55,16 @@ The reference the target is checked against (sources, spec, prior outputs):
 
 ### 4. What to check
 
-A short list, customized to the audit kind. Each item is one mechanical check phrased so it has a clear pass/fail answer.
+Default to the **5-point checklist** below unless the unit calls for a specialized kind. Each item is one mechanical check with a clear pass/fail answer:
 
-    What to check:
-    - <check 1, phrased as a question with pass/fail>
-    - <check 2>
-    - <check 3>
+    What to check (default 5-point):
+    1. existence              — output exists at the ledger's stated path
+    2. spec match             — content matches what the unit promised (sections/structure/length)
+    3. cross-reference integrity — every D<n>/U<n>/Q<n> cited exists and says what's claimed
+    4. internal consistency   — no contradictions across the audited set
+    5. decision fidelity      — output honors the relevant DECISIONS.md entries
+
+Add or substitute kind-specific checks (render, source-fidelity, …) where the unit warrants.
 
 ### 5. Severity tiers (universal)
 
@@ -98,13 +102,13 @@ The audit report the worker writes (typically to `audits/<Uxx>.md`):
 
     ## Summary
     HIGH: <n> · MEDIUM: <n> · LOW: <n> · UNVERIFIED: <n>
-    Recommendation: <"fix units required before downstream consumes" / "passes; optional polish" / "blocked on UNVERIFIED">
+    Verdict: <PASS | PASS-FINDINGS | FAIL>   (HIGH ⇒ FAIL; MEDIUM/LOW-only ⇒ PASS-FINDINGS; clean ⇒ PASS)
 
 ### After the audit
 
 The orchestrating agent reads the audit report and acts:
 
-- **Stamp the ledger `Audit` cell** for the audited unit: `PASS→audits/<Uxx>.md` if there are no HIGH findings, else `FAIL→audits/<Uxx>.md`. A `FAIL` blocks downstream consumption until fix units land and a re-audit returns `PASS`.
+- **Stamp the ledger `Audit` cell** for the audited unit to match the verdict: `PASS→audits/<Uxx>.md`, `PASS-FINDINGS→audits/<Uxx>.md`, or `FAIL→audits/<Uxx>.md`. `PASS`/`PASS-FINDINGS` let downstream consume; a `FAIL` blocks downstream until fix units land and an independent re-audit passes.
 - For each **HIGH** finding, append a fix unit to `LEDGER.md`. The fix unit's row references the audit report.
 - For **MEDIUM** findings, append as optional follow-on units (or batch into a single "polish" unit if many are minor).
 - For **LOW** findings, decide whether to act now or defer; if deferring, note in `LEDGER.md` recent updates.

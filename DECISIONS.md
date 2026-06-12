@@ -230,5 +230,19 @@ Deferred to Phase 3:
 
 ---
 
+## D16 — Audit verdicts are three-way; a default 5-point checklist; deferral can't outlast the code gate
+
+**Date:** 2026-06-11
+**Scope:** framework
+**Status:** locked
+
+**Context.** D15 operationalized audit gates with a binary `PASS`/`FAIL`. Updated `geniefy-v3` feedback (G11 + Appendix D) refined three points: a three-way verdict (`PASS` / `PASS-WITH-FINDINGS` / `FAIL`) so "clean" is distinct from "passed but has tracked follow-ups"; an explicit default checklist so the auditor isn't improvising what to check; and a tightening of deferral so it can't quietly extend past the point where code consumes the design.
+
+**Decision.** (1) Add **`PASS-FINDINGS`** as a third verdict / `Audit` value — passed and consumable, but carrying MEDIUM/LOW findings that become tracked non-blocking follow-on units (HIGH ⇒ FAIL; MEDIUM/LOW-only ⇒ PASS-FINDINGS; clean ⇒ PASS); the gate treats `PASS` and `PASS-FINDINGS` alike for consumption. (2) Adopt a **default 5-point checklist** in `prompts/audit.md`: existence · spec match · cross-reference integrity · internal consistency · decision fidelity. (3) **Deferral** is allowed during human review but the independent audit must run **before any code/build unit consumes the design**.
+
+**Consequences.** Updated `PROTOCOL.md.template` (Audit gates), `LEDGER.md.template` (Audit vocab), and `prompts/audit.md` (checklist + verdict + stamp). The plugin mirrors these and updates its `/gotm audit` stamp logic + `CLAUDE.md` bridge bullet. Kept the `audits/<Uxx>.md` naming (not Appendix D's `audit-NNN.md`) for consistency with existing audit files. The "consider later" deterministic consume-gate hook (G11) remains a documented future option, not built — a hard edit-time block on consumption is fragile.
+
+---
+
 <!-- Append new decisions below this line. -->
 

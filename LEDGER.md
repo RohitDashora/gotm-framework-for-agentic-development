@@ -1,6 +1,6 @@
 ---
 project: gotm-framework-for-agentic-development
-last_updated: 2026-06-11 (U20-U27 + U29-U32 done & Audit:PASS via independent U28; Q2 visibility still open)
+last_updated: 2026-06-11 (verdict-refinement U33-U35 done & Audit:PASS-FINDINGS via independent U36; LOW closed by U37; Q2 visibility still open)
 ---
 
 # Project ledger
@@ -11,9 +11,9 @@ Distill the GOTM discipline into a public-ready framework — concept docs, a pr
 
 ## Active unit
 
-**(none active)** — U28 independent audit **PASSED** (HIGH 0 / MED 0 / LOW 1 within tolerance), so U20-U27 + U29-U32 are `Audit: PASS`.
+**(none active)** — U36 independent audit returned **PASS-FINDINGS** (HIGH 0 / MED 0 / LOW 1); the one LOW was closed by U37. U33-U35 stamped `Audit: PASS-FINDINGS`.
 
-Feedback-integration (U20-U27) and audit-gate (U29-U32) passes done and independently audited (2026-06-11, `audits/U28.md`, dispatched fresh auditor — not the authoring session). Q2 (visibility flip from PRIVATE to PUBLIC) remains the standing open ratification.
+Verdict-refinement (U33-U35, D16) done and independently audited (`audits/U36.md`). Prior passes audited via `audits/U28.md` (PASS). Q2 (visibility flip from PRIVATE to PUBLIC) remains the standing open ratification.
 
 ## Units
 
@@ -83,8 +83,22 @@ Feedback-integration (U20-U27) and audit-gate (U29-U32) passes done and independ
 | U32 | docs/03 §6: strengthen audit cycle with independence + the gate | D15, U21 | `docs/03-gotm-with-agents.md` | done | PASS→audits/U28.md |
 | U28 | **Independent** audit of the feedback-integration + audit-gate edits (existence + render + cross-doc consistency) — dispatched fresh auditor, not self-audit | U20-U27, U29-U32 | `audits/U28.md` | done | — |
 
+### Audit-verdict refinement phase (2026-06-11)
+
+> Source: updated `geniefy-v3/docs/GOTM-FEEDBACK.md` G11 + Appendix D. D16. Follow-ons to U29/U31. The plugin mirrors these + updates `/gotm audit` stamp logic (D12).
+
+| ID | Title | Inputs | Output | Status | Audit |
+|---|---|---|---|---|---|
+| U33 | `PROTOCOL.md.template` Audit gates: add three-way verdict (PASS/PASS-FINDINGS/FAIL) + 5-point checklist + deferral-before-code | D16, U29 | `templates/PROTOCOL.md.template` | done | PASS-FINDINGS→audits/U36.md |
+| U34 | `LEDGER.md.template`: add `PASS-FINDINGS` to Audit vocab + consume rule | D16, U30 | `templates/LEDGER.md.template` | done | PASS-FINDINGS→audits/U36.md |
+| U35 | `prompts/audit.md`: 5-point default checklist + three-way verdict/stamp | D16, U31 | `prompts/audit.md` | done | PASS-FINDINGS→audits/U36.md |
+| U36 | **Independent** audit of the verdict-refinement edits (U33-U35) — dispatched fresh auditor | U33-U35 | `audits/U36.md` | done | — |
+| U37 | Close U36 LOW: align `prompts/audit.md` §4 labels ("cross-reference integrity" / "internal consistency") with PROTOCOL/D16 | U36 | `prompts/audit.md` | done | — |
+
 ## Recent updates
 
+- 2026-06-11: **U36 independent audit → PASS-FINDINGS** (HIGH 0 / MED 0 / LOW 1 → `audits/U36.md`; dispatched fresh auditor, dogfooding the new 5-point checklist + three-way verdict — the `PASS-FINDINGS` state exercised itself). The one LOW (audit.md §4 label shorthand) closed by U37. U33-U35 stamped `Audit: PASS-FINDINGS`.
+- 2026-06-11: **Audit-verdict refinement done (U33-U35).** D16 locked from updated `geniefy-v3` feedback (G11 + Appendix D): three-way verdict (`PASS`/`PASS-FINDINGS`/`FAIL`), a default 5-point checklist (existence/spec-match/cross-ref/consistency/decision-fidelity), and deferral-can't-outlast-the-code-gate.
 - 2026-06-11: **U28 independent audit PASSED** (HIGH 0 / MED 0 / LOW 1 within tolerance → `audits/U28.md`). Ran via a *dispatched fresh auditor* (not the authoring session), dogfooding the new audit gate; U20-U27 + U29-U32 stamped `Audit: PASS`. The one LOW (README word count) was fixed.
 - 2026-06-11: **Audit-gate pass done (U29-U32).** D15 locked — audit independence is a hard rule + a consume-gate. Added an *Audit gates* section + audit-gate lint to `PROTOCOL.md.template`, an `Audit` column to `LEDGER.md.template`, an independence preamble + stamp step to `prompts/audit.md`, and strengthened docs/03 §6. Runtime (the `/gotm audit` command + header-aware hook) lives in the plugin (D12). U28 now run as an **independent dispatched audit** of U20-U27 + U29-U32 (no longer just deferred).
 - 2026-06-11: **Feedback-integration pass done (U20-U27).** Folded `geniefy-v3` field feedback (G1-G10) into docs + templates: anti-drift safeguards, resilience (crash-safe ordering + session-start reconciliation), `.gotm/` layout option, governance-vs-frozen-outputs carve-out, off-mission convention, sanctioned audit deferral. D12-D14 locked. Runtime enforcement (the hook) folded into the `gotm` plugin, not here (D12). U28 mechanical audit **deferred to human review** (recorded, not skipped).

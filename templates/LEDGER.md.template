@@ -32,8 +32,9 @@ Conventions:
 - Each row produces ONE named output file (atomicity rule).
 - `Inputs` lists prior units whose outputs this one consumes (foundation gate).
 - Status: pending | in_progress | done | superseded.
-- `Audit`: — (n/a) | pending | deferred→U<n> | PASS→audits/U<id>.md | FAIL→audits/U<id>.md.
-  A unit may be CONSUMED downstream only when its Audit is PASS or deferred→U<n>
+- `Audit`: — (n/a) | pending | deferred→U<n> | PASS→audits/U<id>.md |
+  PASS-FINDINGS→audits/U<id>.md | FAIL→audits/U<id>.md. A unit may be CONSUMED
+  downstream only when its Audit is PASS, PASS-FINDINGS, or deferred→U<n>
   (follow-up present). Audit by a DIFFERENT agent than the author (dispatch a
   fresh auditor subagent). See PROTOCOL.md -> Audit gates.
 - Done units are never edited. To revise, append a follow-on unit.
