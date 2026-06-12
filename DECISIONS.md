@@ -216,5 +216,19 @@ Deferred to Phase 3:
 
 ---
 
+## D15 — Audit independence is a hard rule; add a consume-gate to the ledger
+
+**Date:** 2026-06-11
+**Scope:** framework
+**Status:** locked
+
+**Context.** Rule 4 ("audit before downstream consumes") named the right idea, but independence lived only in prose (docs/02 §5, one PROTOCOL dispatch line) and was never operationalized: a working agent could self-audit in its own session, reproducing its own blind spots. There was no per-unit audit state, so `done` (output exists) was indistinguishable from "independently checked," and nothing stopped a downstream unit from consuming un-audited work. Field ask: auditors must be a *different* agent than the worker for a fair assessment.
+
+**Decision.** (1) **Independence is non-negotiable** — an audit is valid only if produced by a context that did not author the unit; it is dispatched as a fresh auditor subagent that receives only the target + oracle + `prompts/audit.md`, never the authoring transcript. (2) Add an **`Audit` column** to the ledger schema: `—` / `pending` / `deferred→U<n>` / `PASS→audits/U<id>.md` / `FAIL→audits/U<id>.md`. (3) **Gate:** a downstream unit consumes an input only when that input is `PASS` or `deferred→U<n>` (follow-up present). Findings become new fix units; a `FAIL` blocks downstream until a re-audit passes. The framework states this as paste-able discipline; the runtime that constructs the independent auditor, and a header-aware enforcement hook, live in the plugin (D12).
+
+**Consequences.** `PROTOCOL.md.template` gains an *Audit gates* section + an audit-gate lint in session-start reconciliation; `LEDGER.md.template` gains the column; `prompts/audit.md` gains an independence preamble + a stamp-the-cell step; docs/03 §6 is strengthened. In the plugin: a `/gotm audit <Uxx>` command dispatches the independent auditor, and the immutability hook is made header-aware so the new column doesn't shift cells and break the freeze.
+
+---
+
 <!-- Append new decisions below this line. -->
 

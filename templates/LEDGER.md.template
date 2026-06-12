@@ -17,10 +17,10 @@ last_updated: <YYYY-MM-DD>
 
 > Grouping by phase (e.g., "Foundation", "Drafting", "Wrapping") is convenience only. There is no hierarchy — only an ordered list of atomic units.
 
-| ID | Title | Inputs | Output | Status |
-|---|---|---|---|---|
-| U1 | <first unit title> | — | `<output/path>` | pending |
-| U2 | <second unit title> | U1 | `<output/path>` | pending |
+| ID | Title | Inputs | Output | Status | Audit |
+|---|---|---|---|---|---|
+| U1 | <first unit title> | — | `<output/path>` | pending | — |
+| U2 | <second unit title> | U1 | `<output/path>` | pending | — |
 
 ## Recent updates
 
@@ -32,6 +32,10 @@ Conventions:
 - Each row produces ONE named output file (atomicity rule).
 - `Inputs` lists prior units whose outputs this one consumes (foundation gate).
 - Status: pending | in_progress | done | superseded.
+- `Audit`: — (n/a) | pending | deferred→U<n> | PASS→audits/U<id>.md | FAIL→audits/U<id>.md.
+  A unit may be CONSUMED downstream only when its Audit is PASS or deferred→U<n>
+  (follow-up present). Audit by a DIFFERENT agent than the author (dispatch a
+  fresh auditor subagent). See PROTOCOL.md -> Audit gates.
 - Done units are never edited. To revise, append a follow-on unit.
 - Mark a unit `in_progress` BEFORE producing its output (crash-safe ordering);
   see PROTOCOL.md -> Resilience.

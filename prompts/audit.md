@@ -11,6 +11,14 @@ Use this template to audit a claimed-done unit before downstream work consumes i
 
 Audits run as dispatched subagents per `prompts/subagent-dispatch.md`, with the audit-specific shape below.
 
+### Independence (non-negotiable)
+
+An audit is only valid if it is run by a context that did **not** author the unit. The author judging its own work reproduces its own blind spots — that is self-marking, not auditing. So:
+
+- **Dispatch a fresh auditor subagent.** It receives only the Target, the Oracle, and the checks below — **never** the authoring session's transcript or reasoning.
+- The auditor reports findings; it does **not** fix them and does **not** mark its own subject `PASS` in the ledger — it returns a verdict; the orchestrator stamps the `Audit` cell.
+- If you are the agent that wrote the unit, you may **not** audit it in the same session. Dispatch it.
+
 ---
 
 ## Paste this into the orchestrating LLM
@@ -96,6 +104,7 @@ The audit report the worker writes (typically to `audits/<Uxx>.md`):
 
 The orchestrating agent reads the audit report and acts:
 
+- **Stamp the ledger `Audit` cell** for the audited unit: `PASS→audits/<Uxx>.md` if there are no HIGH findings, else `FAIL→audits/<Uxx>.md`. A `FAIL` blocks downstream consumption until fix units land and a re-audit returns `PASS`.
 - For each **HIGH** finding, append a fix unit to `LEDGER.md`. The fix unit's row references the audit report.
 - For **MEDIUM** findings, append as optional follow-on units (or batch into a single "polish" unit if many are minor).
 - For **LOW** findings, decide whether to act now or defer; if deferring, note in `LEDGER.md` recent updates.

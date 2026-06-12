@@ -23,7 +23,7 @@ Do not use GOTM for one-shot tasks. A one-off email or a five-line script does n
 ## What's in this repo
 
 ```
-docs/         3 concept chapters (~4,800 words) — the framework from first principles
+docs/         3 concept chapters (~4,950 words) — the framework from first principles
 prompts/      3 operational prompts a practitioner pastes into their LLM
 templates/    5 scaffold files to copy into a new project (root, or a .gotm/ subfolder)
 PROTOCOL.md   the project's own protocol (working example)

@@ -56,9 +56,21 @@ A unit is "done" when:
 - The content matches what the unit promised (sections, structure, word count if specified).
 - An audit has run on it — or, if explicitly deferred, the deferral is recorded with a reason and a follow-up unit appended.
 
-**Audit deferral is sanctioned, not skipping.** During an interactive design phase where the human reviews each output as it lands, human review *is* the gate — a separate mechanical audit per unit would be friction. In that case, defer the mechanical audit: record the deferral on the unit's row (reason + a follow-up audit unit appended to `LEDGER.md`). Deferral that is written down stays honest; deferral that is forgotten is just skipping.
+**Audit deferral is sanctioned, not skipping.** During an interactive design phase where the human reviews each output as it lands, human review *is* the gate — a separate mechanical audit per unit would be friction. In that case, defer the mechanical audit: set the unit's `Audit` cell to `deferred→U<n>` and append the follow-up audit unit `U<n>`. See *Audit gates* for the full lifecycle and the independence requirement.
 
 Mark done by updating the unit's row in `LEDGER.md`. Never edit a done unit's output to "fix" it later; append a new unit that supersedes or follows on. The ledger grows; it does not drift.
+
+## Audit gates
+
+Rule 4 says claimed-done work is checked before downstream consumes it. Two properties make that check meaningful rather than ceremonial — **independence** and a **gate** — and the ledger tracks audit state in its own `Audit` column so neither relies on memory.
+
+**Independence is non-negotiable.** An audit is valid only if it is produced by a context that did **not** author the unit. A working agent blessing its own output reproduces its own blind spots — that is self-marking, not auditing. In practice: **dispatch the audit as a fresh subagent** that receives only the target output, the oracle (the unit's inputs / spec / the ledger), and `prompts/audit.md` — never the authoring session's transcript. Do not audit a unit in the same session that wrote it.
+
+**The gate.** A unit's `Audit` value is one of: `—` (no audit needed) · `pending` (done but unchecked) · `deferred→U<n>` (audit consciously deferred to a recorded follow-up unit) · `PASS→audits/U<id>.md` · `FAIL→audits/U<id>.md`. A downstream unit may **consume** an input only when that input's `Audit` is `PASS` or `deferred→U<n>` (with the follow-up unit actually present). Drafts and code do not get built on `pending` or `FAIL` foundation. `done` (the output exists) and `PASS` (an independent context checked it) are distinct states; the column keeps them honest.
+
+**Findings become units, not edits.** The auditor does not fix — it reports findings in severity tiers (HIGH / MEDIUM / LOW / UNVERIFIED) to `audits/<Uxx>.md`. Each HIGH finding becomes a new fix unit appended to `LEDGER.md`; the audited unit's output stays frozen. A `FAIL` blocks downstream until the fix units land and a re-audit returns `PASS`.
+
+**Deferral stays honest.** `deferred→U<n>` is allowed (e.g. human review serves as the gate during interactive design), but the follow-up audit unit `U<n>` must exist in the ledger. Session-start reconciliation flags two smells: a `done` unit whose `Audit` is still `pending` and has a downstream consumer, and a `deferred→U<n>` whose `U<n>` is missing.
 
 ## Anti-drift safeguards (operational)
 
@@ -105,6 +117,7 @@ A crash between (1) and (3) leaves a recoverable trail — never a silent gap.
 - `done` row whose output file is **missing** → reopen the unit; note in Recent updates.
 - Output file **exists** for a non-`done` unit → an interrupted unit: inspect, then finalize to `done` (if complete) or supersede with a follow-on unit (if partial).
 - `in_progress` unit → resume/verify exactly that unit.
+- **Audit-gate lint:** a `done` unit whose `Audit` is `pending` and that a downstream unit consumes → audit it (independently) before that downstream proceeds; a `deferred→U<n>` whose follow-up `U<n>` is missing → restore it or audit now. See *Audit gates*.
 - Record what reconciliation found/did in Recent updates (recovery is auditable).
 
 Recovery produces new ledger entries, never silent edits to closed units. This does not make the crash window literally zero (a crash *during* the ledger write itself still exists), but it makes every outcome **recoverable** — the bar is "no *unrecoverable* context loss."
@@ -120,7 +133,7 @@ Convention: **produce the file, then drop a one-line breadcrumb in `LEDGER.md` �
 Dispatch a subagent when:
 
 - The unit's work exceeds the current session's bandwidth (long deliverable, large input set).
-- An audit needs an independent context — the agent that did the work cannot audit the same work (Rule 4).
+- An audit needs an independent context — the agent that did the work cannot audit the same work (Rule 4; see *Audit gates*). Dispatch a fresh auditor subagent for it.
 - Multiple atomic units can run in parallel without shared state.
 
 The dispatch prompt carries:

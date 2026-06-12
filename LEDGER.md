@@ -1,6 +1,6 @@
 ---
 project: gotm-framework-for-agentic-development
-last_updated: 2026-06-11 (feedback-integration pass U20-U27 done; U28 audit deferred to human review; Q2 visibility still open)
+last_updated: 2026-06-11 (U20-U27 + U29-U32 done & Audit:PASS via independent U28; Q2 visibility still open)
 ---
 
 # Project ledger
@@ -11,9 +11,9 @@ Distill the GOTM discipline into a public-ready framework — concept docs, a pr
 
 ## Active unit
 
-**U28** — Audit the feedback-integration edits (deferred to human review; see note).
+**(none active)** — U28 independent audit **PASSED** (HIGH 0 / MED 0 / LOW 1 within tolerance), so U20-U27 + U29-U32 are `Audit: PASS`.
 
-Feedback-integration pass U20-U27 done (2026-06-11). U28 is the mechanical audit of that pass; per the new audit-deferral pattern it is **deferred to the human's review** of these edits and logged as a follow-up unit rather than skipped. Q2 (visibility flip from PRIVATE to PUBLIC) remains the standing open ratification.
+Feedback-integration (U20-U27) and audit-gate (U29-U32) passes done and independently audited (2026-06-11, `audits/U28.md`, dispatched fresh auditor — not the authoring session). Q2 (visibility flip from PRIVATE to PUBLIC) remains the standing open ratification.
 
 ## Units
 
@@ -60,20 +60,33 @@ Feedback-integration pass U20-U27 done (2026-06-11). U28 is the mechanical audit
 
 > Source: `geniefy-v3/docs/GOTM-FEEDBACK.md` (G1-G10). Conceptual/paste-able items only; runtime enforcement (the hook) folded into the `gotm` plugin per D12, not here.
 
-| ID | Title | Inputs | Output | Status |
-|---|---|---|---|---|
-| U20 | docs/02: add gaps §8 (rules rely on memory) + §9 (non-graceful ends) | GOTM-FEEDBACK G1, G10 | `docs/02-what-agents-are-missing.md` | done |
-| U21 | docs/03: add §7 (anti-drift safeguards + resilience) + reconcile step in §3 | U20, GOTM-FEEDBACK G1, G10 | `docs/03-gotm-with-agents.md` | done |
-| U22 | docs/01: ledger-as-recovery-point sentence | GOTM-FEEDBACK G10 | `docs/01-what-is-gotm.md` | done |
-| U23 | Update `PROTOCOL.md.template` — anti-drift, resilience, layout note, audit-deferral, off-mission, governance carve-out | D13, D14, U20, U21 | `templates/PROTOCOL.md.template` | done |
-| U24 | Update `LEDGER.md.template` conventions (in_progress-first, last_updated stamp, off-mission) | D13 | `templates/LEDGER.md.template` | done |
-| U25 | Update `DECISIONS.md.template` (Status-line edit is the documented mechanism) | D13 | `templates/DECISIONS.md.template` | done |
-| U26 | README: primitives summary + `.gotm/` layout in quickstart/tree; word count | D14 | `README.md` | done |
-| U27 | CONTRIBUTING: point enforcement at adopter tooling (don't forbid safeguards) | D12 | `CONTRIBUTING.md` | done |
-| U28 | Audit the feedback-integration edits (existence + render + cross-doc §-numbering) | U20-U27 | `audits/U28.md` | pending (deferred to human review per audit-deferral pattern) |
+| ID | Title | Inputs | Output | Status | Audit |
+|---|---|---|---|---|---|
+| U20 | docs/02: add gaps §8 (rules rely on memory) + §9 (non-graceful ends) | GOTM-FEEDBACK G1, G10 | `docs/02-what-agents-are-missing.md` | done | PASS→audits/U28.md |
+| U21 | docs/03: add §7 (anti-drift safeguards + resilience) + reconcile step in §3 | U20, GOTM-FEEDBACK G1, G10 | `docs/03-gotm-with-agents.md` | done | PASS→audits/U28.md |
+| U22 | docs/01: ledger-as-recovery-point sentence | GOTM-FEEDBACK G10 | `docs/01-what-is-gotm.md` | done | PASS→audits/U28.md |
+| U23 | Update `PROTOCOL.md.template` — anti-drift, resilience, layout note, audit-deferral, off-mission, governance carve-out | D13, D14, U20, U21 | `templates/PROTOCOL.md.template` | done | PASS→audits/U28.md |
+| U24 | Update `LEDGER.md.template` conventions (in_progress-first, last_updated stamp, off-mission) | D13 | `templates/LEDGER.md.template` | done | PASS→audits/U28.md |
+| U25 | Update `DECISIONS.md.template` (Status-line edit is the documented mechanism) | D13 | `templates/DECISIONS.md.template` | done | PASS→audits/U28.md |
+| U26 | README: primitives summary + `.gotm/` layout in quickstart/tree; word count | D14 | `README.md` | done | PASS→audits/U28.md |
+| U27 | CONTRIBUTING: point enforcement at adopter tooling (don't forbid safeguards) | D12 | `CONTRIBUTING.md` | done | PASS→audits/U28.md |
+
+### Audit-gate phase (2026-06-11)
+
+> Follow-up ask: "proper audit checks + gates; auditor ≠ author." Conceptual/paste-able only; the `/gotm audit` command + header-aware hook live in the `gotm` plugin (D12, D15). U29/U32 are follow-ons that further evolve U23/U21's outputs.
+
+| ID | Title | Inputs | Output | Status | Audit |
+|---|---|---|---|---|---|
+| U29 | `PROTOCOL.md.template`: add *Audit gates* section + audit-gate lint + deferral/dispatch tie-ins | D15, U23 | `templates/PROTOCOL.md.template` | done | PASS→audits/U28.md |
+| U30 | `LEDGER.md.template`: add `Audit` column + conventions | D15 | `templates/LEDGER.md.template` | done | PASS→audits/U28.md |
+| U31 | `prompts/audit.md`: independence preamble + stamp-the-cell step | D15 | `prompts/audit.md` | done | PASS→audits/U28.md |
+| U32 | docs/03 §6: strengthen audit cycle with independence + the gate | D15, U21 | `docs/03-gotm-with-agents.md` | done | PASS→audits/U28.md |
+| U28 | **Independent** audit of the feedback-integration + audit-gate edits (existence + render + cross-doc consistency) — dispatched fresh auditor, not self-audit | U20-U27, U29-U32 | `audits/U28.md` | done | — |
 
 ## Recent updates
 
+- 2026-06-11: **U28 independent audit PASSED** (HIGH 0 / MED 0 / LOW 1 within tolerance → `audits/U28.md`). Ran via a *dispatched fresh auditor* (not the authoring session), dogfooding the new audit gate; U20-U27 + U29-U32 stamped `Audit: PASS`. The one LOW (README word count) was fixed.
+- 2026-06-11: **Audit-gate pass done (U29-U32).** D15 locked — audit independence is a hard rule + a consume-gate. Added an *Audit gates* section + audit-gate lint to `PROTOCOL.md.template`, an `Audit` column to `LEDGER.md.template`, an independence preamble + stamp step to `prompts/audit.md`, and strengthened docs/03 §6. Runtime (the `/gotm audit` command + header-aware hook) lives in the plugin (D12). U28 now run as an **independent dispatched audit** of U20-U27 + U29-U32 (no longer just deferred).
 - 2026-06-11: **Feedback-integration pass done (U20-U27).** Folded `geniefy-v3` field feedback (G1-G10) into docs + templates: anti-drift safeguards, resilience (crash-safe ordering + session-start reconciliation), `.gotm/` layout option, governance-vs-frozen-outputs carve-out, off-mission convention, sanctioned audit deferral. D12-D14 locked. Runtime enforcement (the hook) folded into the `gotm` plugin, not here (D12). U28 mechanical audit **deferred to human review** (recorded, not skipped).
 - 2026-05-30: **Rewrite shipped.** U17 meta-audit passed (HIGH 0 / MED 0 / LOW 3 within tolerance). U18 committed (`0f0933e`). U19 pushed to private GitHub. 19/19 units done. Q2 visibility flip remains open.
 - 2026-05-30: U15 (README ~732w) and U16 (CONTRIBUTING ~470w) done. All concept + implementation units complete.
