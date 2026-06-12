@@ -26,7 +26,7 @@ These seven steps are not negotiable. The discipline depends on the project's st
 
 **1. Single ledger.** `LEDGER.md` is authoritative. State that is not in the ledger is not real state. If two documents disagree, the ledger wins.
 
-**2. Atomic units.** Each row in the ledger is one execution pass producing one named output file. Not two outputs. Not "and a small revision." Not "while we're at it." If a planned unit hides more than one output, split it before work starts.
+**2. Atomic units.** Each row in the ledger is one execution pass producing one named output file. Not two outputs. Not "and a small revision." Not "while we're at it." If a planned unit hides more than one output, split it before work starts. (Atomicity is about one *deliverable*, not literally one file: a module and its test file are one unit — build-and-test is a single pass. The rule forbids *unrelated* outputs in one unit, not a thing and its test.)
 
 **3. Foundation before drafts.** Some units are foundation (gather source, lock decisions, map terrain). Some are drafts (produce on top of foundation). Foundation precedes drafts. Drafts that begin before foundation closes fail by producing fluent prose grounded in nothing.
 
@@ -70,11 +70,17 @@ Rule 4 says claimed-done work is checked before downstream consumes it. Two prop
 
 **Verdict — one of three.** The auditor returns: **`PASS`** (no findings above the trivial bar); **`PASS-FINDINGS`** (passed and consumable, but carries MEDIUM/LOW findings that become tracked non-blocking follow-on units); **`FAIL`** (one or more HIGH findings — blocks). HIGH ⇒ FAIL; MEDIUM/LOW-only ⇒ PASS-FINDINGS; clean ⇒ PASS.
 
-**The gate.** A unit's `Audit` value is one of: `—` (no audit needed) · `pending` (done but unchecked) · `deferred→U<n>` (audit consciously deferred to a recorded follow-up unit) · `PASS→audits/U<id>.md` · `PASS-FINDINGS→audits/U<id>.md` · `FAIL→audits/U<id>.md`. A downstream unit may **consume** an input only when that input's `Audit` is `PASS`, `PASS-FINDINGS`, or `deferred→U<n>` (with the follow-up unit actually present). Drafts and code do not get built on `pending` or `FAIL` foundation. `done` (the output exists) and a passing verdict (an independent context checked it) are distinct states; the column keeps them honest.
+**The gate.** A unit's `Audit` value is one of: `—` (no audit needed) · `pending` (done but unchecked) · `deferred→U<n>` (audit consciously deferred to a recorded follow-up unit) · `PASS→audits/U<id>.md` · `PASS-FINDINGS→audits/U<id>.md` · `FAIL→audits/U<id>.md` · `superseded by U<yy>`. A downstream unit may **consume** an input only when that input's `Audit` is `PASS`, `PASS-FINDINGS`, or `deferred→U<n>` (with the follow-up unit actually present). Drafts and code do not get built on `pending` or `FAIL` foundation. `done` (the output exists) and a passing verdict (an independent context checked it) are distinct states; the column keeps them honest.
 
 **Findings become units, not edits.** The auditor does not fix — it writes findings to `audits/<Uxx>.md`. Each HIGH finding becomes a new fix unit appended to `LEDGER.md`; MEDIUM/LOW findings under a `PASS-FINDINGS` become tracked follow-on units too. The audited unit's output stays frozen. A `FAIL` blocks downstream until the fix units land and an independent re-audit returns `PASS`/`PASS-FINDINGS`.
 
 **Deferral stays honest.** `deferred→U<n>` is allowed during active human review (the human is the interim gate), but the follow-up audit unit `U<n>` must exist in the ledger **and the independent audit must run before any code/build unit consumes the design** — design may be human-reviewed on the way in, but code does not get built on a deferral. Session-start reconciliation flags two smells: a `done` unit whose `Audit` is still `pending` and has a downstream consumer, and a `deferred→U<n>` whose `U<n>` is missing.
+
+**Cadence — one audit, one unit, promptly.** The gate's *letter* (downstream waits for `PASS`) holds even when its *spirit* slips, so three cadence invariants are explicit:
+
+- **One report per unit.** Each unit gets its own audit dispatch and its own `audits/<Uxx>.md`. No multi-unit reports.
+- **Own-report only.** A unit's `Audit` cell is `PASS`/`PASS-FINDINGS`/`FAIL` from *its own* report — never "covered by another unit's audit." The one exception is a superseded unit, whose cell reads `superseded by U<yy>` (its output was replaced and re-audited under `U<yy>`).
+- **Audit promptly.** Dispatch a unit's audit in — or right after — the turn it becomes `done`, before starting the next unit. Don't let `Audit: pending` pile up: audit-as-you-go silently degrades into audit-in-batches, and batched-later auditing erodes into rubber-stamping.
 
 ## Anti-drift safeguards (operational)
 
@@ -113,6 +119,8 @@ The framework's core promise is that the on-disk state alone reconstructs full w
 3. Mark the unit `done` and append any `DECISIONS.md` / `QUESTIONS.md` entries.
 
 A crash between (1) and (3) leaves a recoverable trail — never a silent gap.
+
+**A new unit is born `pending` or `in_progress` — never `done`.** Flip it to `done` only after its output exists and is verified, in the same turn. This is the same ordering, stated as a guard against a self-inflicted foot-gun: if you register a follow-on (e.g. a fix unit) as `done` *before* writing its output, the immutability hook (if wired) freezes that done unit's output and locks you out of the very file you were about to create. Batch-registering several follow-ons at once makes `done` the path of least resistance — resist it; register them `pending`/`in_progress`.
 
 **Bound the loss — size units to their loop (heavy/iterative work).** Never wrap a long loop (columns, tables, batches) in one un-checkpointed pass. Either split into per-iteration units, or checkpoint per iteration to the working state so reconciliation resumes at the last completed iteration — a crash then costs one iteration, not the whole unit.
 

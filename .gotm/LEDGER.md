@@ -1,6 +1,6 @@
 ---
 project: gotm-framework-for-agentic-development
-last_updated: 2026-06-12 (README intro hook U52-U54, audit PASS-FINDINGS; governance sync U49-U51; diagram U48; .gotm migration U47; docs rewrite U38-U46; publication-ready; Q2 visibility still open)
+last_updated: 2026-06-12 (G12/G14/G13a incorporation U55-U58, audit U59 pending; plugin→v2.4.0; README hook U52-U54; governance sync U49-U51; docs rewrite U38-U46; Q2 visibility still open)
 ---
 
 # Project ledger
@@ -11,9 +11,9 @@ Distill the GOTM discipline into a public-ready framework — concept docs, a pr
 
 ## Active unit
 
-**(none active)** — the repo's own governance docs are now synced to the current discipline (U49 `.gotm/PROTOCOL.md`, U50 `CLAUDE.md`), independently audited (U51 → **PASS**). The meta-example now runs the full protocol it teaches.
+**(none active)** — G12/G14/G13a incorporation (U55-U58) done and independently audited (U59 → **PASS-FINDINGS**: 0 HIGH / 0 MED / 2 LOW; L1 — `superseded by U<yy>` missing from the gate enumeration — closed inline in both PROTOCOL files; L2 accepted per D19's transition note). Per D19, per-unit auditing binds going forward.
 
-Recent arc: docs rewritten to a 5-chapter arc (D17, U38-U46, audit `.gotm/audits/U46.md`); machinery migrated into `.gotm/` (D18, U47); README orchestrator diagram (U48); governance-doc sync (U49-U51). Every pass independently audited (`.gotm/audits/U28.md`, `U36.md`, `U46.md`, `U51.md`). Q2 (visibility flip from PRIVATE to PUBLIC) remains the standing open ratification — the repo is publication-ready.
+Latest: folded `geniefy-v3` feedback G12 (audit cadence), G14 (born-`in_progress`), G13a (module+test grain) into the deliverable templates + the meta-example's own `.gotm/PROTOCOL.md` (D19, U55-U58); plugin mirrors + ships v2.4.0. Recent arc: 5-chapter docs (D17), `.gotm/` migration (D18), README diagram (U48), governance sync (U49-U51), README hook (U52-U54). Q2 (PRIVATE→PUBLIC visibility) remains the standing open ratification.
 
 ## Units
 
@@ -138,8 +138,21 @@ Recent arc: docs rewritten to a 5-chapter arc (D17, U38-U46, audit `.gotm/audits
 | U53 | **Independent** audit of the README intro (U52) — neutrality, voice, render, links | U52 | `.gotm/audits/U53.md` | done | — |
 | U54 | Close U53 LOW: reword the intro payoff so the stateless/stateful motif stays canonical at "What GOTM is" (was repeated 3× in ~65 lines) | U53 | `README.md` | done | — |
 
+### G12/G14/G13a incorporation phase (2026-06-12)
+
+> D19. Source: `geniefy-v3/docs/GOTM-FEEDBACK.md` G12 (audit cadence) · G14 (born-`in_progress`) · G13a (module+test grain). Paste-able discipline → deliverable templates + the meta-example's own protocol. U59 is the **final consolidated** audit; per-unit auditing (G12) binds from here.
+
+| ID | Title | Inputs | Output | Status | Audit |
+|---|---|---|---|---|---|
+| U55 | `templates/PROTOCOL.md.template`: G12 cadence invariants (Audit gates) + G14 born-`in_progress` (Resilience) + G13a grain (Rule 2) | D19 | `templates/PROTOCOL.md.template` | done | PASS-FINDINGS→.gotm/audits/U59.md |
+| U56 | `templates/LEDGER.md.template`: grain + cadence + born-`in_progress` conventions | D19 | `templates/LEDGER.md.template` | done | PASS-FINDINGS→.gotm/audits/U59.md |
+| U57 | `prompts/audit.md`: one-report-per-unit + audit-promptly | D19 | `prompts/audit.md` | done | PASS-FINDINGS→.gotm/audits/U59.md |
+| U58 | Sync meta-example's own `.gotm/PROTOCOL.md` to match (G12/G14/G13a) | D19, U55 | `.gotm/PROTOCOL.md` | done | PASS-FINDINGS→.gotm/audits/U59.md |
+| U59 | **Independent** audit of U55-U58 (final consolidated audit; per-unit binds hereafter per D19) | U55-U58 | `.gotm/audits/U59.md` | done | — |
+
 ## Recent updates
 
+- 2026-06-12: **Folded `geniefy-v3` feedback G12/G14/G13a (D19, U55-U58).** G12 audit-cadence invariants (one report per unit · own-report-only + `superseded by U<yy>` exception · audit promptly), G14 "a unit is born `pending`/`in_progress`, never `done`" (+ plugin hook deny-message hint), G13a "module+test = one unit" grain — into `templates/PROTOCOL.md.template`, `templates/LEDGER.md.template`, `prompts/audit.md`, and the meta-example's own `.gotm/PROTOCOL.md`. Declined G13b (P3). Plugin mirrors + ships **v2.4.0** (new marketplace PR). Transition: prior consolidated audits stand as history; per-unit auditing binds after U59. Independent audit **U59 → PASS-FINDINGS** (2 LOW; L1 gate-enumeration omission closed inline; L2 — the "covered-by" stamps — accepted as the sanctioned transitional consolidated audit).
 - 2026-06-12: **Added a pain-point → "what if" intro hook to the README (U52-U54).** Neutral lead-in above "The problem GOTM solves": session context surviving a crash, an independent untainted-subagent audit, "done" = checked. Independent audit U53 → **PASS-FINDINGS**; the one LOW (stateless/stateful motif repeated 3× in ~65 lines) closed by U54 (reworded the intro payoff).
 - 2026-06-12: **Synced the repo's own governance docs to the current discipline (U49-U51).** `.gotm/PROTOCOL.md` was behind its own template — brought up to the current protocol (Anti-drift safeguards, Resilience, Audit gates, reconcile step, `.gotm/` Layout note), instantiating `templates/PROTOCOL.md.template` with the framework's real mission + `../` links. Root `CLAUDE.md` gained the four Non-negotiables (frozen units · write-back · resilience/cold-start · audit independence). Independent audit U51 → **PASS** (one pre-existing LOW noted in `docs/04` prose, accepted). The meta-example now runs the full protocol it teaches.
 - 2026-06-11: **Added a Mermaid orchestrator diagram to the README (U48).** Designed by a dispatched subagent, render-checked with `mmdc` (exit 0). One at-a-glance picture: stateless session loop (read+reconcile → act → write-back) around the stateful project file-set, subagent dispatch incl. the independent auditor → audit gate, and the human entering only via the ratification ladder.

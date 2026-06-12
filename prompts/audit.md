@@ -16,8 +16,9 @@ Audits run as dispatched subagents per `prompts/subagent-dispatch.md`, with the 
 An audit is only valid if it is run by a context that did **not** author the unit. The author judging its own work reproduces its own blind spots — that is self-marking, not auditing. So:
 
 - **Dispatch a fresh auditor subagent.** It receives only the Target, the Oracle, and the checks below — **never** the authoring session's transcript or reasoning.
+- **One unit per audit.** One dispatch produces one `audits/<Uxx>.md` for one unit — no multi-unit reports, no "covered by another unit's audit." (A superseded unit is the only no-own-audit case; its cell reads `superseded by U<yy>`.)
 - The auditor reports findings; it does **not** fix them and does **not** mark its own subject `PASS` in the ledger — it returns a verdict; the orchestrator stamps the `Audit` cell.
-- If you are the agent that wrote the unit, you may **not** audit it in the same session. Dispatch it.
+- If you are the agent that wrote the unit, you may **not** audit it in the same session. Dispatch it. Do it promptly — right after the unit goes `done`, before starting the next.
 
 ---
 

@@ -29,17 +29,22 @@ last_updated: <YYYY-MM-DD>
 <!--
 Conventions:
 - IDs are flat (U1, U2, U3...). No prefixes for hierarchy.
-- Each row produces ONE named output file (atomicity rule).
+- Each row produces ONE named output file (atomicity rule). A module + its test
+  file count as ONE unit (the natural grain) — atomicity is one deliverable, not
+  literally one file.
 - `Inputs` lists prior units whose outputs this one consumes (foundation gate).
 - Status: pending | in_progress | done | superseded.
 - `Audit`: — (n/a) | pending | deferred→U<n> | PASS→audits/U<id>.md |
-  PASS-FINDINGS→audits/U<id>.md | FAIL→audits/U<id>.md. A unit may be CONSUMED
-  downstream only when its Audit is PASS, PASS-FINDINGS, or deferred→U<n>
-  (follow-up present). Audit by a DIFFERENT agent than the author (dispatch a
-  fresh auditor subagent). See PROTOCOL.md -> Audit gates.
+  PASS-FINDINGS→audits/U<id>.md | FAIL→audits/U<id>.md | superseded by U<yy>.
+  A unit may be CONSUMED downstream only when its Audit is PASS, PASS-FINDINGS,
+  or deferred→U<n> (follow-up present). One audit + one report PER UNIT, from its
+  OWN report (no "covered-by" stamps); audit by a DIFFERENT agent than the author
+  (dispatch a fresh auditor subagent), promptly — don't let `pending` pile up.
+  See PROTOCOL.md -> Audit gates.
 - Done units are never edited. To revise, append a follow-on unit.
-- Mark a unit `in_progress` BEFORE producing its output (crash-safe ordering);
-  see PROTOCOL.md -> Resilience.
+- A new unit is born `pending`/`in_progress`, NEVER `done` — flip to `done` only
+  after its output exists (crash-safe ordering; avoids the immutability hook
+  locking you out of the file you're producing). See PROTOCOL.md -> Resilience.
 - Stamp `last_updated` (front matter) on every write-back, so the ledger's age
   is honest.
 - Off-mission artifacts (work that does not serve the mission) do NOT go in the

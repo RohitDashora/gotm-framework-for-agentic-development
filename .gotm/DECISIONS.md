@@ -272,5 +272,19 @@ Deferred to Phase 3:
 
 ---
 
+## D19 — Audit cadence (G12), born-`in_progress` (G14), module+test grain (G13a)
+
+**Date:** 2026-06-12
+**Scope:** framework
+**Status:** locked
+
+**Context.** A long autonomous run on `geniefy-v3` surfaced three more gaps even with the audit gates (D15/D16) in place. **G12:** the gate's *spirit* eroded — done units sat `Audit: pending` while downstream built, audits got batched, two units shared one report, four were stamped "covered by the module's audit." **G14:** registering a follow-on unit as `done` *before* writing its output trips the immutability hook (it freezes done outputs) and locks you out of your own file. **G13a:** the frozen-file + atomicity rules make a module+test pair feel like two units.
+
+**Decision.** Adopt three additions as paste-able discipline. **G12 cadence (three invariants):** one audit dispatch + one `audits/<Uxx>.md` per unit (no multi-unit reports); the `Audit` cell comes only from the unit's *own* report (sole exception `superseded by U<yy>`); audit promptly — right after a unit goes `done`, before the next. **G14:** a new unit is born `pending`/`in_progress`, never `done` — flip to `done` only after its output exists (stated in Resilience + Anti-drift; the plugin hook's deny message now names this fix). **G13a:** a module + its test file count as one unit (atomicity is one *deliverable*, not one file). Declined **G13b** (the speculative "cleanup unit" pattern + immutability-hook companion) — P3, only if findings-sweeps recur.
+
+**Consequences.** Updated `templates/PROTOCOL.md.template`, `templates/LEDGER.md.template`, `prompts/audit.md`, and the repo's own `.gotm/PROTOCOL.md`. The plugin mirrors these + the hook-message hint and ships as **v2.4.0** (new marketplace PR). **Transition note:** G12 ("one report per unit") means this repo's prior *consolidated* audits (U28 covered U20–U32; U46 covered U39–U45; U51, U53) stand as history; per-unit auditing binds from here. This pass's own audit (below) is the final consolidated one.
+
+---
+
 <!-- Append new decisions below this line. -->
 
