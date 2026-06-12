@@ -2,6 +2,20 @@
 
 A discipline for surviving bounded-context agentic execution — when complex work spans hundreds of LLM sessions and many subagents and can't fit in any one of them.
 
+---
+
+**Your agent forgets everything when the session ends. GOTM makes the project remember.**
+
+Ever wished an agent session just *never lost the thread* — that you could lose it mid-task to a crash, a dead laptop, a closed terminal, reopen it tomorrow, and pick up exactly where you left off, with every decision and every reason still intact?
+
+What if the agent could audit its own work — but handed the check to a **fresh subagent with no memory of writing it**, so the review was honest instead of the author nodding along to itself?
+
+What if drafts never ran ahead of the evidence, "done" always meant *independently checked*, and the project's memory lived in plain files that outlast any single session — so session #300 starts as sharp as session #1?
+
+That is what GOTM is for. It doesn't try to make the agent smarter; it makes the **project** disciplined — the working memory moves out of the agent and into the project, and context stops leaking out the session boundary.
+
+---
+
 ## The problem GOTM solves
 
 Complex work with AI agents falls apart in predictable ways. State that an agent built up in one session evaporates at the session boundary. The next session starts cold and re-derives — usually slightly differently — and the project's working understanding drifts. Drafts run ahead of the evidence the agent never wrote down. Subagents inherit the task but not the project's discipline. "Done" markers accumulate without independent audit. Mission-level decisions get made unilaterally by the agent; trivial choices get escalated to the human. Session-level tooling — slash commands, custom instructions, system prompts — dies when the session does.
