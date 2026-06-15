@@ -74,6 +74,8 @@ Rule 4 says claimed-done work is checked before downstream consumes it. Two prop
 
 **Findings become units, not edits.** The auditor does not fix — it writes findings to `audits/<Uxx>.md`. Each HIGH finding becomes a new fix unit appended to `LEDGER.md`; MEDIUM/LOW findings under a `PASS-FINDINGS` become tracked follow-on units too. The audited unit's output stays frozen. A `FAIL` blocks downstream until the fix units land and an independent re-audit returns `PASS`/`PASS-FINDINGS`.
 
+**A decision change can invalidate a prior pass.** When a locked decision is later refined or superseded, append a new timestamped `D<n>` — never silently edit the old entry (see the pre-edit check). Then **re-check every `done` unit whose `Inputs` cite the changed decision against the new one**: if its output no longer conforms, that unit's `Audit` reverts to `pending` (re-audit independently) or the gap becomes a fix unit. A `PASS` was true under the decision as it stood — a refinement whose dependents are never re-checked is the same silent drift the gate exists to catch.
+
 **Deferral stays honest.** `deferred→U<n>` is allowed during active human review (the human is the interim gate), but the follow-up audit unit `U<n>` must exist in the ledger **and the independent audit must run before any code/build unit consumes the design** — design may be human-reviewed on the way in, but code does not get built on a deferral. Session-start reconciliation flags two smells: a `done` unit whose `Audit` is still `pending` and has a downstream consumer, and a `deferred→U<n>` whose `U<n>` is missing.
 
 **Cadence — one audit, one unit, promptly.** The gate's *letter* (downstream waits for `PASS`) holds even when its *spirit* slips, so three cadence invariants are explicit:
@@ -130,6 +132,7 @@ A crash between (1) and (3) leaves a recoverable trail — never a silent gap.
 - Output file **exists** for a non-`done` unit → an interrupted unit: inspect, then finalize to `done` (if complete) or supersede with a follow-on unit (if partial).
 - `in_progress` unit → resume/verify exactly that unit.
 - **Audit-gate lint:** a `done` unit whose `Audit` is `pending` and that a downstream unit consumes → audit it (independently) before that downstream proceeds; a `deferred→U<n>` whose follow-up `U<n>` is missing → restore it or audit now. See *Audit gates*.
+- **Stale-by-decision lint:** a `done` unit whose cited `D<n>` was later superseded/refined and that has not been re-checked against the new decision → flag it for re-audit before downstream relies on it. See *Audit gates*.
 - Record what reconciliation found/did in Recent updates (recovery is auditable).
 
 Recovery produces new ledger entries, never silent edits to closed units. This does not make the crash window literally zero (a crash *during* the ledger write itself still exists), but it makes every outcome **recoverable** — the bar is "no *unrecoverable* context loss."

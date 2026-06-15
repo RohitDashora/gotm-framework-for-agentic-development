@@ -1,6 +1,6 @@
 ---
 project: gotm-framework-for-agentic-development
-last_updated: 2026-06-12 (G12/G14/G13a incorporation U55-U58, audit U59 pending; plugin→v2.4.0; README hook U52-U54; governance sync U49-U51; docs rewrite U38-U46; Q2 visibility still open)
+last_updated: 2026-06-15 (learning layer D20/U60-U63 audited; process-feedback check D21/U64 — L22 re-audit-dependents added, L15/L21/L23 already covered, U64 audit pending; plugin /gotm:learn + L22 → v2.5.0 unshipped; Q2 visibility still open)
 ---
 
 # Project ledger
@@ -11,9 +11,9 @@ Distill the GOTM discipline into a public-ready framework — concept docs, a pr
 
 ## Active unit
 
-**(none active)** — G12/G14/G13a incorporation (U55-U58) done and independently audited (U59 → **PASS-FINDINGS**: 0 HIGH / 0 MED / 2 LOW; L1 — `superseded by U<yy>` missing from the gate enumeration — closed inline in both PROTOCOL files; L2 accepted per D19's transition note). Per D19, per-unit auditing binds going forward.
+**(none active)** — this session's work is done and independently audited. Cross-project learning layer (D20, U60-U63 → PASS-FINDINGS/PASS) + GOTM core-process feedback check (D21, U64 → PASS-FINDINGS, 1 LOW accepted). L15/L21/L23 verified already-implemented; L22's re-audit-dependents added across both protocol templates + the meta-example + the plugin mirror. Plugin `/gotm:learn` + L22 = **v2.5.0, NOT yet pushed/published** (awaiting go). Open: the *consume* half of L1 + L2/L3 aggregation (future iteration); Q2 PRIVATE→PUBLIC visibility (standing). Per D19, per-unit auditing binds.
 
-Latest: folded `geniefy-v3` feedback G12 (audit cadence), G14 (born-`in_progress`), G13a (module+test grain) into the deliverable templates + the meta-example's own `.gotm/PROTOCOL.md` (D19, U55-U58); plugin mirrors + ships v2.4.0. Recent arc: 5-chapter docs (D17), `.gotm/` migration (D18), README diagram (U48), governance sync (U49-U51), README hook (U52-U54). Q2 (PRIVATE→PUBLIC visibility) remains the standing open ratification.
+Latest: D20 locks the learning layer (project → user/harness → enterprise; one mergeable record + a generated index; confidence candidate→validated→core, no self-promotion past candidate, contradiction demotes). Producer shipped; *consume* + L2/L3 aggregation described, not shipped (platform bindings). Validated against the geniefy-v3 extraction (~23 lessons; scratch proof kept outside the repo). Prior arc: G12/G14/G13a (D19, U55-U59), 5-chapter docs (D17), `.gotm/` migration (D18), governance sync (U49-U51). Q2 (PRIVATE→PUBLIC visibility) remains the standing open ratification.
 
 ## Units
 
@@ -150,8 +150,29 @@ Latest: folded `geniefy-v3` feedback G12 (audit cadence), G14 (born-`in_progress
 | U58 | Sync meta-example's own `.gotm/PROTOCOL.md` to match (G12/G14/G13a) | D19, U55 | `.gotm/PROTOCOL.md` | done | PASS-FINDINGS→.gotm/audits/U59.md |
 | U59 | **Independent** audit of U55-U58 (final consolidated audit; per-unit binds hereafter per D19) | U55-U58 | `.gotm/audits/U59.md` | done | — |
 
+### Cross-project learning layer (2026-06-15)
+
+> D20. Document the bottom-up learning layer + ship the *producing* half of L1 (the end-of-project retrospective + the LEARNINGS record/template). *Consume* + L2/L3 aggregation described, not shipped. The plugin mirrors the template/prompt and adds `/gotm:learn`. Validated against the geniefy-v3 extraction (a scratch proof kept outside the repo). Audits pending — dispatch per-unit (G12).
+
+| ID | Title | Inputs | Output | Status | Audit |
+|---|---|---|---|---|---|
+| U60 | New ch6 — Learning across projects (3-level bottom-up flow; record + index + merge; confidence ladder) | D20 | `docs/06-learning-across-projects.md` | done | PASS-FINDINGS→.gotm/audits/U60.md |
+| U61 | Draft `templates/LEARNINGS.md.template` — the learning-artifact scaffold (records + generated index + merge model) | D20 | `templates/LEARNINGS.md.template` | done | PASS-FINDINGS→.gotm/audits/U61.md |
+| U62 | Draft `prompts/outcome-analysis.md` — the end-of-project retrospective that emits candidate records | D20 | `prompts/outcome-analysis.md` | done | PASS-FINDINGS→.gotm/audits/U62.md |
+| U63 | README sync — ch6 in the chapter list, outcome-analysis in prompts, LEARNINGS in templates, tree counts | D20, U60-U62 | `README.md` | done | PASS→.gotm/audits/U63.md |
+
+### GOTM core-process feedback check (2026-06-15)
+
+> D21. Checked the geniefy outcome-analysis "Running GOTM itself" + tooling lessons (L15/L21/L22/L23) against the *current* protocol: **L15** (plugin hook restart), **L21** (audit cadence + independence), **L23** (size-to-loop + findings-become-units) are **already implemented** (G12/D19 + Resilience) — no change. Only **L22's re-audit-dependents** half was missing → added (D21). The meta-example's own `.gotm/PROTOCOL.md` was synced the same turn (living governance doc, in-bounds per the pre-edit carve-out).
+
+| ID | Title | Inputs | Output | Status | Audit |
+|---|---|---|---|---|---|
+| U64 | `templates/PROTOCOL.md.template`: "a decision change can invalidate a prior pass" rule (Audit gates) + stale-by-decision reconciliation lint — closes the L22 gap | D21 | `templates/PROTOCOL.md.template` | done | PASS-FINDINGS→.gotm/audits/U64.md |
+
 ## Recent updates
 
+- 2026-06-15: **GOTM core-process feedback check (D21, U64).** Checked the geniefy "Running GOTM itself" + tooling lessons against the *current* protocol: **L15** (hook restart), **L21** (audit cadence/independence), **L23** (size-to-loop + findings-become-units) are **already implemented** (G12/D19 + Resilience) — no change needed. Only **L22**'s "re-audit dependents when a decision is refined" half was missing → added as *Audit gates* → "a decision change can invalidate a prior pass" + a *stale-by-decision* reconciliation lint, in `templates/PROTOCOL.md.template` (U64) and the meta-example's own `.gotm/PROTOCOL.md` (governance sync, in-bounds). Plugin mirrored into its `templates/PROTOCOL.md.template`, folded into the unshipped v2.5.0. U64 independent audit → **PASS-FINDINGS** (0 HIGH / 0 MED / 1 LOW; zero drift across the three synced copies — verified byte-identical). The LOW is an optional `LEDGER.md.template` clarification that `Inputs` may cite decisions (the repo already does) — accepted/deferred, not a U64 defect.
+- 2026-06-15: **Cross-project learning layer (D20, U60-U63).** Documented the bottom-up, three-level learning flow (project *consume*+*produce* → user/harness pool → enterprise traversable knowledge) as new ch6, and shipped the *producing* half of L1: `templates/LEARNINGS.md.template` (one mergeable record per learning + a generated index) and `prompts/outcome-analysis.md` (the end-of-project retrospective that reads `DECISIONS`/`audits`/`LEDGER` → candidate records). README synced (ch6, prompt, template, tree counts). Format: `claim` = merge key · appendable `evidence` · confidence `candidate→validated→core` (no self-promotion past candidate; contradiction demotes). *Consume* + L2/L3 aggregation described, not shipped (platform bindings, per D20). Validated against the geniefy-v3 extraction (~23 lessons; scratch proof outside the repo). Independent per-unit audits **passed** (U60/U61/U62 → PASS-FINDINGS, 0 HIGH / 0 MED / 2 LOW each — cosmetic, accepted; U63 → PASS) → `.gotm/audits/U60.md`–`U63.md`. Plugin mirror (`/gotm:learn`, v2.5.0) next.
 - 2026-06-12: **Folded `geniefy-v3` feedback G12/G14/G13a (D19, U55-U58).** G12 audit-cadence invariants (one report per unit · own-report-only + `superseded by U<yy>` exception · audit promptly), G14 "a unit is born `pending`/`in_progress`, never `done`" (+ plugin hook deny-message hint), G13a "module+test = one unit" grain — into `templates/PROTOCOL.md.template`, `templates/LEDGER.md.template`, `prompts/audit.md`, and the meta-example's own `.gotm/PROTOCOL.md`. Declined G13b (P3). Plugin mirrors + ships **v2.4.0** (new marketplace PR). Transition: prior consolidated audits stand as history; per-unit auditing binds after U59. Independent audit **U59 → PASS-FINDINGS** (2 LOW; L1 gate-enumeration omission closed inline; L2 — the "covered-by" stamps — accepted as the sanctioned transitional consolidated audit).
 - 2026-06-12: **Added a pain-point → "what if" intro hook to the README (U52-U54).** Neutral lead-in above "The problem GOTM solves": session context surviving a crash, an independent untainted-subagent audit, "done" = checked. Independent audit U53 → **PASS-FINDINGS**; the one LOW (stateless/stateful motif repeated 3× in ~65 lines) closed by U54 (reworded the intro payoff).
 - 2026-06-12: **Synced the repo's own governance docs to the current discipline (U49-U51).** `.gotm/PROTOCOL.md` was behind its own template — brought up to the current protocol (Anti-drift safeguards, Resilience, Audit gates, reconcile step, `.gotm/` Layout note), instantiating `templates/PROTOCOL.md.template` with the framework's real mission + `../` links. Root `CLAUDE.md` gained the four Non-negotiables (frozen units · write-back · resilience/cold-start · audit independence). Independent audit U51 → **PASS** (one pre-existing LOW noted in `docs/04` prose, accepted). The meta-example now runs the full protocol it teaches.

@@ -286,5 +286,33 @@ Deferred to Phase 3:
 
 ---
 
+## D20 — Learning across projects: a bottom-up knowledge layer (producer shipped; aggregation described)
+
+**Date:** 2026-06-15
+**Scope:** framework
+**Status:** locked
+
+**Context.** GOTM carries one project's context across sessions (D1–D19). A self-sent design proposal ("GOTM Extension: Learning Promotion Layer") and a follow-up framing raised the next dimension: a *completed* GOTM project should make the *next* one cheaper. The discipline that records every decision *with its rationale* (`DECISIONS.md`), every finding (`audits/`), and every pivot (the ledger) means a finished project is already most of a lessons-learned doc — the bottom-up raw material for organizational learning. Validated against a real completed project (geniefy-v3): its record yielded ~23 transferable lessons with almost no reconstruction.
+
+**Decision.** Add a **cross-project learning layer**, bottom-up, in three levels: **L1 project** (the build loop gains *consume* + *produce*), **L2 user/harness** (pool a practitioner's learnings across their projects), **L3 enterprise** (a curated, traversable knowledge system — vector index / knowledge graph). Format = **one structured, mergeable record per learning** (`claim` = merge key · `kind` · `tags` · `fix` · `scope` · appendable `evidence[]` · `confidence`) with a **generated index** for cheap retrieval and **detail on demand**. Confidence ladder **candidate → validated → core**; a project can't self-promote past `candidate` (validation needs an *independent* project — the auditor≠author rule applied across projects); a contradiction demotes (the decay path). **Scope of this decision:** *document* the layer (new `docs/06-learning-across-projects.md`) and ship the **producing** half of L1 — `templates/LEARNINGS.md.template` + `prompts/outcome-analysis.md` (and, in the plugin, a `/gotm:learn` command). The *consume* half and L2/L3 aggregation are **described, not shipped** — they are platform bindings, the same boundary D12 / chapter 4 drew around the enforcement hook. Framework stays prompts-not-a-runtime.
+
+**Consequences.** New chapter `docs/06-learning-across-projects.md`; new `templates/LEARNINGS.md.template`; new `prompts/outcome-analysis.md`; README chapter list + prompt/template lists updated. The plugin mirrors the template + prompt and adds the `/gotm:learn` command (runtime). The geniefy-v3 extraction stands as the validating proof, kept as a scratch artifact outside both repos (it references one specific project; not committed). Open / next iteration: the *consume* half of L1, and the user-/enterprise-level store + index (a Sage-style context catalog is the natural L3 sink).
+
+---
+
+## D21 — A decision change re-audits its dependents (closes the L22 gap; L15/L21/L23 verified already covered)
+
+**Date:** 2026-06-15
+**Scope:** framework
+**Status:** locked
+
+**Context.** The geniefy-v3 outcome-analysis (D20) surfaced four GOTM-process lessons. Checked against the *current* protocol: **L15** (a Claude Code hook isn't hot-loaded mid-session) is already covered in the plugin (bootstrap full-restart warning + PROTOCOL enforcement note; the framework is hook-free, so n/a here); **L21** (one unit/one audit; no "covered-by," batched, or self-audit) is covered by the G12 cadence invariants + the independence rule (D19); **L23** (size units to one loop; findings become fix-units, not edits) is covered by Resilience "size units to their loop" + Audit-gates "findings become units." **L22** was only *half* covered: "append a new decision, never silently edit" is the pre-edit check, but "**re-audit the dependents when a decision is refined**" had no rule — in geniefy, refining D51 silently left units that had been built + passed under the old decision.
+
+**Decision.** Add to *Audit gates*: **a decision change can invalidate a prior pass.** When a locked decision is refined/superseded (append a new timestamped `D<n>`, never a silent edit), re-check every `done` unit whose `Inputs` cite the changed decision against the new one; non-conforming output reverts that unit's `Audit` to `pending` (re-audit independently) or spawns a fix unit. Add a matching **stale-by-decision lint** to session-start reconciliation. A `PASS` is true only under the decision as it stood when the unit was audited.
+
+**Consequences.** Updated `templates/PROTOCOL.md.template` (U64) + the meta-example's own `.gotm/PROTOCOL.md` (governance sync, same turn). The plugin mirrors it into its `templates/PROTOCOL.md.template`, folded into the not-yet-shipped v2.5.0 (README changelog). L15/L21/L23 need no change — verified already-implemented. Conceptual/paste-able, so it lives in the protocol (framework + plugin); no docs-chapter edit this round (ch4 already covers audit gates at the conceptual level; this is an operational rule).
+
+---
+
 <!-- Append new decisions below this line. -->
 
