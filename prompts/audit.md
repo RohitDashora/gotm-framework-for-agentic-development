@@ -56,16 +56,27 @@ The reference the target is checked against (sources, spec, prior outputs):
 
 ### 4. What to check
 
-Default to the **5-point checklist** below unless the unit calls for a specialized kind. Each item is one mechanical check with a clear pass/fail answer:
+Default to the **7-point checklist** below unless the unit calls for a specialized kind. Each item is one mechanical check with a clear pass/fail answer:
 
-    What to check (default 5-point):
+    What to check (default 7-point):
     1. existence              — output exists at the ledger's stated path
     2. spec match             — content matches what the unit promised (sections/structure/length)
     3. cross-reference integrity — every D<n>/U<n>/Q<n> cited exists and says what's claimed
     4. internal consistency   — no contradictions across the audited set
     5. decision fidelity      — output honors the relevant DECISIONS.md entries
+    6. enforcement check      — for each BEHAVIORAL decision the unit cites, is it held by a
+                                gate / config / assertion, or only prose? documented-but-
+                                unenforced is a finding (NOT the same as #5: fidelity asks
+                                "does it honor the decision", enforcement asks "is it gated")
+    7. multi-site claim check — any "wired into BOTH / applied across N / replaced everywhere"
+                                claim is verified by grep/count, not trusted prose; expect a
+                                guard (test/assertion) per site
 
 Add or substitute kind-specific checks (render, source-fidelity, …) where the unit warrants.
+
+> Checks 6–7 earn their place: in a ~113-audit project the only two FAILs both landed in
+> exactly these blind spots — a decision documented but not enforced (no gate behind it),
+> and a multi-site fix a bulk-replace silently half-applied. The 5-point core misses both.
 
 ### 5. Severity tiers (universal)
 

@@ -1,6 +1,6 @@
 ---
 title: Learning across projects
-last_updated: 2026-06-15
+last_updated: 2026-06-23
 ---
 
 # Learning across projects
@@ -73,8 +73,10 @@ Two rules keep the ladder honest, and both are GOTM principles you have already 
 
 ## What is built, and what is the path
 
-The producing half of level 1 — the retrospective that reads a finished project's record and emits candidate learnings — is a concrete, paste-able step (and, in adopter tooling, a single command). It is described in [`prompts/outcome-analysis.md`](../prompts/outcome-analysis.md) and scaffolded by [`templates/LEARNINGS.md.template`](../templates/LEARNINGS.md.template). Consuming, and the user- and enterprise-level aggregation above it, are the scaling path: they depend on where the pool lives and how it is indexed, and this framework deliberately stops at *producing well-formed, mergeable records*. It describes the levels above; it does not ship the store or the graph — those are platform bindings, the same boundary chapter 4 drew around the enforcement hook.
+**Both halves of the level-1 loop are concrete, paste-able steps** — that is what keeps a learning pool from rotting into a write-only void. *Produce:* the end-of-project retrospective that reads a finished project's record and emits candidate learnings — [`prompts/outcome-analysis.md`](../prompts/outcome-analysis.md), scaffolded by [`templates/LEARNINGS.md.template`](../templates/LEARNINGS.md.template). *Consume:* the start-of-project step that scans the pool's indexes, tag-filters to the work at hand, and surfaces the few relevant records — [`prompts/consult.md`](../prompts/consult.md). A produce step with no consumer trains the agent to spend tokens distilling lessons nothing ever reads; the consume step closes that loop. In adopter tooling each is a single command (`/gotm:learn`, `/gotm:consult`) plus a bootstrap pull that consults the pool at project start.
 
-The discipline stays small, as ever. A learning is a few lines. The retrospective is one pass at the end of a project. What it buys is large: every finished project becomes a down payment on the next one.
+What this framework deliberately does **not** ship is the **pool itself** — *where* the learnings live and *how* they are indexed (the user-level store, the enterprise vector index or knowledge graph). The two prompts specify the *steps*; the store is a platform binding, the same boundary chapter 4 drew around the enforcement hook. Point `consult.md` at a folder, a sibling-repo glob, or a `~/.gotm/learnings/` pool and the loop runs; scale that pool into an enterprise index and the same loop runs at organizational reach. Until a pool exists, consulting is honest about finding nothing — an empty pool is a valid result, not a silent skip.
 
-→ Back to the [repository README](../README.md) · the producer prompt is [`prompts/outcome-analysis.md`](../prompts/outcome-analysis.md).
+The discipline stays small, as ever. A learning is a few lines. The retrospective is one pass at the end of a project; consulting is one pass at the start. What it buys is large: every finished project becomes a down payment on the next one.
+
+→ Back to the [repository README](../README.md) · the producer prompt is [`prompts/outcome-analysis.md`](../prompts/outcome-analysis.md), the consumer prompt is [`prompts/consult.md`](../prompts/consult.md).

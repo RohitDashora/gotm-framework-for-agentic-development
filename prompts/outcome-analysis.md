@@ -50,4 +50,4 @@ Everything a single project produces is a **`candidate`**. Recurrence *within* t
 
 ## Output
 
-Write `LEARNINGS.md` at the project root (or `.gotm/LEARNINGS.md` under the subfolder layout), from the template: header, generated Index, Records, and the merge model. One file. It ships with the project as its contribution to the pool — and a future project's *consume* step reads exactly this.
+Write `LEARNINGS.md` at the project root (or `.gotm/LEARNINGS.md` under the subfolder layout), from the template: header, generated Index, Records, and the merge model. One file. It ships with the project as its contribution to the pool — and a future project's *consume* step ([`prompts/consult.md`](consult.md)) reads exactly this.

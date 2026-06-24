@@ -11,6 +11,11 @@ last_updated: <YYYY-MM-DD>
 
 ## Active unit
 
+<!-- A POINTER to the current unit only — one line, overwritten each turn.
+     NOT a growing stack of dated status banners. The recovery log lives in
+     `## Recent updates` below, and there is exactly one of it. See PROTOCOL.md
+     -> Resilience -> "One recovery log, one ordering". -->
+
 **U1** — <first unit title>
 
 ## Units
@@ -23,6 +28,11 @@ last_updated: <YYYY-MM-DD>
 | U2 | <second unit title> | U1 | `<output/path>` | pending | — |
 
 ## Recent updates
+
+<!-- THE recovery log — the single place a cold session reconstructs "where we
+     are and why". NEWEST-FIRST: prepend each entry, so current state is on top
+     and never requires scrolling. Do not start a parallel dated stack anywhere
+     else (esp. under `## Active unit`) — one log, one ordering. -->
 
 - <YYYY-MM-DD>: Project initialized.
 
@@ -47,6 +57,14 @@ Conventions:
   locking you out of the file you're producing). See PROTOCOL.md -> Resilience.
 - Stamp `last_updated` (front matter) on every write-back, so the ledger's age
   is honest.
+- ONE recovery log, ONE ordering: `## Recent updates` is the single recovery log
+  and is newest-first; `## Active unit` is a one-line pointer, never a dated
+  banner stack. A second de-facto log forming is a reconciliation smell.
+  See PROTOCOL.md -> Resilience.
+- A unit-table row is also machine-parsed (the immutability hook reads it
+  positionally). Keep every `| U<n> |` row well-formed — correct column count,
+  a valid status, a parseable Output cell — so a botched edit can't silently
+  change what the hook freezes. See PROTOCOL.md -> session-start reconciliation.
 - Off-mission artifacts (work that does not serve the mission) do NOT go in the
   Units table. Produce the file, then add a "Recent updates" line marked
   `(not a mission unit)`. See PROTOCOL.md -> Off-mission artifacts.

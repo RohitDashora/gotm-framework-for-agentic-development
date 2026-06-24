@@ -81,7 +81,7 @@ Do not use GOTM for one-shot tasks. A one-off email or a five-line script does n
 
 ```
 docs/         6 concept chapters — the framework from first principles, incl. learning across projects
-prompts/      4 operational prompts a practitioner pastes into their LLM
+prompts/      5 operational prompts a practitioner pastes into their LLM
 templates/    scaffold files to copy into a new project (root, or a .gotm/ subfolder)
 .gotm/        this repo's own GOTM machinery — a working meta-example:
                 PROTOCOL.md · LEDGER.md · DECISIONS.md · QUESTIONS.md · audits/
@@ -113,8 +113,9 @@ From there, the loop repeats. Pick the next active unit. Act. Write back. Audit 
 
 - [`prompts/session-start.md`](prompts/session-start.md) — kickoff + crash-recovery reconcile; the first move of every session
 - [`prompts/subagent-dispatch.md`](prompts/subagent-dispatch.md) — how the orchestrator builds a bounded worker prompt (and why audit dispatches must be independent)
-- [`prompts/audit.md`](prompts/audit.md) — the independent audit: a 5-point checklist and a three-way verdict (`PASS` / `PASS-FINDINGS` / `FAIL`)
-- [`prompts/outcome-analysis.md`](prompts/outcome-analysis.md) — the end-of-project retrospective: distill the project's record into transferable, mergeable learnings
+- [`prompts/audit.md`](prompts/audit.md) — the independent audit: a 7-point checklist and a three-way verdict (`PASS` / `PASS-FINDINGS` / `FAIL`)
+- [`prompts/outcome-analysis.md`](prompts/outcome-analysis.md) — the end-of-project retrospective: distill the project's record into transferable, mergeable learnings (the *produce* half of the learning loop)
+- [`prompts/consult.md`](prompts/consult.md) — the start-of-project step: scan a pool of prior `LEARNINGS.md`, tag-filter, and surface the few that apply (the *consume* half — closes the loop)
 - [`templates/`](templates/) — copy-and-fill scaffolds for the four working files, a project README, and a `LEARNINGS.md` scaffold for the end-of-project retrospective
 
 ## License

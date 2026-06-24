@@ -314,5 +314,24 @@ Deferred to Phase 3:
 
 ---
 
+## D22 — Fold geniefy completion-stage feedback (G15–G18); framework half now, plugin runtime to v2.6.0
+
+**Date:** 2026-06-23
+**Scope:** framework
+**Status:** locked
+
+**Context.** `geniefy-v3/docs/GOTM-FEEDBACK.md` gained a 2026-06-23 addendum: four framework-level gaps (G15–G18) that surfaced only after the project ran *to completion* (~160 units across R1–R5, a private publish, a live Databricks-Apps/Lakebase/DAB deploy iterated many times, ~113 independent audits, `/gotm:learn`). Unlike G1–G14 (captured at 3 units), these are "what erodes over a long, finished, multi-session run." **G15 [P2]:** the recovery log fragmented into two places with opposite orderings — a newest-first banner stack under `## Active unit` and the original oldest-first `Recent updates` that went stale ~80 units before the end; a cold reader pays a reconciliation tax every time, and `## Active unit` becomes a misnomer at completion. **G16 [P1]:** `/gotm:learn` ships the *produce* half but nothing reads `LEARNINGS.md` back — no consume command, no bootstrap scan, no aggregation location; well-formed candidate learnings go into a void, which erodes trust in the feature. **G17 [P2]:** the project's only two FAILs across ~113 audits both fell outside the shipped 5-point checklist — a decision *documented but not enforced* (no `sync:exclude` gate behind D25), and a "wired into both SQL runners" fix a `replace_all` only half-applied. **G18 [P3]:** the unit table is both hand-edited and machine-parsed by the immutability hook; a botched edit silently corrupts what the hook freezes, with no error.
+
+**Decision.** Fold the **conceptual/paste-able half** into this framework repo now (the standing D12 split: concept → framework, runtime → plugin), with per-unit independent audits (D19 binds).
+- **G15** → `templates/LEDGER.md.template` + `templates/PROTOCOL.md.template`: pin **one recovery log, one ordering** — `Recent updates` is *the* recovery log, **newest-first**; `## Active unit` is a pointer to the current unit only, never a dated banner stack; session-start reconcile warns when a second de-facto log appears.
+- **G17** → `templates/PROTOCOL.md.template` (Audit gates) + `prompts/audit.md`: extend the default checklist **5 → 7 points** — (6) **enforcement check** (a behavioral decision the unit cites must be held by a gate/config/assertion, not only prose) + (7) **multi-site-claim check** (any "wired into both / applied across N" claim is verified by grep/count, with a guard expected per site).
+- **G18** → `templates/PROTOCOL.md.template` (session-start reconcile): a **ledger-parse lint** bullet (every `| U<n> |` row splits to the expected columns with a valid status and a parseable Output cell); the runtime lint itself is adopter tooling.
+- **G16** → ship the framework's **consume-side prompt**, symmetric to how D20 shipped the produce side: new `prompts/consult.md` (tag-filtered scan of a `LEARNINGS.md` pool → surface candidate records for the work at hand) + update `docs/06` to document the consume MVP (consult + a bootstrap pull) and reference it. README synced.
+- Mirror G15/G17/G18 into the meta-example's own `.gotm/PROTOCOL.md` (living governance doc).
+
+**Consequences.** Units U65–U71. Plugin **v2.6.0** (deferred, separate PR) carries the runtime: `commands/consult.md` + a bootstrap learnings-pull (G16), the hook-side ledger-parse lint + `/gotm:what` surfacing (G18), the `/gotm:what` second-log warning (G15), and the template/prompt mirror. The framework continues to ship *paste-able prompts, not a runtime store* — the consume **store/index** (L2/L3) stays a platform binding (the D20 boundary is unchanged); `prompts/consult.md` specifies the *step*, not the store. G16 narrows D20's open "consume half" from undescribed to specced-and-paste-able; the plugin closes the loop end-to-end.
+
+---
+
 <!-- Append new decisions below this line. -->
 
