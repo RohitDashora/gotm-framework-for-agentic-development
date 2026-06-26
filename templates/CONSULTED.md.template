@@ -1,0 +1,43 @@
+# Consulted learnings — <project name>
+
+> The *consume* side of the cross-project learning loop — produced via `prompts/consult.md` at project start (and refreshed when the work turns to a new stack, surface, or phase). It is the **read-in from the cold tier**: the learning pool is the cross-project analog of the store, and this driver — like every fresh context — is born without history. These are the few prior lessons whose tags matched this project, surfaced where the driver and its workers will look.
+>
+> **This is context, not a frozen deliverable.** It is not an audit and produces no work artifact. Nothing here is binding — it *informs*; `DECISIONS.md` still governs. A learning that shapes a decision is cited in that decision's rationale. Refresh this file freely as the work moves.
+
+**Pool consulted:** <which pool — configured `LEARNINGS.md` paths / sibling-repo glob / user-level pool / enterprise index>
+**Filter tags:** <this project's tags — stack · domain · phase — used to filter the pool's indexes>
+
+> **If the pool was empty or nothing matched, say so plainly here and stop** — an empty pool is a valid, auditable result, never a silent skip. (e.g. "No pool configured yet — nothing consulted." / "Pool scanned; no index lines intersected the filter tags.")
+
+---
+
+## Prerequisites → do early
+
+> A `prerequisite` becomes an early to-do — grant/verify it before the unit that needs it.
+
+- **<claim>** — *fix:* <what to do> · *confidence:* <candidate | validated | core>
+
+## Gotchas & anti-patterns → avoid
+
+> A `gotcha`/`anti-pattern` becomes a thing to steer clear of.
+
+- **<claim>** — *fix:* <what to do instead> · *confidence:* <candidate | validated | core>
+
+## Patterns → suggested approach
+
+> A `pattern` becomes a suggested approach where it fits.
+
+- **<claim>** — *fix:* <the approach> · *confidence:* <candidate | validated | core>
+
+---
+
+<!--
+Confidence weighting (carry it through from each learning's record):
+- candidate  — seen in one project (n=1). A hint to check, not a rule. If THIS project
+               contradicts it, that's signal — flag it for the produce step (it demotes).
+- validated  — independently confirmed by a second project. Trust more.
+- core       — broadly applicable, enterprise-curated. Treat as common knowledge.
+
+Detail still lives a pointer away in the source LEARNINGS.md record — carry only the
+claim/fix/confidence here; expand from the pool if a match turns out to bite.
+-->

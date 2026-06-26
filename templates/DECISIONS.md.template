@@ -1,6 +1,8 @@
 # Decisions — <project-name>
 
-> Append-only ADR ledger. Never edit a prior entry's substance. If a decision is reversed, append a new D# and update the old entry's **Status** line to `superseded by D<n>` — that one Status-line edit is the documented mechanism, not a substantive rewrite.
+> Append-only ADR ledger — the cold tier's decision record. The driver is the single writer; never edit a prior entry's substance. If a decision is reversed, append a new D# and update the old entry's **Status** line to `superseded by D<n>` — that one Status-line edit is the documented mechanism, not a substantive rewrite.
+>
+> This is part of the store, not the hot path: the driver records a decision here and carries only the D# in the ledger frontier. At project end, `outcome-analysis.md` reads these entries (with `audits/` and the ledger) to distill transferable learnings.
 
 ---
 
@@ -14,7 +16,7 @@
 
 **Decision.** <what was decided>
 
-**Consequences.** <how this shapes downstream work>
+**Consequences.** <how this shapes downstream work — which units / frontier nodes it constrains>
 
 ---
 

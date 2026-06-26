@@ -1,13 +1,15 @@
 # Open questions — <project-name>
 
-> Questions whose resolution requires the human. When answered, the resolution moves into `DECISIONS.md` (with a new D-entry) and any blocked units become unblocked.
+> The ratification parking lot — questions whose resolution requires the human. The ratification ladder lives in the driver (the only context that talks to the human); this file is where it parks the open asks. When answered, the resolution moves into `DECISIONS.md` (with a new D-entry) and any blocked units become ready in the ledger frontier.
+>
+> **Blocking vs non-blocking.** A *blocking* question names the unit(s) that cannot proceed without the answer — the driver holds those nodes out of the ready set until it resolves. A *non-blocking* question can be carried while work continues around it.
 
 ---
 
 ## Q1 — <question title>
 
 **Asked:** <YYYY-MM-DD>
-**Blocking:** <unit ID(s) or "non-blocking">
+**Blocking:** <unit ID(s) held out of the ready set, or "non-blocking">
 **Context.** <why this question is open; what depends on the answer>
 
 **Need from human:** <specific ask>
@@ -18,7 +20,7 @@
 <!--
 Conventions:
 - Open the question with a one-line title.
-- Name the units that are blocked on the answer.
+- Name the units that are blocked on the answer (these stay out of the driver's ready set).
 - When answered, mark status and reference the D# in DECISIONS.md that resolved it.
 - Resolved questions stay in this file for audit-trail purposes; do not delete.
 - New questions appended below the marker.

@@ -5,6 +5,14 @@ last_updated: <YYYY-MM-DD>
 
 # Project ledger
 
+<!-- The ledger is the DAG + the scheduler's state: the units, their dependency
+     edges, and each unit's status. It is BORN TIERED — a hot `## Frontier`
+     re-read every turn, and a cold `## Archive` pulled only on demand — so the
+     file the driver re-reads each turn stays small and roughly constant in cost,
+     however many units the project closes. Only the DRIVER writes this file;
+     workers execute and return a terse structured result, the driver records it.
+     See PROTOCOL.md -> Audit gates / Resilience, and docs/03-work-as-a-dag.md. -->
+
 ## Mission
 
 <one-sentence mission: what done looks like>
@@ -14,58 +22,128 @@ last_updated: <YYYY-MM-DD>
 <!-- A POINTER to the current unit only — one line, overwritten each turn.
      NOT a growing stack of dated status banners. The recovery log lives in
      `## Recent updates` below, and there is exactly one of it. See PROTOCOL.md
-     -> Resilience -> "One recovery log, one ordering". -->
+     -> Resilience (one recovery log, newest-first). -->
 
 **U1** — <first unit title>
 
-## Units
+## Frontier
 
-> Grouping by phase (e.g., "Foundation", "Drafting", "Wrapping") is convenience only. There is no hierarchy — only an ordered list of atomic units.
+<!-- THE HOT TIER — re-read every turn; keep it small. It holds only:
+       - every `pending` / `in_progress` unit (the ready-set lives here),
+       - the last ~N (≈10) closed units (the recent-completion window), and
+       - any older closed unit that a still-open unit lists in `Inputs`
+         (so the consumer can see its input's audit verdict without a cold read).
+     A frontier row is an INDEX ENTRY, not a record of the work — the work
+     itself lives in the output file, and the audit detail lives in its
+     `audits/` report. When a closed unit ages past the window AND no open unit
+     still cites it as an input, COMPACT it down to a one-line `## Archive`
+     entry (see Conventions -> compaction). `Inputs` lists the prior units whose
+     outputs this one consumes — the dependency edges of the DAG (foundation
+     gate). `Status` distinguishes the v3 states (see Conventions). `Audit`
+     holds the verdict + a pointer to the report. -->
 
 | ID | Title | Inputs | Output | Status | Audit |
 |---|---|---|---|---|---|
-| U1 | <first unit title> | — | `<output/path>` | pending | — |
-| U2 | <second unit title> | U1 | `<output/path>` | pending | — |
+| U7 | <some pending unit title> | U3, U5 | `<output/path>` | pending | — |
+| U6 | <some closed unit in the recent window> | U2 | `<output/path>` | verified-done | PASS→audits/U6.md |
+
+## Archive
+
+<!-- THE COLD TIER — NOT on the hot path; pulled only on demand. Closed +
+     verified units that have aged past the frontier window compact to ONE LINE
+     each, newest-first. Keep the audit pointer so the gate stays checkable
+     (a downstream consumer, or a reconciliation pass, can still confirm the
+     input passed) — but drop everything else: the detail already lives in the
+     output file, `audits/`, and `DECISIONS.md`. One line per unit:
+
+       - U<n> — <title> · `<output/path>` · <status> · <verdict>→audits/U<n>.md
+
+     When this section grows large it MAY move to a separate `LEDGER-ARCHIVE`
+     file that is NOT read at session start (the frontier alone is the hot
+     read); leave a one-line pointer here to that file if you split it out. -->
+
+- U5 — <title of an aged-out closed unit> · `<output/path>` · verified-done · PASS-FINDINGS→audits/U5.md
+- U4 — <title of an aged-out closed unit> · `<output/path>` · verified-done · PASS→audits/U4.md
 
 ## Recent updates
 
 <!-- THE recovery log — the single place a cold session reconstructs "where we
      are and why". NEWEST-FIRST: prepend each entry, so current state is on top
-     and never requires scrolling. Do not start a parallel dated stack anywhere
+     and never requires scrolling. This is a ROLLING WINDOW: keep ~the last 20
+     entries; older ones roll into `## Archive` (or `LEDGER-ARCHIVE`) so the log
+     doesn't grow monotonically. Do not start a parallel dated stack anywhere
      else (esp. under `## Active unit`) — one log, one ordering. -->
 
 - <YYYY-MM-DD>: Project initialized.
 
 <!--
 Conventions:
-- IDs are flat (U1, U2, U3...). No prefixes for hierarchy.
+- BORN TIERED. The ledger has a HOT `## Frontier` (open units + the recent-
+  closed window + any closed unit a still-open unit still cites as an input) and
+  a COLD `## Archive` (everything older, one line each). The driver re-reads the
+  frontier every turn and the archive never — that is what keeps per-turn read
+  cost flat as the project scales. Read the AUDIT FILE, not a fat ledger cell.
+- SINGLE WRITER. Only the driver writes this file. Workers execute one unit and
+  return a terse structured result (status + output pointer + index facts); the
+  driver — the single writer — records it. This kills the v2 dup-row race by
+  construction (no second context ever writes back). See docs/03-work-as-a-dag.md.
+- IDs are flat (U1, U2, U3...). No prefixes for hierarchy. The DAG's structure
+  lives in the `Inputs` edges, not in the IDs.
 - Each row produces ONE named output file (atomicity rule). A module + its test
   file count as ONE unit (the natural grain) — atomicity is one deliverable, not
   literally one file.
-- `Inputs` lists prior units whose outputs this one consumes (foundation gate).
-- Status: pending | in_progress | done | superseded.
-- `Audit`: — (n/a) | pending | deferred→U<n> | PASS→audits/U<id>.md |
-  PASS-FINDINGS→audits/U<id>.md | FAIL→audits/U<id>.md | superseded by U<yy>.
-  A unit may be CONSUMED downstream only when its Audit is PASS, PASS-FINDINGS,
-  or deferred→U<n> (follow-up present). One audit + one report PER UNIT, from its
-  OWN report (no "covered-by" stamps); audit by a DIFFERENT agent than the author
-  (dispatch a fresh auditor subagent), promptly — don't let `pending` pile up.
-  See PROTOCOL.md -> Audit gates.
-- Done units are never edited. To revise, append a follow-on unit.
-- A new unit is born `pending`/`in_progress`, NEVER `done` — flip to `done` only
-  after its output exists (crash-safe ordering; avoids the immutability hook
-  locking you out of the file you're producing). See PROTOCOL.md -> Resilience.
+- `Inputs` lists prior units whose outputs this one consumes — the dependency
+  edges of the DAG. A unit is dispatchable only once every input is closed and
+  past its audit gate (foundation = upstream topology, not a reminder).
+- Status — the v3 lifecycle, FIVE states:
+    pending        — born, not yet dispatched (a leaf of the ready-set once
+                     its inputs clear).
+    in_progress    — a worker is executing it (or it is mid-recovery).
+    authored-done  — a worker produced the output; the artifact EXISTS but has
+                     NOT been independently checked. NOT consumable downstream
+                     on its own — the producing worker never self-certifies.
+    verified-done  — an INDEPENDENT audit/verification worker (auditor ≠ author)
+                     checked the output and it passed. Only a separate, driver-
+                     launched worker confers this; for deploy/infra/data units
+                     the worker also exercises the live artifact as its real
+                     consumer. This is the consumable terminal state.
+    superseded     — scope changed; the unit was replaced by a follow-on.
+- `Audit` holds the verdict + a pointer: `—` (n/a) | `pending` (authored-done,
+  awaiting an auditor) | `PASS→audits/U<id>.md` | `PASS-FINDINGS→audits/U<id>.md`
+  | `FAIL→audits/U<id>.md` | `superseded by U<yy>`. A unit reaches
+  `verified-done` only on `PASS` / `PASS-FINDINGS`; `FAIL` keeps it blocking.
+  A downstream unit may CONSUME an input only when that input is `verified-done`
+  (Audit `PASS` / `PASS-FINDINGS`). One audit + one report PER UNIT, from its
+  OWN report — by a DIFFERENT worker than the author. See PROTOCOL.md -> Audit
+  gates.
+- BORN pending/in_progress, NEVER done. A new unit (incl. a fix or follow-on)
+  is registered `pending`/`in_progress`; flip to `authored-done` only after its
+  output exists, and to `verified-done` only after an independent worker passes
+  it (crash-safe ordering; avoids the immutability hook locking you out of the
+  file you are producing). See PROTOCOL.md -> Resilience.
+- Closed units are never edited. To revise, append a follow-on unit.
+- COMPACTION is an index op, not a freeze violation. At session-start reconcile,
+  when the ledger crosses a size/count threshold, move aged-out closed+verified
+  units from `## Frontier` to a one-line `## Archive` entry, and roll `Recent
+  updates` past its window into the archive too. This is LOSSLESS — the audit
+  pointer is kept, the detail already lives in the output/`audits/`/`DECISIONS.md`
+  — so it does not touch any frozen output and is NOT an immutability violation.
 - Stamp `last_updated` (front matter) on every write-back, so the ledger's age
   is honest.
 - ONE recovery log, ONE ordering: `## Recent updates` is the single recovery log
   and is newest-first; `## Active unit` is a one-line pointer, never a dated
   banner stack. A second de-facto log forming is a reconciliation smell.
   See PROTOCOL.md -> Resilience.
-- A unit-table row is also machine-parsed (the immutability hook reads it
-  positionally). Keep every `| U<n> |` row well-formed — correct column count,
-  a valid status, a parseable Output cell — so a botched edit can't silently
-  change what the hook freezes. See PROTOCOL.md -> session-start reconciliation.
+- A frontier row is also machine-parsed (the immutability hook reads it
+  positionally to decide what to freeze). Keep every `| U<n> |` row well-formed
+  — correct column count, a valid status, a parseable Output cell — so a botched
+  edit can't silently change what the hook freezes. See PROTOCOL.md ->
+  Anti-drift & the freeze / Resilience.
 - Off-mission artifacts (work that does not serve the mission) do NOT go in the
-  Units table. Produce the file, then add a "Recent updates" line marked
+  Frontier table. Produce the file, then add a "Recent updates" line marked
   `(not a mission unit)`. See PROTOCOL.md -> Off-mission artifacts.
+- PLATFORM BINDING: this template uses generic paths ("the store", `audits/`,
+  `LEDGER-ARCHIVE`). The concrete layout — e.g. a `.gotm/` subfolder, the split-
+  file convention, a compaction script — is an adopter/platform binding, not part
+  of the framework. Adjust the relative paths to your layout.
 -->

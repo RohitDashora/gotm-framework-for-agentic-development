@@ -1,18 +1,20 @@
 # Learnings — <project name>
 
-> Transferable lessons distilled from this project's own GOTM record (`DECISIONS.md` / `audits/` / `LEDGER.md`) when the project finished — produced via `prompts/outcome-analysis.md`. Only *transferable* claims belong here: a stranger to this project should be able to act on each one. Project-specific detail stays in the record.
+> Transferable lessons distilled from this project's own GOTM record (`DECISIONS.md` / `audits/` / `LEDGER.md`) when the DAG drained — produced via `prompts/outcome-analysis.md`. Only *transferable* claims belong here: a stranger to this project should be able to act on each one. Project-specific detail stays in the record.
 >
-> **Two consumers, one artifact.** A future project scans the **Index** (one line each), filters to the tags it's touching, and expands a record's `fix` only when relevant — cheap to read. An aggregation layer (user- or enterprise-level) ingests the **Records** and merges on `claim`. See *Confidence & merge model* below, and `docs/06-learning-across-projects.md` for the full picture.
+> **This is the cold tier, one level up.** Inside a project the cold archive feeds future *turns* — closed detail, off the hot path, pulled only on demand. This file is that same shape across the project boundary: closed-out *lessons* that feed future *drivers*. A new project's driver is born without history, exactly like a worker; the learning pool seeds it the way the store seeds a worker — letting it skip mistakes earlier drivers already paid for instead of re-discovering them at full cost. It is the cross-project analog of the store.
+>
+> **Two consumers, one artifact.** A future project's driver scans the **Index** (one line each), filters to the tags it's touching, and expands a record's `fix` only when relevant — cheap to read, the same hot-path discipline the archive uses. An aggregation layer (user- or enterprise-level) ingests the **Records** and merges on `claim`. See *Confidence & merge model* below, and `docs/09-learning-across-projects.md` for the full picture.
 
 ## Index — generated from the Records below
 
-> Format: `L#  [tags]  claim → fix-gist.  (kind · confidence · source)`. This is what a future project reads first; it expands a record only when its tags are relevant.
+> Format: `L#  [tags]  claim → fix-gist.  (kind · confidence · source)`. This is what a future driver reads first; it expands a record only when its tags are relevant.
 
 - `L1  [<tag>·<tag>]` <one-line claim> → <fix gist>. *(gotcha · candidate · <ref>)*
 - `L2  [<tag>]` <one-line claim> → <fix gist>. *(prerequisite · candidate · <ref>)*
 
 ### Example retrieval
-> A project touching <X> filters the index to tags `{<tag>, <tag>}` → surfaces L#, L# before starting, and expands only those. The rest never enter its context.
+> A project touching <X> filters the index to tags `{<tag>, <tag>}` → surfaces L#, L# before starting, and expands only those. The rest never enter its driver's context.
 
 ## Records — source of truth
 
@@ -36,6 +38,6 @@ Schema: `id` · `claim` (the merge key) · `kind` (`gotcha` | `prerequisite` | `
 
 ## Confidence & merge model
 
-- **Ladder.** `candidate` (seen in 1 project) → `validated` (≥2 *independent* projects confirm the same `claim`) → `core` (enterprise-curated, broadly applicable). A project can't mint `validated` on its own — that needs independent confirmation (the *auditor ≠ author* principle).
+- **Ladder.** `candidate` (seen in 1 project) → `validated` (≥2 *independent* projects confirm the same `claim`) → `core` (enterprise-curated, broadly applicable). A project can't mint `validated` on its own — that needs independent confirmation (the *auditor ≠ author* principle, lifted across the project boundary).
 - **Strength** weights a candidate by recurrence *within* this project; it never substitutes for cross-project confirmation. A lesson the audits flagged across many units is a sturdy candidate — still a candidate.
-- **Merge.** Match incoming records on `claim`; on a match, **append** the new `evidence` and recompute `confidence`. On a **contradiction** (a later project reports the opposite outcome), don't overwrite — flag for review and demote. That demotion path is the decay that keeps the pool from rotting into stale, confidently-wrong advice.
+- **Merge.** Match incoming records on `claim`; on a match, **append** the new `evidence` and recompute `confidence` — the second project doesn't create a duplicate, it ticks the existing record up. The record grows; the pool does not bloat. On a **contradiction** (a later project reports the opposite outcome), don't overwrite — flag for review and demote. That demotion path is the decay that keeps the pool from rotting into stale, confidently-wrong advice.

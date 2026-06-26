@@ -6,17 +6,32 @@
 
 <one-sentence mission: what done looks like>
 
-## How this project is organized
+## How this project works — driver / worker / store
 
-This project follows the [GOTM operating protocol](PROTOCOL.md).
+This project runs on the [GOTM operating protocol](PROTOCOL.md). One discipline underpins everything: **the durable store is the system of record; every working context is disposable and reconstructable from it. Nothing on the hot path is long-lived.**
 
-- [`PROTOCOL.md`](PROTOCOL.md) — operating protocol; every agent reads this on session start
-- [`LEDGER.md`](LEDGER.md) — canonical list of units; the project's working state
+- **Driver** — the conversation agent. Long-lived but checkpointed: it holds the *plan* (the ledger DAG), the *discipline* (the protocol), and the *human interface* (the ratification ladder). It plans and talks; it never does the work itself. It is the single writer of the store.
+- **Worker** — a dispatched subagent. Ephemeral: born fresh for one unit, given only its bounded inputs + its spec, produces exactly one output, returns a terse structured result, and is discarded. All work — however small — is a worker dispatch.
+- **Store** — this file-set + the repo. Durable and tiered: a *hot frontier* (active units) and a *cold archive* (closed detail, pulled on demand). Any context can be thrown away and rebuilt from it.
+
+## The file-set
+
+- [`PROTOCOL.md`](PROTOCOL.md) — the operating protocol; the driver reads this on session start
+- [`LEDGER.md`](LEDGER.md) — the work DAG + scheduler state, born tiered: a frontier table (ready/active units) and an archive table (closed units)
 - [`DECISIONS.md`](DECISIONS.md) — append-only log of ratified decisions
-- [`QUESTIONS.md`](QUESTIONS.md) — open questions blocking work
-- `audits/` — audit outputs (created when audits run)
+- [`QUESTIONS.md`](QUESTIONS.md) — the ratification parking lot (blocking vs non-blocking)
+- [`CONSULTED.md`](CONSULTED.md) — relevant learnings pulled from past projects at start (optional; the *consume* side of the cross-project loop)
+- [`LEARNINGS.md`](LEARNINGS.md) — transferable lessons distilled at project end (the *produce* side)
+- `audits/` — independent audit outputs (created when audits run)
 
-To work in this project: read `PROTOCOL.md` first.
+## How a session starts
+
+1. **Session-start.** On any fresh start (cold restart, `/clear`, or post-compaction), the driver re-hydrates from the store: it reconciles the ledger against disk, rebuilds its working set (active unit + inputs + open questions), and resumes. State lives on disk, never only in chat.
+2. **Driver loop.** The driver runs its scheduler over the DAG: read the frontier → compute the ready set → dispatch workers (fan out independent units in parallel) → collect terse results → record status to the store → dispatch fresh audit workers → unblock downstream. Repeat until the DAG drains.
+
+## Where produced assets live
+
+The project's deliverables (<code/docs/data/etc.>) live in <their location — repo paths, a workspace, an external system>. The file-set above is orchestration, not deliverable; keep the two separate.
 
 ## License
 

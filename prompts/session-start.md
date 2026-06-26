@@ -1,51 +1,55 @@
 ---
 prompt: session-start
-purpose: orient an agent to a GOTM project's state at session start
-audience: LLM (paste the body into your LLM)
+purpose: boot or re-hydrate the driver at the start of any session
+audience: the driver (paste the body into your conversation agent)
 license: Apache 2.0
 ---
 
 # Session-start prompt
 
-Use this prompt at the start of any session in a GOTM-orchestrated project. Paste the body below into your LLM. The LLM will read the project's `PROTOCOL.md`, `LEDGER.md`, and `QUESTIONS.md`, reconcile the ledger against what is on disk, identify the active unit, and report back. This is the first move of every session — not a single-use bootstrap. Run it whenever a fresh session opens.
+The **driver's boot sequence.** Run this at the start of *any* session in a GOTM-orchestrated project — a first open, a cold restart, a `/clear`, or the far side of a compaction. It rebuilds the driver's working set **from the store** and hands off to the scheduler (`prompts/driver-loop.md`). Workers do not run this; a dispatched worker gets its own spec (`prompts/worker-dispatch.md`). This is the driver re-hydrating itself, every session, before any work.
+
+The honest limit it lives inside (design §4): the interactive driver *is* the session and **cannot self-trigger `/compact`** — so re-hydration cannot depend on a compaction hook. It depends only on the store. That is why this same checklist works on every kind of fresh start, clean or violent: it reads on-disk state, which alone reconstructs context.
 
 ---
 
-## Paste this into your LLM
+## Paste this into the driver
 
-You are starting a session in a GOTM-orchestrated project. Your job in this prompt is to orient yourself to the project state. You do not execute any work yet.
+You are booting the driver for a GOTM-orchestrated project. Rebuild your working set from the store, heal any drift, then hand to the scheduler loop. You do **not** execute unit work in this prompt — workers do that.
 
-### Steps
+### Boot checklist
 
-1. Read `PROTOCOL.md` at the project root.
-2. Read `LEDGER.md`.
-3. Read `QUESTIONS.md`.
-4. **Reconcile the ledger against disk** (crash recovery). A previous session may have ended badly. Heal any drift *before* identifying the active unit:
-   - A `done` row whose output file is missing → reopen the unit.
-   - An output file that exists for a non-`done` unit → an interrupted unit; finalize it or supersede it.
-   - An `in_progress` unit → resume/verify exactly that unit.
-   - Record anything you find and do in "Recent updates" — recovery is auditable, not silent.
-5. Identify:
-   - The project's mission (top of `LEDGER.md`).
-   - The active unit (the `## Active unit` section, or the top non-`done` row whose blockers are clear).
-   - Any open questions blocking work.
-   - The most recent entry under "Recent updates" in `LEDGER.md`.
+1. **Read the protocol + the ledger frontier.** Read `PROTOCOL.md`. Then read the ledger's **frontier** (the hot tier: mission, ready/active units, the recovery-log window) — **not** the full history and **not** the cold archive. The frontier is what you carry; the archive is pulled on demand only.
+
+2. **Reconcile the frontier against disk** (heal drift before acting — a prior session may have ended mid-flight). Walk the frontier and compare each unit's recorded status to what is actually on disk:
+   - a `done`/`*-done` unit whose output is **missing** → reopen it (status back to ready);
+   - an output that **exists** for a non-`done` unit → finalize it (mark authored-done, queue its audit) or supersede it;
+   - an `in_progress` unit → resume/verify exactly that unit;
+   - record what reconciliation did in the recovery-log window — healing is auditable, never silent. You are the **single writer**; record it yourself.
+
+3. **Re-hydrate the working set from the store.** Reconstruct the driver's manifest from on-disk state alone: the **active unit** row + its inputs **as pointers** (not bodies) + the **recovery-log window** + the open `QUESTIONS`. This is the load-bearing move: it works on *any* fresh start because it reads the store, depends on **no** compaction hook, and needs nothing from the prior transcript. Do not pull the cold tier (audits/decisions/docs) onto the hot path — follow a pointer only if a specific check demands it.
+
+4. **Compaction checkpoint.** If the frontier exceeds the size/count threshold (it has grown past its band, or closed+audited units have piled up), compact: rewrite each closed-and-audited unit's frontier cell down to a one-line **archive** entry that keeps its **audit pointer**, and roll the recovery-log window forward. This is **lossless** (every removed fact still lives one pointer away in the cold tier) and an **index operation, not an edit to a frozen output** — you rewrite a ledger cell, never the unit's artifact. Below threshold, skip this step.
+
+5. **Identify the active unit and hand off.** Name the active unit (the `## Active unit`, or the top ready unit whose deps are satisfied and whose audit gate is open) and any open questions blocking it. Then proceed under the scheduler — `prompts/driver-loop.md`.
 
 ### Report back
 
-Return a short status to the practitioner in this shape:
+Return a terse status to the practitioner:
 
     Mission: <mission line>
     Reconciliation: <"clean" or what was healed>
+    Compaction: <"none" or "archived <n> units; window rolled">
     Active unit: <ID and title>
     Open questions: <list, or "none">
-    Last update: <most recent line from Recent updates>
-    Ready to act on the active unit, or do you want to redirect?
+    Last update: <most recent recovery-log line>
+    Ready to run the loop on the active unit, or do you want to redirect?
 
 ### Do not
 
-- Do not execute work on the active unit in this kickoff. The kickoff exists to confirm alignment before action.
-- Do not skim the protocol or ledger. The discipline depends on reading them carefully each session.
-- Do not propose new units or decisions in this prompt. Those happen during action, not orientation.
+- Do not execute unit work here — the boot orients and re-hydrates; work is a worker dispatch under the loop.
+- Do not read the full history or the cold archive. Read the frontier; pull cold tier only by pointer, only when a check needs it.
+- Do not hold inputs as bodies — hold pointers. The substance stays on disk.
+- Do not skim the protocol or frontier. Re-hydration is only as good as the read.
 
-After the practitioner confirms direction, proceed under the protocol.
+After the practitioner confirms direction, run `prompts/driver-loop.md` against the active unit.
