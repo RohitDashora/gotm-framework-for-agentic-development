@@ -335,3 +335,29 @@ Deferred to Phase 3:
 
 <!-- Append new decisions below this line. -->
 
+## D23 — Adopt the v3 driver / worker / store architecture (from-first-principles rewrite)
+
+**Date:** 2026-06-26
+**Scope:** framework (+ plugin)
+**Status:** locked
+
+**Context.** v2 was **monotonic**: the single ledger only ever grew and was re-read every turn, and one long-lived "doer" agent accumulated all execution state until it self-certified its own work and eventually stalled (~987K tokens — observed in the field). Root cause: the planner and the doer were the same ever-growing context, and GOTM had a rich theory of *growth* but none of *ephemerality*. Surfaced by the *enterprise-context-graph* project's completion-stage feedback + token meta-review (it cost >$1.2K and didn't save tokens because the durable state never shrank).
+
+**Decision.** Rewrite GOTM to a Spark-style **driver / worker / store** model: the **driver** (the conversation agent) plans, talks, runs the scheduler loop, and is the **single writer** — it never does unit work; **all work, however small, is a stateless worker dispatch** (bounded inputs → one output → terse result → discarded), which makes audit independence *structural*; the **store** is **born tiered** (a hot frontier + a cold archive) so per-turn read cost stays flat. The full design — the 9-chapter spine, the scheduler loop, fan-out/fan-in (fan-in is always a worker reading the store), worker-context minimalism, and the 8 locked sub-decisions — lives in [`V3-DESIGN.md`](../V3-DESIGN.md). The rewrite itself was executed **driver/worker** (dogfooded): fan-out chapter/prompt/template workers + independent audit workers + fan-in coherence passes.
+
+**Consequences.** `docs/` rewritten to 9 chapters (`01-09`) + Mermaid diagrams; 6 prompts (`driver-loop` + `worker-dispatch` new); 7 templates (born-tiered `LEDGER`, `CONSULTED` new); the meta-example's own `.gotm/` migrated to v3 (born-tiered ledger; all 80 v2 units archived losslessly); `MIGRATION.md` + a v2→v3 converter. Plugin **v3.0.0** carries the runtime (marketplace PR #7879). v3 applies to new projects **and** v2 projects migrate. The two failures that motivated it become impossible by construction: a single long-lived doer can't exist, and an executor can't self-certify (it's gone by audit time).
+
+---
+
+## D24 — Flip the framework repo to PUBLIC (resolves Q2)
+
+**Date:** 2026-06-26
+**Scope:** framework
+**Status:** locked
+
+**Context.** Q2 (open since 2026-05-27) asked *when* to flip the repo from PRIVATE to PUBLIC. It was pushed PRIVATE on 2026-05-28 (the Databricks pre-push secret-scan independently confirmed no internal code leaked), and visibility was held open through the v2 line and the v3 rewrite. With v3 complete, audited, and published, the platform-neutral *idea* repo is ready to be shared.
+
+**Decision.** Flipped **https://github.com/RohitDashora/gotm-framework-for-agentic-development to PUBLIC** on 2026-06-26. Closes Q2.
+
+**Consequences.** The platform-neutral "idea" repo (concept docs, prompts, templates, this meta-example) is now publicly shareable. The *runtime* continues to ship privately via the internal experimental marketplace (the D12 two-repo split holds). A public repo raises the bar on the meta-example's own honesty — hence this same change records Q2's resolution and D23 (the v3 rewrite) in the public ledger rather than leaving the log to trail off at D22.
+

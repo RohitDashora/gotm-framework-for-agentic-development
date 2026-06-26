@@ -12,12 +12,12 @@
 
 ---
 
-## Q2 — Push timing for public GitHub (partially resolved)
+## Q2 — Push timing for public GitHub (resolved) ✅
 
 **Asked:** 2026-05-27
 **Partially resolved:** 2026-05-28 — pushed to user's personal GitHub as PRIVATE at https://github.com/RohitDashora/gotm-framework-for-agentic-development. Databricks pre-push secret-scanning hook ran and confirmed no internal code detected (independent verification that anonymization held).
-**Still open:** when to flip visibility from PRIVATE to PUBLIC.
-**Status:** push done, visibility decision pending
+**Resolved:** 2026-06-26 — flipped to **PUBLIC** (see D24), once the v3 rewrite (D23) was complete and published.
+**Status:** resolved
 
 ---
 
