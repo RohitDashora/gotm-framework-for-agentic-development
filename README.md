@@ -1,122 +1,118 @@
 # GOTM
 
-A discipline for surviving bounded-context agentic execution — when complex work spans hundreds of LLM sessions and many subagents and can't fit in any one of them.
+A discipline for surviving bounded-context agentic execution — when serious work spans hundreds of LLM sessions and many subagents and fits in none of them.
 
 ---
 
-**Your agent forgets everything when the session ends. GOTM makes the project remember.**
+**Your agent's context is scarce, lossy, and gone at the session boundary. GOTM makes the *project* the system of record — so any context can be thrown away and rebuilt from disk.**
 
-Ever wished an agent session just *never lost the thread* — that you could lose it mid-task to a crash, a dead laptop, a closed terminal, reopen it tomorrow, and pick up exactly where you left off, with every decision and every reason still intact?
+GOTM v3 reframes the whole problem as a **context economy**. Context is the binding resource: every token is paid for on every turn it survives, quality degrades long before the window overflows, and nothing crosses the session boundary unless it was written down. On a long project, getting this wrong does not fail loudly — it grinds to a halt under its own accumulated weight. That failure has a name: **monotonicity** — cost that grows without bound because work, recovery logs, and the plan all pile up in a long-lived context and get re-read forever.
 
-What if the agent could audit its own work — but handed the check to a **fresh subagent with no memory of writing it**, so the review was honest instead of the author nodding along to itself?
+GOTM v3 fixes monotonicity with one law: **nothing on the hot path is long-lived.** The durable store is the system of record; every working context is disposable and reconstructable from it. That law produces a three-role architecture.
 
-What if drafts never ran ahead of the evidence, "done" always meant *independently checked*, and the project's memory lived in plain files that outlast any single session — so session #300 starts as sharp as session #1?
+## The thesis
 
-That is what GOTM is for. It doesn't try to make the agent smarter; it makes the **project** disciplined — the working memory moves out of the agent and into the project, and context stops leaking out the session boundary.
+> **GOTM is a context-economy discipline. The durable store is the system of record; every working context is disposable and reconstructable from it. Nothing on the hot path is long-lived.**
 
----
+Everything else is a consequence of that sentence.
 
-## The problem GOTM solves
-
-Complex work with AI agents falls apart in predictable ways. State that an agent built up in one session evaporates at the session boundary. The next session starts cold and re-derives — usually slightly differently — and the project's working understanding drifts. Drafts run ahead of the evidence the agent never wrote down. Subagents inherit the task but not the project's discipline. "Done" markers accumulate without independent audit. Mission-level decisions get made unilaterally by the agent; trivial choices get escalated to the human. Session-level tooling — slash commands, custom instructions, system prompts — dies when the session does.
-
-None of these are fixable inside the agent. The agent is, by construction, a bounded-context worker. The thing that gives the worker continuity has to live outside.
-
-## What GOTM is
-
-GOTM is the discipline of moving continuity outside the agent and into the **project filesystem**. The project carries five primitives — a mission, a ledger, atomic units of work, a foundation-before-drafts gate, and an audit cycle — plus a ratification ladder that says which decisions are the human's, anti-drift safeguards that make the rules catchable instead of remembered, and resilience rules that keep the on-disk state recoverable after any session end. Every agent that opens a session in the project reads the protocol, reads the ledger, and operates under the discipline. Subagents inherit the discipline through the dispatch. The agent stays stateless; the project stays stateful.
-
-GOTM is not a hierarchy. It is not project management. It is not a methodology. It tells you how to carry context across many sessions of whatever methodology you use to plan the work.
-
-**At a glance:**
+## At a glance — driver / worker / store
 
 ```mermaid
 flowchart TB
-    Human["**The human**<br/>owns mission &middot; audience &middot; scope"]
+    Human["**The human**<br/>mission &middot; audience &middot; scope<br/><i>(ratification ladder)</i>"]
 
-    subgraph Session["**Session** &mdash; stateless main agent"]
+    subgraph Driver["**Driver** &mdash; the conversation agent (long-lived, checkpointed)"]
         direction LR
-        Read["**read +<br/>reconcile**"] --> Act["**act on<br/>active unit**"] --> Write["**write<br/>back**"]
+        Loop["**scheduler loop**<br/>read frontier &rarr; ready set &rarr;<br/>dispatch &rarr; collect &rarr; audit &rarr; repeat"]
     end
 
-    subgraph Project["**Project filesystem** &mdash; stateful, outlives every session &nbsp;<i>(.gotm/ or root)</i>"]
+    subgraph Store["**Store** &mdash; <code>.gotm/</code> + the repo (durable, born-tiered)"]
         direction LR
-        Protocol["**Protocol**<br/>how this<br/>project works"]
-        Ledger["**Ledger**<br/>ordered atomic units<br/>+ done / passed state"]
-        Decisions["**Decisions**<br/>append-only:<br/>the why"]
-        Questions["**Open questions**<br/>parked for<br/>the human"]
-        Audits["**Audit outputs**<br/>findings +<br/>verdicts"]
+        Hot["**T2 hot frontier**<br/>ready/active units<br/>+ recovery window"]
+        Cold["**T3 cold archive**<br/>closed units &middot; audits<br/>decisions &middot; docs"]
     end
 
-    subgraph Dispatch["**Subagent dispatch** &mdash; bounded, protocol-bound"]
+    subgraph Workers["**Workers** &mdash; ephemeral subagents (one unit, then discarded)"]
         direction TB
-        Sub["**Subagent**<br/>writes one<br/>named output"]
-        Auditor["**Independent auditor**<br/>auditor &ne; author<br/>target + oracle"]
+        W["**worker**<br/>bounded inputs + spec<br/>&rarr; one output<br/>&rarr; authored-done"]
+        A["**audit worker**<br/>auditor &ne; author<br/>&rarr; PASS / -FINDINGS / FAIL<br/>&rarr; verified-done"]
     end
 
-    Project ==>|"on start: read protocol,<br/>ledger, questions"| Read
-    Write ==>|"same turn:<br/>status &middot; decision &middot; question"| Project
-
-    Act -.->|"dispatch bounded work"| Sub
-    Act -.->|"dispatch independent check"| Auditor
-    Sub ==>|"output"| Project
-
-    Auditor ==>|"PASS / PASS-FINDINGS / FAIL"| Gate{"**Audit gate**"}
-    Gate -->|"PASS"| Open["downstream<br/>may consume"]
-    Gate -->|"FAIL"| Hold["gate holds &mdash;<br/>findings become fix units"]
-    Gate -.->|"findings<br/>(never silent edits)"| Audits
-
-    Human -.->|"**ratification ladder**<br/>mission / audience / scope"| Questions
+    Human -.->|"only via the ladder"| Driver
+    Store ==>|"read frontier (the index, never the work)"| Driver
+    Driver ==>|"**single writer:** status &middot; decisions &middot; questions"| Store
+    Driver -.->|"dispatch bounded work"| W
+    Driver -.->|"dispatch independent check"| A
+    W ==>|"terse result (pointer, not prose)"| Driver
+    A ==>|"verdict"| Driver
+    W -.->|"reads inputs / writes output"| Store
+    A -.->|"reads target + oracle"| Store
 ```
 
-<sub>The agent is stateless; the project is stateful. Each session reads the project on start, acts, and writes back in the same turn. Bounded work and an independent auditor (auditor &ne; author) are dispatched as subagents; the auditor's verdict drives the gate that downstream units wait on. The human enters only through the ratification ladder — mission, audience, scope — while execution decisions stay in the loop.</sub>
+<sub>The **driver** plans and talks; it holds the plan (the ledger DAG), the discipline, and the human interface — never the work. All work, however small, is a **worker** dispatch: a fresh context with bounded inputs that produces one output and is discarded. The **store** is durable and born-tiered. The driver is the single writer; workers report terse results (a pointer, never the N bodies). A worker marks only **authored-done**; an independent **audit worker** (auditor &ne; author) confers **verified-done**.</sub>
 
 ## When to use it
 
-Use GOTM when the work is multi-session, when the cost of drift is high, and when an agent (or several) will be doing meaningful chunks of the execution. Multi-week deliverables. Multi-author research projects. Systems that span hundreds of LLM sessions and dispatched subagents.
+Use GOTM when the work is multi-session, when the cost of drift is high, and when an agent (or several) does meaningful chunks of execution: multi-week deliverables, multi-author research, systems that span hundreds of sessions and dispatched subagents.
 
-Do not use GOTM for one-shot tasks. A one-off email or a five-line script does not need a ledger. The ceremony is more than the work.
+Do not use GOTM for one-shot tasks. A one-off email or a five-line script does not need a ledger; the ceremony exceeds the work.
+
+## The concept arc — `docs/01–09`
+
+The framework from first principles, each chapter a consequence of the one before:
+
+- [`docs/01-the-problem-and-thesis.md`](docs/01-the-problem-and-thesis.md) — context as the scarce, lossy, bounded resource; the monotonicity failure; the thesis and the one law
+- [`docs/02-driver-worker-store.md`](docs/02-driver-worker-store.md) — the three roles, their lifetimes, the Spark analogy; the non-monotonicity guarantee and its honest limit
+- [`docs/03-work-as-a-dag.md`](docs/03-work-as-a-dag.md) — the unit as a self-contained worker dispatch spec; the ledger as DAG + scheduler state, born tiered; foundation as topology
+- [`docs/04-the-loop.md`](docs/04-the-loop.md) — the driver's deterministic scheduler: read frontier, compute ready set, dispatch, collect, retry by lineage recompute
+- [`docs/05-scaling-and-economy.md`](docs/05-scaling-and-economy.md) — fan-out/fan-in (fan-in = a worker reading the store, never the driver holding N results), worker-context minimalism, amortized batching, risk-tiered audits, model tiering
+- [`docs/06-keeping-it-honest.md`](docs/06-keeping-it-honest.md) — structural audit independence (a worker cannot grade itself); authored-done vs verified-done; the freeze
+- [`docs/07-resilience-and-memory.md`](docs/07-resilience-and-memory.md) — the two-level crash model (worker retry, driver re-hydrate) and the three-tier memory economy
+- [`docs/08-in-practice.md`](docs/08-in-practice.md) — adopting v3 across three tiers, interactive vs SDK driver, bootstrapping, and the worked example (this rewrite)
+- [`docs/09-learning-across-projects.md`](docs/09-learning-across-projects.md) — how finished projects compound: the learning pool as a cold tier that seeds future drivers
+
+## Operational prompts and templates
+
+Paste-ready bodies a practitioner runs in any LLM:
+
+- [`prompts/driver-loop.md`](prompts/driver-loop.md) — the scheduler the driver runs: ready-set, fan-out, collect, audit, checkpoint, repeat
+- [`prompts/worker-dispatch.md`](prompts/worker-dispatch.md) — the central worker contract: build a bounded, self-contained dispatch (supersedes v2's `subagent-dispatch`)
+- [`prompts/audit.md`](prompts/audit.md) — the fresh-worker audit: checklist, three-way verdict (`PASS` / `PASS-FINDINGS` / `FAIL`), and the `verified-done` runtime check
+- [`prompts/session-start.md`](prompts/session-start.md) — the driver boot: re-hydrate from the store + reconcile against disk (no compaction hook)
+- [`prompts/consult.md`](prompts/consult.md) — start-of-project: scan prior `LEARNINGS.md`, tag-filter, surface the few that apply
+- [`prompts/outcome-analysis.md`](prompts/outcome-analysis.md) — end-of-project: distill the record into transferable, mergeable learnings
+
+Copy-and-fill scaffolds for a new project:
+
+- [`templates/`](templates/) — `PROTOCOL.md` (driver/worker/store + the loop), `LEDGER.md` (born-tiered: frontier + archive), `DECISIONS.md`, `QUESTIONS.md`, `README.md`, `LEARNINGS.md`, `CONSULTED.md`
+
+## Two repos: the idea and the runtime
+
+This repo is the platform-neutral **idea** — the concept chapters, the prompts, and the templates, all plain markdown. Paste any prompt body into ChatGPT, Cursor, Cline, the Claude API, or raw chat and it works; nothing here is tied to a runtime. The companion **`gotm` plugin** is the **runtime** — it ships the executable layer the templates only *describe*: the scheduler command, the born-tiered ledger machinery, the compaction script, and the immutability hook (with the follow-on-ownership fix). The split is deliberate: the discipline lives here and survives any tool; the automation lives in the plugin.
 
 ## What's in this repo
 
 ```
-docs/         6 concept chapters — the framework from first principles, incl. learning across projects
-prompts/      5 operational prompts a practitioner pastes into their LLM
-templates/    scaffold files to copy into a new project (root, or a .gotm/ subfolder)
+docs/         9 concept chapters — the framework from first principles
+prompts/      6 operational prompts a practitioner pastes into their LLM
+templates/    7 copy-and-fill scaffolds for a new project (root, or a .gotm/ subfolder)
 .gotm/        this repo's own GOTM machinery — a working meta-example:
-                PROTOCOL.md · LEDGER.md · DECISIONS.md · QUESTIONS.md · audits/
+                PROTOCOL.md · LEDGER.md (born-tiered) · DECISIONS.md · QUESTIONS.md · audits/
 CLAUDE.md     thin root bridge → .gotm/PROTOCOL.md (auto-loads the discipline each session)
 ```
 
-Everything is platform-neutral markdown. Paste any prompt body into ChatGPT, Cursor, Cline, Claude API, or raw chat — it works. The repo's own machinery lives in [`.gotm/`](.gotm/) (`PROTOCOL.md`, `LEDGER.md`, `DECISIONS.md`, `QUESTIONS.md`, `audits/`) as a working meta-example: this project is itself GOTM-orchestrated, and it uses the `.gotm/` subfolder layout — with a thin root `CLAUDE.md` bridge — as a live demonstration of the layout described in `docs/05-in-practice.md`.
+This project is itself driven as a v3 GOTM project: the conversation agent is the driver, every chapter / prompt / template was produced by a stateless worker and gated by an independent audit worker. The repo's own `.gotm/` is the live demonstration of the layout described in [`docs/08-in-practice.md`](docs/08-in-practice.md).
 
-## Quickstart — your first GOTM project in five steps
+## How to start
 
-1. **Pick work that fits.** Multi-session, drift-cost high. See [When to use it](#when-to-use-it).
-2. **Copy the templates into your project.** From `templates/`: `PROTOCOL.md.template` → `PROTOCOL.md`; `LEDGER.md.template` → `LEDGER.md`; `DECISIONS.md.template` → `DECISIONS.md`; `QUESTIONS.md.template` → `QUESTIONS.md`. Put them at the repo root for a writing/research project, or in a `.gotm/` subfolder for a software/multi-asset project (keep a thin pointer at the root so your tool's session-context file still auto-loads — see the Layout note in `PROTOCOL.md.template`). Fill in the mission line in `PROTOCOL.md` and `LEDGER.md`. Sketch your first two or three units in `LEDGER.md` (foundation first).
-3. **Open `prompts/session-start.md` in your LLM.** Paste the body. The LLM reads `PROTOCOL.md`, `LEDGER.md`, and `QUESTIONS.md`, identifies the active unit, and reports back.
-4. **Direct the LLM to act on the active unit.** When it finishes, it updates `LEDGER.md` and either appends a decision to `DECISIONS.md` or surfaces a question to `QUESTIONS.md`.
-5. **When work exceeds a session or needs independent context, dispatch.** Use `prompts/subagent-dispatch.md` to construct a worker prompt that points back at `PROTOCOL.md`. Use `prompts/audit.md` to run a mechanical check before downstream work consumes any claimed-done output.
+1. **Read [`docs/01-the-problem-and-thesis.md`](docs/01-the-problem-and-thesis.md).** It is short and it grounds everything else.
+2. **Pick work that fits.** Multi-session, drift-cost high. See [When to use it](#when-to-use-it).
+3. **Copy the templates into your project.** From `templates/`, scaffold `PROTOCOL.md`, `LEDGER.md`, `DECISIONS.md`, `QUESTIONS.md`. Put them at the repo root for a writing/research project, or in a `.gotm/` subfolder for a software/multi-asset project (keep a thin root pointer so your tool's session file still auto-loads — see the Layout note in `PROTOCOL.md.template`). Fill the mission line; sketch your first few units (foundation first, as upstream DAG nodes).
+4. **Boot the driver with [`prompts/session-start.md`](prompts/session-start.md).** It re-hydrates from the store, reconciles against disk, and reports the active frontier.
+5. **Run the loop with [`prompts/driver-loop.md`](prompts/driver-loop.md).** Dispatch a worker per ready unit via [`prompts/worker-dispatch.md`](prompts/worker-dispatch.md); gate every claimed-done output with an independent [`prompts/audit.md`](prompts/audit.md) worker before downstream consumes it.
 
-From there, the loop repeats. Pick the next active unit. Act. Write back. Audit when called for.
-
-## Concept chapters
-
-- [`docs/01-what-is-gotm.md`](docs/01-what-is-gotm.md) — what GOTM is, from first principles: the five primitives and the ratification ladder
-- [`docs/02-why-agents-need-it.md`](docs/02-why-agents-need-it.md) — the specific gaps in agentic work, including the ones real use surfaced
-- [`docs/03-how-the-project-carries-it.md`](docs/03-how-the-project-carries-it.md) — the mechanism: the file-set, the session loop, subagent inheritance, ratification
-- [`docs/04-keeping-it-honest.md`](docs/04-keeping-it-honest.md) — the battle-tested operational layer: anti-drift safeguards, resilience, audit gates
-- [`docs/05-in-practice.md`](docs/05-in-practice.md) — layouts, the loop end to end, and a worked software example
-- [`docs/06-learning-across-projects.md`](docs/06-learning-across-projects.md) — how finished projects compound: the bottom-up, three-level learning layer (project → user → enterprise)
-
-## Operational prompts and templates
-
-- [`prompts/session-start.md`](prompts/session-start.md) — kickoff + crash-recovery reconcile; the first move of every session
-- [`prompts/subagent-dispatch.md`](prompts/subagent-dispatch.md) — how the orchestrator builds a bounded worker prompt (and why audit dispatches must be independent)
-- [`prompts/audit.md`](prompts/audit.md) — the independent audit: a 7-point checklist and a three-way verdict (`PASS` / `PASS-FINDINGS` / `FAIL`)
-- [`prompts/outcome-analysis.md`](prompts/outcome-analysis.md) — the end-of-project retrospective: distill the project's record into transferable, mergeable learnings (the *produce* half of the learning loop)
-- [`prompts/consult.md`](prompts/consult.md) — the start-of-project step: scan a pool of prior `LEARNINGS.md`, tag-filter, and surface the few that apply (the *consume* half — closes the loop)
-- [`templates/`](templates/) — copy-and-fill scaffolds for the four working files, a project README, and a `LEARNINGS.md` scaffold for the end-of-project retrospective
+From there the loop repeats until the DAG drains.
 
 ## License
 

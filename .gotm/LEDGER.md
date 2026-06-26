@@ -1,9 +1,14 @@
 ---
 project: gotm-framework-for-agentic-development
-last_updated: 2026-06-23 (geniefy completion-stage feedback G15-G18 → D22; framework half U65-U72 DONE + audited — U65/U69 PASS-FINDINGS, U66/U67/U68/U70/U71 PASS, U72 closed U69 LOW; consume loop now ships both halves as prompts; NEXT: plugin v2.6.0 mirror + commit/push both repos; framework remote stays PRIVATE/Q2 open; v2.5.0 folds into v2.6.0)
+last_updated: 2026-06-26 (born-tiered v3 migration: this ledger compacted to the v3 shape it teaches — `## Active unit` = pointer · `## Frontier` = open/recent only · `## Archive` = U1–U72 one line each (lossless) · `## Recent updates` = rolling window. v3 content rewrite is complete + gated, tracked in `../V3-DESIGN.md §11`. Active protocol is now v3 — `.gotm/PROTOCOL.md` instantiates `templates/PROTOCOL.md.template`.)
 ---
 
 # Project ledger
+
+<!-- Born tiered (v3): a hot `## Frontier` re-read every turn + a cold `## Archive`
+     pulled only on demand, so per-turn read cost stays flat as the project scales.
+     Only the DRIVER writes this file. See .gotm/PROTOCOL.md -> Audit gates /
+     Resilience, and ../docs/03-work-as-a-dag.md. -->
 
 ## Mission
 
@@ -11,200 +16,198 @@ Distill the GOTM discipline into a public-ready framework — concept docs, a pr
 
 ## Active unit
 
-**D22 framework half COMPLETE + audited (U65–U72).** Both clusters done: discipline (G15/G17/G18) — U65 PASS-FINDINGS, U66/U67/U71 PASS; consume (G16) — U69 PASS-FINDINGS→U72 closes the LOW, U68/U70 PASS. The cross-project learning loop now ships **both** halves as paste-able prompts (`outcome-analysis.md` produce + `consult.md` consume); only the pool/store stays a platform binding. **Next: plugin v2.6.0** — mirror G15–G18 + the new consult command/bootstrap pull into `/Users/rohit.dashora/fe-vibe/gotm`, bump version + changelog, then commit & push both repos (framework remote stays PRIVATE — Q2 still open). v2.5.0 content (/gotm:learn + L22) folds into v2.6.0 since it was never shipped.
+**v3 rewrite complete; see [`../V3-DESIGN.md §11`](../V3-DESIGN.md).** Framework v3 content (9 docs + 8 diagrams · 6 prompts · 7 templates) is produced driver/worker and independently gated (zero HIGH/FAIL). Next phases (not yet open as units here): meta-example migration (repo README rewrite, delete v2 docs, MIGRATION.md + converter) and plugin v3.0 (hook follow-on, compaction script, scheduler runtime).
 
-Latest: D22 folds the 2026-06-23 geniefy addendum (G15 recovery-log fragmentation · G16 consume half written into a void · G17 audit-checklist blind spots = the only 2 FAILs · G18 ledger-parse corruption). Framework half here; runtime in the plugin. Standing opens unchanged: plugin `/gotm:learn`+L22 = **v2.5.0 NOT yet pushed**; Q2 PRIVATE→PUBLIC visibility. Prior arc: learning layer (D20, U60-U63), core-process feedback (D21, U64), G12/G14/G13a (D19), 5-chapter docs (D17), `.gotm/` migration (D18). Per D19, per-unit auditing binds.
+## Frontier
 
-## Units
+<!-- THE HOT TIER — re-read every turn; keep it small: open units, the recent-
+     closed window, and any closed unit a still-open unit still cites as an input.
+     Right now there are no open mission units in *this* ledger — the v3 rewrite was
+     driven as a self-contained GOTM project and tracked in `../V3-DESIGN.md §11`
+     (driver log + risk-tiered audits in `audits/v3-*.md`), not re-registered as
+     U-rows here. The U1–U72 history (the v2 framework build + feedback folds) is
+     closed and compacted into `## Archive`. -->
 
-> Grouping by phase is convenience only. There is no hierarchy — only an ordered list of atomic units.
+_No open mission units in this ledger._
 
-### Concept phase (done)
+**Recent frontier note — the v3 rewrite (executed, gated, not registered as U-rows here).** The framework was rewritten to v3 — driver/worker/store, born-tiered ledger, structural audit independence (authored-done vs verified-done), the scheduler loop, and the cross-project learning loop. It was driven *as its own GOTM v3 project* (driver plans; stateless workers author each chapter/prompt/template; fresh workers audit). The full driver log + per-chapter audit verdicts live in [`../V3-DESIGN.md §11`](../V3-DESIGN.md) and `audits/v3-*.md`. Phase status there: ✅ DOCS (9 ch + 8 diagrams) · ✅ PROMPTS (6) · ✅ TEMPLATES (7) — all gated. This `.gotm/PROTOCOL.md` + this ledger were then migrated to the v3 shape (this turn) so the repo runs the protocol it teaches.
 
-| ID | Title | Inputs | Output | Status |
-|---|---|---|---|---|
-| U1 | Draft concept Chapter 1 — what GOTM is | — | `docs/01-what-is-gotm.md` | done |
-| U2 | Draft concept Chapter 2 — what agents are missing | U1 | `docs/02-what-agents-are-missing.md` | done |
-| U3 | Draft concept Chapter 3 — GOTM with agents | U1, U2 | `docs/03-gotm-with-agents.md` | done |
-| U4 | Delete old `docs/01-why.md` through `docs/06-archetypes.md` | — | (6 deletions) | done |
+## Archive
 
-### Implementation phase
+<!-- THE COLD TIER — not on the hot path; pulled only on demand. The closed v2
+     units U1–U72 (concept + implementation + every feedback fold), compacted to
+     ONE LINE each, newest-first. The audit pointer is kept so the gate stays
+     checkable; all other detail already lives in the output files, `audits/`,
+     `DECISIONS.md`, and git history. Format:
+       - U<n> — <title> · `<output>` · <status> · <verdict>→audits/U<n>.md -->
 
-| ID | Title | Inputs | Output | Status |
-|---|---|---|---|---|
-| U5 | Draft `PROTOCOL.md` | docs/01-03 | `PROTOCOL.md` | done |
-| U6 | Create `CLAUDE.md` pointing to `PROTOCOL.md` | `PROTOCOL.md` | `CLAUDE.md` | done |
-| U7 | Rename `decisions.md` → `DECISIONS.md` | — | `DECISIONS.md` | done |
-| U8 | Rename `OPEN_QUESTIONS.md` → `QUESTIONS.md` | — | `QUESTIONS.md` | done |
-| U9 | Append D9, D10, D11 to `DECISIONS.md` | — | `DECISIONS.md` updates | done |
-| U10 | Delete old `GOTM.md`, `STATUS.md`, `discovered/` | — | (deletions) | done |
-| U11 | Draft `LEDGER.md` (this file; replaces old GOTM.md + STATUS.md) | U1-U10 | `LEDGER.md` | done |
-| U12 | Rewrite `templates/` — split into U12a-e per atomicity | — | (superseded by U12a-e) | superseded |
-| U12a | Draft `PROTOCOL.md.template` | `PROTOCOL.md` | `templates/PROTOCOL.md.template` | done |
-| U12b | Draft `LEDGER.md.template` | `LEDGER.md`, `docs/02` | `templates/LEDGER.md.template` | done |
-| U12c | Draft `DECISIONS.md.template` | `DECISIONS.md` | `templates/DECISIONS.md.template` | done |
-| U12d | Draft `QUESTIONS.md.template` | `QUESTIONS.md` | `templates/QUESTIONS.md.template` | done |
-| U12e | Draft `README.md.template` (project-bootstrap version) | `PROTOCOL.md`, `LEDGER.md` | `templates/README.md.template` | done |
-| U13 | Rewrite `prompts/` — split into U13a-c per atomicity | — | (superseded by U13a-c) | superseded |
-| U13a | Draft `prompts/session-start.md` — session kickoff template | `PROTOCOL.md` | `prompts/session-start.md` | done |
-| U13b | Draft `prompts/subagent-dispatch.md` — worker dispatch convention | `PROTOCOL.md`, U13a | `prompts/subagent-dispatch.md` | done |
-| U13c | Draft `prompts/audit.md` — generic audit prompt | `PROTOCOL.md`, docs/03 §6 | `prompts/audit.md` | done |
-| U14 | Delete old `prompts/*.md` (13 old-framework prompt files) | — | (13 deletions) | done |
-| U15 | Rewrite `README.md` for the new framing | all prior implementation units | `README.md` (732w) | done |
-| U16 | Light pass on `CONTRIBUTING.md` (remove old-framework references) | U15 | `CONTRIBUTING.md` (~470w) | done |
-| U17 | Meta-validation audit of the rewrite — existence + structure across all claimed-done units (U1-U16) | LEDGER.md as oracle, all U1-U16 outputs as targets, `prompts/audit.md` for shape | `.gotm/audits/U17.md` (HIGH 0 / MED 0 / LOW 3 within tolerance / UNVERIFIED 0; recommendation: proceed to commit; out-of-kind notes: empty drafts/ cleaned, .DS_Store gitignored) | done |
-| U18 | Commit the rewrite to git (single commit; message captures the reframe) | U17 verdict | git commit `0f0933e` on `main` | done |
-| U19 | Push the rewrite to GitHub (visibility stays PRIVATE) | U18 | remote `main` at `7f743e8..0f0933e`; Databricks secret-scan: "No Databricks code found" | done |
+### geniefy completion-stage feedback G15–G18 (2026-06-23, D22)
+- U72 — Close U69 LOW: forward link to `prompts/consult.md` in `prompts/outcome-analysis.md` · `prompts/outcome-analysis.md` · done · —
+- U71 — Meta-example sync: mirror G15/G17/G18 into `.gotm/PROTOCOL.md` · `.gotm/PROTOCOL.md` · done · PASS→audits/U71.md
+- U70 — README sync: add `prompts/consult.md` + tree/counts; "5-point"→"7-point" · `README.md` · done · PASS→audits/U70.md
+- U69 — New `prompts/consult.md` — the consume-step prompt (mirror of outcome-analysis) · `prompts/consult.md` · done · PASS-FINDINGS→audits/U69.md
+- U68 — `docs/06`: document the consume MVP (consult + bootstrap pull) · `docs/06-learning-across-projects.md` · done · PASS→audits/U68.md
+- U67 — `prompts/audit.md`: G17 checklist 5→7 (enforcement + multi-site) · `prompts/audit.md` · done · PASS→audits/U67.md
+- U66 — `templates/LEDGER.md.template`: G15 single recovery log (newest-first); active=pointer · `templates/LEDGER.md.template` · done · PASS→audits/U66.md
+- U65 — `templates/PROTOCOL.md.template`: G15 one recovery log + reconcile lints · G17 checklist 5→7 · G18 ledger-parse lint · `templates/PROTOCOL.md.template` · done · PASS-FINDINGS→audits/U65.md
 
-### Feedback-integration phase (2026-06-11)
+### GOTM core-process feedback check (2026-06-15, D21)
+- U64 — `templates/PROTOCOL.md.template`: "a decision change can invalidate a prior pass" + stale-by-decision lint (closes L22 gap) · `templates/PROTOCOL.md.template` · done · PASS-FINDINGS→audits/U64.md
 
-> Source: `geniefy-v3/docs/GOTM-FEEDBACK.md` (G1-G10). Conceptual/paste-able items only; runtime enforcement (the hook) folded into the `gotm` plugin per D12, not here.
+### Cross-project learning layer (2026-06-15, D20)
+- U63 — README sync: ch6 + outcome-analysis + LEARNINGS + tree counts · `README.md` · done · PASS→audits/U63.md
+- U62 — Draft `prompts/outcome-analysis.md` — end-of-project retrospective → candidate records · `prompts/outcome-analysis.md` · done · PASS-FINDINGS→audits/U62.md
+- U61 — Draft `templates/LEARNINGS.md.template` — learning-artifact scaffold · `templates/LEARNINGS.md.template` · done · PASS-FINDINGS→audits/U61.md
+- U60 — New ch6 — Learning across projects (3-level bottom-up flow) · `docs/06-learning-across-projects.md` · done · PASS-FINDINGS→audits/U60.md
 
-| ID | Title | Inputs | Output | Status | Audit |
-|---|---|---|---|---|---|
-| U20 | docs/02: add gaps §8 (rules rely on memory) + §9 (non-graceful ends) | GOTM-FEEDBACK G1, G10 | `docs/02-what-agents-are-missing.md` | done | PASS→.gotm/audits/U28.md |
-| U21 | docs/03: add §7 (anti-drift safeguards + resilience) + reconcile step in §3 | U20, GOTM-FEEDBACK G1, G10 | `docs/03-gotm-with-agents.md` | done | PASS→.gotm/audits/U28.md |
-| U22 | docs/01: ledger-as-recovery-point sentence | GOTM-FEEDBACK G10 | `docs/01-what-is-gotm.md` | done | PASS→.gotm/audits/U28.md |
-| U23 | Update `PROTOCOL.md.template` — anti-drift, resilience, layout note, audit-deferral, off-mission, governance carve-out | D13, D14, U20, U21 | `templates/PROTOCOL.md.template` | done | PASS→.gotm/audits/U28.md |
-| U24 | Update `LEDGER.md.template` conventions (in_progress-first, last_updated stamp, off-mission) | D13 | `templates/LEDGER.md.template` | done | PASS→.gotm/audits/U28.md |
-| U25 | Update `DECISIONS.md.template` (Status-line edit is the documented mechanism) | D13 | `templates/DECISIONS.md.template` | done | PASS→.gotm/audits/U28.md |
-| U26 | README: primitives summary + `.gotm/` layout in quickstart/tree; word count | D14 | `README.md` | done | PASS→.gotm/audits/U28.md |
-| U27 | CONTRIBUTING: point enforcement at adopter tooling (don't forbid safeguards) | D12 | `CONTRIBUTING.md` | done | PASS→.gotm/audits/U28.md |
-
-### Audit-gate phase (2026-06-11)
-
-> Follow-up ask: "proper audit checks + gates; auditor ≠ author." Conceptual/paste-able only; the `/gotm audit` command + header-aware hook live in the `gotm` plugin (D12, D15). U29/U32 are follow-ons that further evolve U23/U21's outputs.
-
-| ID | Title | Inputs | Output | Status | Audit |
-|---|---|---|---|---|---|
-| U29 | `PROTOCOL.md.template`: add *Audit gates* section + audit-gate lint + deferral/dispatch tie-ins | D15, U23 | `templates/PROTOCOL.md.template` | done | PASS→.gotm/audits/U28.md |
-| U30 | `LEDGER.md.template`: add `Audit` column + conventions | D15 | `templates/LEDGER.md.template` | done | PASS→.gotm/audits/U28.md |
-| U31 | `prompts/audit.md`: independence preamble + stamp-the-cell step | D15 | `prompts/audit.md` | done | PASS→.gotm/audits/U28.md |
-| U32 | docs/03 §6: strengthen audit cycle with independence + the gate | D15, U21 | `docs/03-gotm-with-agents.md` | done | PASS→.gotm/audits/U28.md |
-| U28 | **Independent** audit of the feedback-integration + audit-gate edits (existence + render + cross-doc consistency) — dispatched fresh auditor, not self-audit | U20-U27, U29-U32 | `.gotm/audits/U28.md` | done | — |
-
-### Audit-verdict refinement phase (2026-06-11)
-
-> Source: updated `geniefy-v3/docs/GOTM-FEEDBACK.md` G11 + Appendix D. D16. Follow-ons to U29/U31. The plugin mirrors these + updates `/gotm audit` stamp logic (D12).
-
-| ID | Title | Inputs | Output | Status | Audit |
-|---|---|---|---|---|---|
-| U33 | `PROTOCOL.md.template` Audit gates: add three-way verdict (PASS/PASS-FINDINGS/FAIL) + 5-point checklist + deferral-before-code | D16, U29 | `templates/PROTOCOL.md.template` | done | PASS-FINDINGS→.gotm/audits/U36.md |
-| U34 | `LEDGER.md.template`: add `PASS-FINDINGS` to Audit vocab + consume rule | D16, U30 | `templates/LEDGER.md.template` | done | PASS-FINDINGS→.gotm/audits/U36.md |
-| U35 | `prompts/audit.md`: 5-point default checklist + three-way verdict/stamp | D16, U31 | `prompts/audit.md` | done | PASS-FINDINGS→.gotm/audits/U36.md |
-| U36 | **Independent** audit of the verdict-refinement edits (U33-U35) — dispatched fresh auditor | U33-U35 | `.gotm/audits/U36.md` | done | — |
-| U37 | Close U36 LOW: align `prompts/audit.md` §4 labels ("cross-reference integrity" / "internal consistency") with PROTOCOL/D16 | U36 | `prompts/audit.md` | done | — |
-
-### Docs rewrite phase (2026-06-11)
-
-> D17. Concept docs rewritten from scratch into a 5-chapter arc now that the framework is battle-tested. U40/U41 supersede U2/U3 and rename their files (old files deleted; historical rows above left intact per append-only). Foundation outline was a temp doc, consumed and deleted.
-
-| ID | Title | Inputs | Output | Status | Audit |
-|---|---|---|---|---|---|
-| U38 | Lay rewrite foundation — 5-chapter arc, per-chapter beats, voice guide | D17 | (temp outline → arc, deleted; locked as D17) | done | — |
-| U39 | Rewrite ch1 — What GOTM is | D17, U38 | `docs/01-what-is-gotm.md` | done | PASS→.gotm/audits/U46.md |
-| U40 | Rewrite + rename ch2 — Why agents need it (supersedes U2) | D17, U38 | `docs/02-why-agents-need-it.md` | done | PASS→.gotm/audits/U46.md |
-| U41 | Rewrite + rename ch3 — How the project carries the discipline (supersedes U3) | D17, U38 | `docs/03-how-the-project-carries-it.md` | done | PASS-FINDINGS→.gotm/audits/U46.md |
-| U42 | New ch4 — Keeping it honest under real conditions (anti-drift + resilience + audit gates) | D17, U38 | `docs/04-keeping-it-honest.md` | done | PASS→.gotm/audits/U46.md |
-| U43 | New ch5 — In practice (layouts, the loop, worked software example) | D17, U38 | `docs/05-in-practice.md` | done | PASS→.gotm/audits/U46.md |
-| U44 | Refresh prompts for consistency (session-start reconcile; subagent-dispatch independence) | D17 | `prompts/session-start.md` + `prompts/subagent-dispatch.md` | done | PASS→.gotm/audits/U46.md |
-| U45 | README sync — 5-chapter list, word count, prompt descriptions | D17, U39-U44 | `README.md` | done | PASS→.gotm/audits/U46.md |
-| U46 | **Independent** publication audit of the rewrite (docs + prompts + README) — dispatched fresh auditor | U39-U45 | `.gotm/audits/U46.md` | done | — |
-
-### Layout migration phase (2026-06-11)
-
-> D18. Dogfood the `.gotm/` subfolder layout: move the repo's own machinery into `.gotm/`, keep deliverables at root, convert root `CLAUDE.md` to a bridge.
-
-| ID | Title | Inputs | Output | Status | Audit |
-|---|---|---|---|---|---|
-| U47 | Migrate machinery into `.gotm/` (PROTOCOL/LEDGER/DECISIONS/QUESTIONS/audits); root `CLAUDE.md` → bridge; update refs in README/CONTRIBUTING/PROTOCOL + relocate audit paths | D18 | repo layout (`.gotm/` + root bridge) | done | mechanical link-resolution check passed |
-| U48 | Add a Mermaid orchestrator/architecture diagram to the README (What GOTM is) | docs/01,03,04 | `README.md` | done | mermaid render check passed (mmdc, exit 0) |
-
-### Meta-example sync phase (2026-06-12)
-
-> The repo's own governance docs had fallen behind the discipline they teach. Bring them up to the current protocol (D13 anti-drift, D15/D16 audit gates, D18 layout). Governance docs are living (editable), per the pre-edit carve-out.
-
-| ID | Title | Inputs | Output | Status | Audit |
-|---|---|---|---|---|---|
-| U49 | Sync `.gotm/PROTOCOL.md` to the current protocol (anti-drift, resilience, audit gates, reconcile step, .gotm Layout note) — instantiate `templates/PROTOCOL.md.template` with the framework's mission + `../` links | D13, D15, D16, D18, `templates/PROTOCOL.md.template` | `.gotm/PROTOCOL.md` | done | PASS→.gotm/audits/U51.md |
-| U50 | Sync root `CLAUDE.md` — add the four Non-negotiables (frozen units · write-back · resilience/cold-start · audit independence) | D13, D15, D16, U49 | `CLAUDE.md` | done | PASS→.gotm/audits/U51.md |
-| U51 | **Independent** audit of the meta-example sync (U49-U50) — dispatched fresh auditor | U49, U50 | `.gotm/audits/U51.md` | done | — |
+### G12/G14/G13a incorporation (2026-06-12, D19)
+- U59 — **Independent** audit of U55–U58 (final consolidated; per-unit binds hereafter) · `.gotm/audits/U59.md` · done · —
+- U58 — Sync `.gotm/PROTOCOL.md` to match G12/G14/G13a · `.gotm/PROTOCOL.md` · done · PASS-FINDINGS→audits/U59.md
+- U57 — `prompts/audit.md`: one-report-per-unit + audit-promptly · `prompts/audit.md` · done · PASS-FINDINGS→audits/U59.md
+- U56 — `templates/LEDGER.md.template`: grain + cadence + born-`in_progress` conventions · `templates/LEDGER.md.template` · done · PASS-FINDINGS→audits/U59.md
+- U55 — `templates/PROTOCOL.md.template`: G12 cadence + G14 born-`in_progress` + G13a grain · `templates/PROTOCOL.md.template` · done · PASS-FINDINGS→audits/U59.md
 
 ### README intro hook (2026-06-12)
+- U54 — Close U53 LOW: reword intro payoff (stateless/stateful motif canonical) · `README.md` · done · —
+- U53 — **Independent** audit of the README intro (U52) · `.gotm/audits/U53.md` · done · —
+- U52 — Add pain-point → "what if" intro hook to the README · `README.md` · done · PASS-FINDINGS→audits/U53.md
 
-| ID | Title | Inputs | Output | Status | Audit |
-|---|---|---|---|---|---|
-| U52 | Add a catchy pain-point → "what if" intro hook to the README (neutral; above "The problem GOTM solves") | docs/01,04 | `README.md` | done | PASS-FINDINGS→.gotm/audits/U53.md |
-| U53 | **Independent** audit of the README intro (U52) — neutrality, voice, render, links | U52 | `.gotm/audits/U53.md` | done | — |
-| U54 | Close U53 LOW: reword the intro payoff so the stateless/stateful motif stays canonical at "What GOTM is" (was repeated 3× in ~65 lines) | U53 | `README.md` | done | — |
+### Meta-example sync (2026-06-12)
+- U51 — **Independent** audit of the meta-example sync (U49–U50) · `.gotm/audits/U51.md` · done · —
+- U50 — Sync root `CLAUDE.md` — add four Non-negotiables · `CLAUDE.md` · done · PASS→audits/U51.md
+- U49 — Sync `.gotm/PROTOCOL.md` to current protocol (instantiate template w/ mission + `../` links) · `.gotm/PROTOCOL.md` · done · PASS→audits/U51.md
 
-### G12/G14/G13a incorporation phase (2026-06-12)
+### Layout migration (2026-06-11, D18)
+- U48 — Add Mermaid orchestrator diagram to the README · `README.md` · done · mermaid render check passed (mmdc exit 0)
+- U47 — Migrate machinery into `.gotm/`; root `CLAUDE.md` → bridge; relocate audit paths · repo layout · done · mechanical link-resolution check passed
 
-> D19. Source: `geniefy-v3/docs/GOTM-FEEDBACK.md` G12 (audit cadence) · G14 (born-`in_progress`) · G13a (module+test grain). Paste-able discipline → deliverable templates + the meta-example's own protocol. U59 is the **final consolidated** audit; per-unit auditing (G12) binds from here.
+### Docs rewrite — 5-chapter arc (2026-06-11, D17)
+- U46 — **Independent** publication audit of the rewrite (docs + prompts + README) · `.gotm/audits/U46.md` · done · —
+- U45 — README sync — 5-chapter list, word count, prompt descriptions · `README.md` · done · PASS→audits/U46.md
+- U44 — Refresh prompts (session-start reconcile; subagent-dispatch independence) · `prompts/session-start.md` + `prompts/subagent-dispatch.md` · done · PASS→audits/U46.md
+- U43 — New ch5 — In practice (layouts, the loop, worked example) · `docs/05-in-practice.md` · done · PASS→audits/U46.md
+- U42 — New ch4 — Keeping it honest (anti-drift + resilience + audit gates) · `docs/04-keeping-it-honest.md` · done · PASS→audits/U46.md
+- U41 — Rewrite + rename ch3 (supersedes U3) · `docs/03-how-the-project-carries-it.md` · done · PASS-FINDINGS→audits/U46.md
+- U40 — Rewrite + rename ch2 (supersedes U2) · `docs/02-why-agents-need-it.md` · done · PASS→audits/U46.md
+- U39 — Rewrite ch1 — What GOTM is · `docs/01-what-is-gotm.md` · done · PASS→audits/U46.md
+- U38 — Lay rewrite foundation — 5-chapter arc, beats, voice guide · (temp outline → locked as D17) · done · —
 
-| ID | Title | Inputs | Output | Status | Audit |
-|---|---|---|---|---|---|
-| U55 | `templates/PROTOCOL.md.template`: G12 cadence invariants (Audit gates) + G14 born-`in_progress` (Resilience) + G13a grain (Rule 2) | D19 | `templates/PROTOCOL.md.template` | done | PASS-FINDINGS→.gotm/audits/U59.md |
-| U56 | `templates/LEDGER.md.template`: grain + cadence + born-`in_progress` conventions | D19 | `templates/LEDGER.md.template` | done | PASS-FINDINGS→.gotm/audits/U59.md |
-| U57 | `prompts/audit.md`: one-report-per-unit + audit-promptly | D19 | `prompts/audit.md` | done | PASS-FINDINGS→.gotm/audits/U59.md |
-| U58 | Sync meta-example's own `.gotm/PROTOCOL.md` to match (G12/G14/G13a) | D19, U55 | `.gotm/PROTOCOL.md` | done | PASS-FINDINGS→.gotm/audits/U59.md |
-| U59 | **Independent** audit of U55-U58 (final consolidated audit; per-unit binds hereafter per D19) | U55-U58 | `.gotm/audits/U59.md` | done | — |
+### Audit-verdict refinement (2026-06-11, D16)
+- U37 — Close U36 LOW: align `prompts/audit.md` §4 labels with PROTOCOL/D16 · `prompts/audit.md` · done · —
+- U36 — **Independent** audit of the verdict-refinement edits (U33–U35) · `.gotm/audits/U36.md` · done · —
+- U35 — `prompts/audit.md`: 5-point default checklist + three-way verdict/stamp · `prompts/audit.md` · done · PASS-FINDINGS→audits/U36.md
+- U34 — `LEDGER.md.template`: add `PASS-FINDINGS` to Audit vocab + consume rule · `templates/LEDGER.md.template` · done · PASS-FINDINGS→audits/U36.md
+- U33 — `PROTOCOL.md.template` Audit gates: three-way verdict + 5-point checklist + deferral-before-code · `templates/PROTOCOL.md.template` · done · PASS-FINDINGS→audits/U36.md
 
-### Cross-project learning layer (2026-06-15)
+### Audit-gate phase (2026-06-11, D15)
+- U28 — **Independent** audit of feedback-integration + audit-gate edits (U20–U27, U29–U32) · `.gotm/audits/U28.md` · done · —
+- U32 — docs/03 §6: strengthen audit cycle with independence + the gate · `docs/03-gotm-with-agents.md` · done · PASS→audits/U28.md
+- U31 — `prompts/audit.md`: independence preamble + stamp-the-cell step · `prompts/audit.md` · done · PASS→audits/U28.md
+- U30 — `LEDGER.md.template`: add `Audit` column + conventions · `templates/LEDGER.md.template` · done · PASS→audits/U28.md
+- U29 — `PROTOCOL.md.template`: add *Audit gates* section + audit-gate lint + deferral/dispatch tie-ins · `templates/PROTOCOL.md.template` · done · PASS→audits/U28.md
 
-> D20. Document the bottom-up learning layer + ship the *producing* half of L1 (the end-of-project retrospective + the LEARNINGS record/template). *Consume* + L2/L3 aggregation described, not shipped. The plugin mirrors the template/prompt and adds `/gotm:learn`. Validated against the geniefy-v3 extraction (a scratch proof kept outside the repo). Audits pending — dispatch per-unit (G12).
+### Feedback-integration phase (2026-06-11, D12–D14)
+- U27 — CONTRIBUTING: point enforcement at adopter tooling · `CONTRIBUTING.md` · done · PASS→audits/U28.md
+- U26 — README: primitives summary + `.gotm/` layout in quickstart/tree · `README.md` · done · PASS→audits/U28.md
+- U25 — Update `DECISIONS.md.template` (Status-line edit is the documented mechanism) · `templates/DECISIONS.md.template` · done · PASS→audits/U28.md
+- U24 — Update `LEDGER.md.template` conventions (in_progress-first, last_updated, off-mission) · `templates/LEDGER.md.template` · done · PASS→audits/U28.md
+- U23 — Update `PROTOCOL.md.template` — anti-drift, resilience, layout note, deferral, off-mission, governance carve-out · `templates/PROTOCOL.md.template` · done · PASS→audits/U28.md
+- U22 — docs/01: ledger-as-recovery-point sentence · `docs/01-what-is-gotm.md` · done · PASS→audits/U28.md
+- U21 — docs/03: add §7 (anti-drift + resilience) + reconcile step in §3 · `docs/03-gotm-with-agents.md` · done · PASS→audits/U28.md
+- U20 — docs/02: add gaps §8 (rules rely on memory) + §9 (non-graceful ends) · `docs/02-what-agents-are-missing.md` · done · PASS→audits/U28.md
 
-| ID | Title | Inputs | Output | Status | Audit |
-|---|---|---|---|---|---|
-| U60 | New ch6 — Learning across projects (3-level bottom-up flow; record + index + merge; confidence ladder) | D20 | `docs/06-learning-across-projects.md` | done | PASS-FINDINGS→.gotm/audits/U60.md |
-| U61 | Draft `templates/LEARNINGS.md.template` — the learning-artifact scaffold (records + generated index + merge model) | D20 | `templates/LEARNINGS.md.template` | done | PASS-FINDINGS→.gotm/audits/U61.md |
-| U62 | Draft `prompts/outcome-analysis.md` — the end-of-project retrospective that emits candidate records | D20 | `prompts/outcome-analysis.md` | done | PASS-FINDINGS→.gotm/audits/U62.md |
-| U63 | README sync — ch6 in the chapter list, outcome-analysis in prompts, LEARNINGS in templates, tree counts | D20, U60-U62 | `README.md` | done | PASS→.gotm/audits/U63.md |
+### Implementation phase (2026-05-30)
+- U19 — Push the rewrite to GitHub (visibility stays PRIVATE) · remote `main` 7f743e8..0f0933e · done · secret-scan: "No Databricks code found"
+- U18 — Commit the rewrite to git (single commit) · git commit `0f0933e` on `main` · done · —
+- U17 — Meta-validation audit of the rewrite (existence + structure, U1–U16) · `.gotm/audits/U17.md` · done · HIGH 0/MED 0/LOW 3 within tolerance
+- U16 — Light pass on `CONTRIBUTING.md` (remove old-framework references) · `CONTRIBUTING.md` (~470w) · done · —
+- U15 — Rewrite `README.md` for the new framing · `README.md` (732w) · done · —
+- U14 — Delete old `prompts/*.md` (13 old-framework prompt files) · (13 deletions) · done · —
+- U13c — Draft `prompts/audit.md` — generic audit prompt · `prompts/audit.md` · done · —
+- U13b — Draft `prompts/subagent-dispatch.md` — worker dispatch convention · `prompts/subagent-dispatch.md` · done · —
+- U13a — Draft `prompts/session-start.md` — session kickoff template · `prompts/session-start.md` · done · —
+- U13 — Rewrite `prompts/` — split into U13a-c · (superseded by U13a-c) · superseded · —
+- U12e — Draft `README.md.template` (project-bootstrap version) · `templates/README.md.template` · done · —
+- U12d — Draft `QUESTIONS.md.template` · `templates/QUESTIONS.md.template` · done · —
+- U12c — Draft `DECISIONS.md.template` · `templates/DECISIONS.md.template` · done · —
+- U12b — Draft `LEDGER.md.template` · `templates/LEDGER.md.template` · done · —
+- U12a — Draft `PROTOCOL.md.template` · `templates/PROTOCOL.md.template` · done · —
+- U12 — Rewrite `templates/` — split into U12a-e · (superseded by U12a-e) · superseded · —
+- U11 — Draft `LEDGER.md` (replaces old GOTM.md + STATUS.md) · `LEDGER.md` · done · —
+- U10 — Delete old `GOTM.md`, `STATUS.md`, `discovered/` · (deletions) · done · —
+- U9 — Append D9, D10, D11 to `DECISIONS.md` · `DECISIONS.md` updates · done · —
+- U8 — Rename `OPEN_QUESTIONS.md` → `QUESTIONS.md` · `QUESTIONS.md` · done · —
+- U7 — Rename `decisions.md` → `DECISIONS.md` · `DECISIONS.md` · done · —
+- U6 — Create `CLAUDE.md` pointing to `PROTOCOL.md` · `CLAUDE.md` · done · —
+- U5 — Draft `PROTOCOL.md` · `PROTOCOL.md` · done · —
 
-### GOTM core-process feedback check (2026-06-15)
-
-> D21. Checked the geniefy outcome-analysis "Running GOTM itself" + tooling lessons (L15/L21/L22/L23) against the *current* protocol: **L15** (plugin hook restart), **L21** (audit cadence + independence), **L23** (size-to-loop + findings-become-units) are **already implemented** (G12/D19 + Resilience) — no change. Only **L22's re-audit-dependents** half was missing → added (D21). The meta-example's own `.gotm/PROTOCOL.md` was synced the same turn (living governance doc, in-bounds per the pre-edit carve-out).
-
-| ID | Title | Inputs | Output | Status | Audit |
-|---|---|---|---|---|---|
-| U64 | `templates/PROTOCOL.md.template`: "a decision change can invalidate a prior pass" rule (Audit gates) + stale-by-decision reconciliation lint — closes the L22 gap | D21 | `templates/PROTOCOL.md.template` | done | PASS-FINDINGS→.gotm/audits/U64.md |
-
-### geniefy completion-stage feedback G15–G18 (2026-06-23)
-
-> D22. Source: `geniefy-v3/docs/GOTM-FEEDBACK.md` 2026-06-23 addendum (G15–G18) — gaps that surface only after a long, finished, multi-session run. The conceptual/paste-able half folds here; the plugin runtime (consult command, hook-side ledger-parse lint, `/gotm:what` warnings) → **v2.6.0**, a separate PR. Per-unit auditing binds (D19): each unit gets its own dispatched audit + its own `audits/Uxx.md`.
-
-| ID | Title | Inputs | Output | Status | Audit |
-|---|---|---|---|---|---|
-| U65 | `templates/PROTOCOL.md.template`: G15 single recovery log + reconcile-warn-on-second-log (Resilience) · G17 audit checklist 5→7 (enforcement + multi-site) · G18 ledger-parse lint (session-start reconcile) | D22 | `templates/PROTOCOL.md.template` | done | PASS-FINDINGS→.gotm/audits/U65.md |
-| U66 | `templates/LEDGER.md.template`: G15 — `Recent updates` = the single recovery log (newest-first); `## Active unit` = pointer only; convention warns on a second de-facto log | D22 | `templates/LEDGER.md.template` | done | PASS→.gotm/audits/U66.md |
-| U67 | `prompts/audit.md`: G17 — default checklist 5→7 (enforcement check + multi-site-claim check) | D22 | `prompts/audit.md` | done | PASS→.gotm/audits/U67.md |
-| U68 | `docs/06`: G16 — document the consume MVP (consult + bootstrap pull); reference `prompts/consult.md` (follow-on to U60) | D22, U69 | `docs/06-learning-across-projects.md` | done | PASS→.gotm/audits/U68.md |
-| U69 | New `prompts/consult.md` — the consume-step prompt (tag-filtered scan of a LEARNINGS pool → surface candidates); symmetric to `outcome-analysis.md` | D22 | `prompts/consult.md` | done | PASS-FINDINGS→.gotm/audits/U69.md |
-| U70 | README sync — add `prompts/consult.md` to the prompts list + tree/counts; fix stale "5-point"→"7-point" (G17) | D22, U68, U69 | `README.md` | done | PASS→.gotm/audits/U70.md |
-| U71 | Meta-example sync: mirror G15/G17/G18 into the repo's own `.gotm/PROTOCOL.md` | D22, U65 | `.gotm/PROTOCOL.md` | done | PASS→.gotm/audits/U71.md |
-| U72 | Close U69 LOW: add the forward link to `prompts/consult.md` in `prompts/outcome-analysis.md` (loop symmetry) | U69 | `prompts/outcome-analysis.md` | done | — |
+### Concept phase (2026-05-29)
+- U4 — Delete old `docs/01-why.md` through `docs/06-archetypes.md` · (6 deletions) · done · —
+- U3 — Draft concept Chapter 3 — GOTM with agents (superseded by U41) · `docs/03-gotm-with-agents.md` · superseded · —
+- U2 — Draft concept Chapter 2 — what agents are missing (superseded by U40) · `docs/02-what-agents-are-missing.md` · superseded · —
+- U1 — Draft concept Chapter 1 — what GOTM is · `docs/01-what-is-gotm.md` · done · —
 
 ## Recent updates
 
-- 2026-06-23: **New geniefy feedback — completion-stage addendum (G15–G18), folded as D22.** The `geniefy-v3` GOTM-FEEDBACK doc gained four framework-level gaps that surface only after a project runs to completion (~160 units, publish, ~113 audits, `/gotm:learn`): **G15** recovery-log fragmentation (newest-first banner stack vs. stale oldest-first bottom list), **G16** `/gotm:learn` produces `LEARNINGS.md` into a void (no consumer), **G17** the only two FAILs across ~113 audits both fell outside the 5-point checklist (documented-but-unenforced decision · half-applied multi-site fix), **G18** the hand-edited + hook-parsed unit table can be silently corrupted. Locked **D22**: fold the conceptual/paste-able half here (per-unit audits, D19), defer the plugin runtime to **v2.6.0**. Registered **U65–U71**. **Discipline cluster done + audited this turn:** U65 (`templates/PROTOCOL.md.template` — G15 one-recovery-log + second-log/ledger-parse reconcile lints · G17 checklist 5→7 · G18) → **PASS-FINDINGS** (1 LOW: feedback doc's stale "Appendix D" section name; not an output defect — accepted), U66 (`templates/LEDGER.md.template` — G15) → **PASS**, U67 (`prompts/audit.md` — G17) → **PASS**, U71 (meta-example `.gotm/PROTOCOL.md` mirror; the three sections verified byte-identical to the template) → **PASS**. Remaining G16 consume cluster (U69 → U68 → U70) `pending` for next turn.
-- 2026-06-23: **D22 consume cluster done + audited (G16).** Shipped `prompts/consult.md` (U69 → PASS-FINDINGS) — the consume-step prompt, mirror of `outcome-analysis.md`: scan a pool of prior `LEARNINGS.md`, tag-filter, surface the few that apply to a `CONSULTED.md`, honest about candidate-vs-validated confidence and about an empty pool. Revised `docs/06` (U68 → PASS) to document both loop halves as paste-able steps (only the pool/store stays a platform binding — corrected the stale "consume half not shipped" line). README synced (U70 → PASS): consult.md added, "4→5 prompts", and the stale "5-point"→"7-point" audit-checklist mention fixed (G17 carry-over). U72 closed the one U69 LOW (added the forward link in `outcome-analysis.md`; `Audit —`, per U37/U54 precedent). **Framework half of D22 fully complete (U65–U72).** Next: plugin v2.6.0 + commit/push.
-- 2026-06-15: **GOTM core-process feedback check (D21, U64).** Checked the geniefy "Running GOTM itself" + tooling lessons against the *current* protocol: **L15** (hook restart), **L21** (audit cadence/independence), **L23** (size-to-loop + findings-become-units) are **already implemented** (G12/D19 + Resilience) — no change needed. Only **L22**'s "re-audit dependents when a decision is refined" half was missing → added as *Audit gates* → "a decision change can invalidate a prior pass" + a *stale-by-decision* reconciliation lint, in `templates/PROTOCOL.md.template` (U64) and the meta-example's own `.gotm/PROTOCOL.md` (governance sync, in-bounds). Plugin mirrored into its `templates/PROTOCOL.md.template`, folded into the unshipped v2.5.0. U64 independent audit → **PASS-FINDINGS** (0 HIGH / 0 MED / 1 LOW; zero drift across the three synced copies — verified byte-identical). The LOW is an optional `LEDGER.md.template` clarification that `Inputs` may cite decisions (the repo already does) — accepted/deferred, not a U64 defect.
-- 2026-06-15: **Cross-project learning layer (D20, U60-U63).** Documented the bottom-up, three-level learning flow (project *consume*+*produce* → user/harness pool → enterprise traversable knowledge) as new ch6, and shipped the *producing* half of L1: `templates/LEARNINGS.md.template` (one mergeable record per learning + a generated index) and `prompts/outcome-analysis.md` (the end-of-project retrospective that reads `DECISIONS`/`audits`/`LEDGER` → candidate records). README synced (ch6, prompt, template, tree counts). Format: `claim` = merge key · appendable `evidence` · confidence `candidate→validated→core` (no self-promotion past candidate; contradiction demotes). *Consume* + L2/L3 aggregation described, not shipped (platform bindings, per D20). Validated against the geniefy-v3 extraction (~23 lessons; scratch proof outside the repo). Independent per-unit audits **passed** (U60/U61/U62 → PASS-FINDINGS, 0 HIGH / 0 MED / 2 LOW each — cosmetic, accepted; U63 → PASS) → `.gotm/audits/U60.md`–`U63.md`. Plugin mirror (`/gotm:learn`, v2.5.0) next.
-- 2026-06-12: **Folded `geniefy-v3` feedback G12/G14/G13a (D19, U55-U58).** G12 audit-cadence invariants (one report per unit · own-report-only + `superseded by U<yy>` exception · audit promptly), G14 "a unit is born `pending`/`in_progress`, never `done`" (+ plugin hook deny-message hint), G13a "module+test = one unit" grain — into `templates/PROTOCOL.md.template`, `templates/LEDGER.md.template`, `prompts/audit.md`, and the meta-example's own `.gotm/PROTOCOL.md`. Declined G13b (P3). Plugin mirrors + ships **v2.4.0** (new marketplace PR). Transition: prior consolidated audits stand as history; per-unit auditing binds after U59. Independent audit **U59 → PASS-FINDINGS** (2 LOW; L1 gate-enumeration omission closed inline; L2 — the "covered-by" stamps — accepted as the sanctioned transitional consolidated audit).
-- 2026-06-12: **Added a pain-point → "what if" intro hook to the README (U52-U54).** Neutral lead-in above "The problem GOTM solves": session context surviving a crash, an independent untainted-subagent audit, "done" = checked. Independent audit U53 → **PASS-FINDINGS**; the one LOW (stateless/stateful motif repeated 3× in ~65 lines) closed by U54 (reworded the intro payoff).
-- 2026-06-12: **Synced the repo's own governance docs to the current discipline (U49-U51).** `.gotm/PROTOCOL.md` was behind its own template — brought up to the current protocol (Anti-drift safeguards, Resilience, Audit gates, reconcile step, `.gotm/` Layout note), instantiating `templates/PROTOCOL.md.template` with the framework's real mission + `../` links. Root `CLAUDE.md` gained the four Non-negotiables (frozen units · write-back · resilience/cold-start · audit independence). Independent audit U51 → **PASS** (one pre-existing LOW noted in `docs/04` prose, accepted). The meta-example now runs the full protocol it teaches.
-- 2026-06-11: **Added a Mermaid orchestrator diagram to the README (U48).** Designed by a dispatched subagent, render-checked with `mmdc` (exit 0). One at-a-glance picture: stateless session loop (read+reconcile → act → write-back) around the stateful project file-set, subagent dispatch incl. the independent auditor → audit gate, and the human entering only via the ratification ladder.
-- 2026-06-11: **Migrated the repo's own machinery into `.gotm/` (D18, U47).** PROTOCOL/LEDGER/DECISIONS/QUESTIONS/audits moved under `.gotm/`; deliverables (`docs/`, `prompts/`, `templates/`) stay at root; root `CLAUDE.md` is now a thin bridge into `.gotm/PROTOCOL.md`. The repo is now a live demonstration of the subfolder layout it recommends. Audit paths relocated `audits/…` → `.gotm/audits/…` (mechanical).
-- 2026-06-11: **Concept docs rewritten from scratch → 5-chapter arc (D17, U38-U45).** Now that the framework is battle-tested: ch1 What GOTM is · ch2 Why agents need it · ch3 How the project carries the discipline · ch4 Keeping it honest (anti-drift + resilience + audit gates) · ch5 In practice. Renamed ch2/ch3 files to match titles (old files deleted). Refreshed prompts (session-start reconcile, subagent-dispatch independence) + README. Independent publication audit U46 → **PASS-FINDINGS** (HIGH 0 / MED 0 / LOW 1 cosmetic, accepted; UNVERIFIED Apache-section citation verified correct). docs/ now ~6,650w. Repo publication-ready.
-- 2026-06-11: **U36 independent audit → PASS-FINDINGS** (HIGH 0 / MED 0 / LOW 1 → `.gotm/audits/U36.md`; dispatched fresh auditor, dogfooding the new 5-point checklist + three-way verdict — the `PASS-FINDINGS` state exercised itself). The one LOW (audit.md §4 label shorthand) closed by U37. U33-U35 stamped `Audit: PASS-FINDINGS`.
-- 2026-06-11: **Audit-verdict refinement done (U33-U35).** D16 locked from updated `geniefy-v3` feedback (G11 + Appendix D): three-way verdict (`PASS`/`PASS-FINDINGS`/`FAIL`), a default 5-point checklist (existence/spec-match/cross-ref/consistency/decision-fidelity), and deferral-can't-outlast-the-code-gate.
-- 2026-06-11: **U28 independent audit PASSED** (HIGH 0 / MED 0 / LOW 1 within tolerance → `.gotm/audits/U28.md`). Ran via a *dispatched fresh auditor* (not the authoring session), dogfooding the new audit gate; U20-U27 + U29-U32 stamped `Audit: PASS`. The one LOW (README word count) was fixed.
-- 2026-06-11: **Audit-gate pass done (U29-U32).** D15 locked — audit independence is a hard rule + a consume-gate. Added an *Audit gates* section + audit-gate lint to `PROTOCOL.md.template`, an `Audit` column to `LEDGER.md.template`, an independence preamble + stamp step to `prompts/audit.md`, and strengthened docs/03 §6. Runtime (the `/gotm audit` command + header-aware hook) lives in the plugin (D12). U28 now run as an **independent dispatched audit** of U20-U27 + U29-U32 (no longer just deferred).
-- 2026-06-11: **Feedback-integration pass done (U20-U27).** Folded `geniefy-v3` field feedback (G1-G10) into docs + templates: anti-drift safeguards, resilience (crash-safe ordering + session-start reconciliation), `.gotm/` layout option, governance-vs-frozen-outputs carve-out, off-mission convention, sanctioned audit deferral. D12-D14 locked. Runtime enforcement (the hook) folded into the `gotm` plugin, not here (D12). U28 mechanical audit **deferred to human review** (recorded, not skipped).
-- 2026-05-30: **Rewrite shipped.** U17 meta-audit passed (HIGH 0 / MED 0 / LOW 3 within tolerance). U18 committed (`0f0933e`). U19 pushed to private GitHub. 19/19 units done. Q2 visibility flip remains open.
-- 2026-05-30: U15 (README ~732w) and U16 (CONTRIBUTING ~470w) done. All concept + implementation units complete.
-- 2026-05-30: Prompts phase closed (U13a-c done, 3 prompts ~1,500w). 13 old prompts deleted (U14). Active unit U15.
-- 2026-05-30: Templates phase closed (U12a-e done, 5 templates ~1,200w). Old 5 templates deleted.
-- 2026-05-30: Concept phase closed. Implementation phase opened with U5-U11 done in one batch.
-- 2026-05-29: D9 locked — four-layer hierarchy demoted; five-primitive model adopted. Concept docs rewritten.
-- 2026-05-27: Repo pushed to GitHub as private (predecessor framework state; under old model).
+<!-- THE single recovery log — newest-first, rolling window (~last 15). Older
+     entries are in git history (and the dated archive sections above). Do not
+     start a parallel dated stack under `## Active unit`. -->
+
+- 2026-06-26: **Born-tiered v3 migration of the repo's own store.** Migrated `.gotm/PROTOCOL.md` → v3 (instantiated `templates/PROTOCOL.md.template` with the framework's real mission + `.gotm/` layout + `../docs`/`../prompts`/`../templates` links; fixed the dangling `subagent-dispatch.md` → `worker-dispatch.md`). Migrated this ledger to the born-tiered v3 shape it teaches: `## Active unit` = one-line pointer · `## Frontier` = open/recent only (no open mission units; v3-rewrite frontier note added) · `## Archive` = all 72 v2 units (U1–U72) compacted to one line each, **lossless** (ID · title · status · audit pointer kept; full detail remains in git + `DECISIONS.md` + `audits/`) · `## Recent updates` = this rolling window. The repo now runs the v3 protocol it teaches. (`DECISIONS.md` / `QUESTIONS.md` untouched — append-only.)
+- 2026-06-23: **New geniefy feedback — completion-stage addendum (G15–G18), folded as D22.** Four framework-level gaps that surface only after a project runs to completion: G15 recovery-log fragmentation · G16 `/gotm:learn` produces `LEARNINGS.md` into a void (no consumer) · G17 the only two FAILs across ~113 audits fell outside the 5-point checklist · G18 hand-edited + hook-parsed unit table can be silently corrupted. Registered U65–U72; discipline cluster (U65/U66/U67/U71) + consume cluster (U68/U69/U70/U72) done + audited. Framework half of D22 complete. Plugin runtime → v2.6.0 (separate PR).
+- 2026-06-23: **D22 consume cluster done + audited (G16).** Shipped `prompts/consult.md` (U69 → PASS-FINDINGS) — the consume-step prompt, mirror of `outcome-analysis.md`. Revised `docs/06` (U68 → PASS) to document both loop halves as paste-able steps. README synced (U70 → PASS): consult.md added, "4→5 prompts", "5-point"→"7-point" fixed. U72 closed the one U69 LOW. **Framework half of D22 fully complete (U65–U72).**
+- 2026-06-15: **GOTM core-process feedback check (D21, U64).** L15/L21/L23 already implemented (G12/D19 + Resilience) — no change. Only L22's "re-audit dependents when a decision is refined" half was missing → added as *Audit gates* → "a decision change can invalidate a prior pass" + a *stale-by-decision* reconciliation lint. U64 independent audit → PASS-FINDINGS (0H/0M/1L; zero drift across the three synced copies).
+- 2026-06-15: **Cross-project learning layer (D20, U60-U63).** Documented the bottom-up three-level learning flow as new ch6, shipped the *producing* half of L1: `templates/LEARNINGS.md.template` + `prompts/outcome-analysis.md`. README synced. Per-unit audits passed (U60/U61/U62 → PASS-FINDINGS; U63 → PASS). *Consume* + L2/L3 aggregation described, not shipped (platform bindings).
+- 2026-06-12: **Folded `geniefy-v3` feedback G12/G14/G13a (D19, U55-U58).** G12 audit-cadence invariants · G14 born-`pending`/`in_progress` · G13a "module+test = one unit" grain. Declined G13b. Plugin ships v2.4.0. Per-unit auditing binds after U59. Independent audit U59 → PASS-FINDINGS (2 LOW).
+- 2026-06-12: **Added a pain-point → "what if" intro hook to the README (U52-U54).** Independent audit U53 → PASS-FINDINGS; the one LOW closed by U54.
+- 2026-06-12: **Synced the repo's own governance docs to the current discipline (U49-U51).** `.gotm/PROTOCOL.md` brought up to the then-current protocol; root `CLAUDE.md` gained four Non-negotiables. Independent audit U51 → PASS.
+- 2026-06-11: **Added a Mermaid orchestrator diagram to the README (U48).** Render-checked with `mmdc` (exit 0).
+- 2026-06-11: **Migrated the repo's own machinery into `.gotm/` (D18, U47).** Deliverables stay at root; root `CLAUDE.md` is a thin bridge. Audit paths relocated `audits/…` → `.gotm/audits/…`.
+- 2026-06-11: **Concept docs rewritten from scratch → 5-chapter arc (D17, U38-U45).** Independent publication audit U46 → PASS-FINDINGS. (Later superseded by the v3 9-chapter rewrite; see `../V3-DESIGN.md §11`.)
+- 2026-06-11: **Audit-verdict refinement done (U33-U37).** D16: three-way verdict (PASS/PASS-FINDINGS/FAIL) + 5-point checklist + deferral-can't-outlast-the-code-gate. U36 independent audit → PASS-FINDINGS; LOW closed by U37.
+- 2026-06-11: **Audit-gate pass done (U28-U32).** D15: audit independence as a hard rule + a consume-gate. Added *Audit gates* section, `Audit` column, independence preamble. U28 independent audit → PASS.
+- 2026-06-11: **Feedback-integration pass done (U20-U27).** Folded geniefy field feedback (G1-G10): anti-drift, resilience, `.gotm/` layout, governance carve-out, off-mission, sanctioned deferral. D12-D14 locked.
+- 2026-05-30: **Rewrite shipped.** U17 meta-audit passed. U18 committed (`0f0933e`); U19 pushed to private GitHub. 19/19 units done. (Older U1–U16 detail is in `## Archive` + git history.)
+
+<!--
+Conventions (v3, aligned to templates/LEDGER.md.template):
+- BORN TIERED. Hot `## Frontier` (open units + recent-closed window + any closed
+  unit a still-open unit still cites as input) + cold `## Archive` (everything
+  older, one line each). The driver re-reads the frontier every turn, the archive
+  never — flat per-turn read cost as the project scales. Read the AUDIT FILE, not
+  a fat ledger cell.
+- SINGLE WRITER. Only the driver writes this file. Workers execute one unit and
+  return a terse structured result (status + output pointer + index facts); the
+  driver records it. Kills the v2 dup-row race by construction.
+- IDs are flat (U1, U2, U3...). The DAG's structure lives in the `Inputs` edges,
+  not in the IDs.
+- Each row produces ONE named output file (atomicity). A module + its test file
+  count as ONE unit — atomicity is one deliverable, not literally one file.
+- Status — the v3 lifecycle: pending · in_progress · authored-done (output exists,
+  NOT independently checked, NOT consumable on its own) · verified-done (an
+  INDEPENDENT auditor ≠ author passed it; for deploy/infra/data the worker also
+  exercises the live artifact — the consumable terminal state) · superseded.
+  (The archive above carries v2 `done`/`superseded` verbatim — historical; new
+  units use the v3 states.)
+- `Audit` holds the verdict + pointer: `—` (n/a) | `pending` | `PASS→audits/U<id>.md`
+  | `PASS-FINDINGS→audits/U<id>.md` | `FAIL→audits/U<id>.md` | `superseded by U<yy>`.
+  A unit reaches `verified-done` only on PASS / PASS-FINDINGS. A downstream unit
+  may CONSUME an input only when it is verified-done. One audit + one report PER
+  UNIT, from its OWN report, by a DIFFERENT worker than the author.
+- BORN pending/in_progress, NEVER done. Flip to authored-done only after the
+  output exists; to verified-done only after an independent worker passes it.
+- Closed units are never edited. To revise, append a follow-on unit.
+- COMPACTION is an index op, not a freeze violation. When the ledger crosses a
+  size/count threshold, move aged-out closed+verified units from `## Frontier` to
+  a one-line `## Archive` entry and roll `Recent updates` past its window. LOSSLESS
+  — the audit pointer is kept, detail lives in output/`audits/`/`DECISIONS.md` —
+  so it touches no frozen output. (This very ledger demonstrates it: U1–U72 sit in
+  `## Archive` as one-liners; full detail in git history.)
+- Stamp `last_updated` (front matter) on every write-back.
+- ONE recovery log, ONE ordering: `## Recent updates` is the single recovery log,
+  newest-first; `## Active unit` is a one-line pointer, never a dated banner stack.
+- Off-mission artifacts do NOT go in the Frontier table. Produce the file, then add
+  a "Recent updates" line marked `(not a mission unit)`.
+- LAYOUT (this repo): the store lives in `.gotm/`; deliverables at repo root.
+  `docs/` and `prompts/` resolve as `../` from here. See .gotm/PROTOCOL.md -> Layout.
+-->

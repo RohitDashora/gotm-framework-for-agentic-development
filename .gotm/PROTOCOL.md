@@ -1,179 +1,134 @@
 # Project protocol
 
-This file is the operating protocol for this project. Every agent that opens a session here reads this file first and follows it.
+This file is the operating contract for this project. Every agent that opens a session here reads it first and works under it — every session, not once.
 
-The framework this protocol implements is described in [`docs/`](../docs/01-what-is-gotm.md) — read those once for understanding, this file every session.
+The framework this protocol implements is described in [`../docs/`](../docs/01-the-problem-and-thesis.md) — read those once for understanding, this file every session. The operational moves it points to (the loop, dispatch, audit, boot) live in [`../prompts/`](../prompts/); read the relevant prompt when you make that move.
 
-> **Layout.** This project keeps its orchestration file-set in `.gotm/` (this file, `LEDGER.md`, `DECISIONS.md`, `QUESTIONS.md`, `audits/`), so the repo root stays reserved for the framework's deliverables (`docs/`, `prompts/`, `templates/`). Paths to `docs/` and `prompts/` resolve as `../` from here; the other file-set members are siblings. This repo is a live worked example of the subfolder layout described in `docs/05-in-practice.md`.
+> **Layout (this repo).** This project keeps its store in `.gotm/` (this file, `LEDGER.md`, `DECISIONS.md`, `QUESTIONS.md`, `audits/`), so the repo root stays reserved for the framework's produced assets (`docs/`, `prompts/`, `templates/`). Paths to `docs/` and `prompts/` resolve as `../` from here; the other store members are siblings. *Where the store physically sits is a layout choice bound by the harness, not by the framework* — this repo is a live worked example of the subfolder layout (see [`../docs/08-in-practice.md`](../docs/08-in-practice.md)).
 >
-> **Session-context dependency (don't break this).** Many agent tools auto-load a context file from the *project root* on session start (a root `CLAUDE.md`, `.cursorrules`, or equivalent). Moving that file into `.gotm/` silently stops the auto-load — no error, just quiet erosion. The root `CLAUDE.md` stays at the root as a thin bridge that points here, for exactly this reason.
+> **Session-context dependency (don't break this).** Many harnesses auto-load a context file from the *project root* on session start (a root `CLAUDE.md`, `.cursorrules`, or equivalent). Moving that file into `.gotm/` silently stops the auto-load — no error, just quiet erosion. The root `CLAUDE.md` stays at the root as a thin bridge that points here, for exactly this reason.
 
-## Session-start checklist
+## The thesis (why any of this)
 
-On opening a session in this project:
+> **GOTM is a context-economy discipline. The store is the system of record; every working context is disposable and reconstructable from it. Nothing on the hot path is long-lived.**
 
-1. Read this file (`.gotm/PROTOCOL.md`).
-2. Read [`LEDGER.md`](LEDGER.md) — the authoritative list of units.
-3. Read [`QUESTIONS.md`](QUESTIONS.md) — any open questions blocking work.
-4. **Reconcile the ledger against disk** (crash recovery) — heal any drift before acting; see *Resilience* below.
-5. Identify the **active unit** (top non-`done` row whose blockers are clear).
-6. Act on that unit, or — if a higher-priority concern surfaces — surface it.
-7. After acting, write back **in the same turn** — this is a hard gate, see *Anti-drift safeguards* below: update `LEDGER.md`, append to `DECISIONS.md` if a decision was made, update `QUESTIONS.md` if a question opened or closed.
+Everything below is a consequence of that sentence. The store reconstructs working context — so a session can end at any moment (crash, `/clear`, compaction, closed terminal) and lose nothing. State that lives only in a context is not real state.
 
-These seven steps are not negotiable. The discipline depends on the project's state being the state of these files.
+## The three roles
+
+| Role | Lifetime | Holds | Never holds |
+|---|---|---|---|
+| **Driver** — the conversation agent | long-lived, **checkpointed** (re-hydratable from the store) | the plan (the ledger DAG), this protocol, the human interface (ratification ladder), the scheduler loop | work artifacts, raw inputs, execution/build/deploy state |
+| **Worker** — a dispatched subagent | **ephemeral** — one unit, then discarded | only its bounded inputs + its spec; produces exactly one output; returns a terse structured result | any cross-unit state; any context from a prior worker |
+| **Store** — the durable file-set + the repo | durable, **tiered** | hot **frontier** (active units + recovery window) + cold **archive** (closed detail) | — |
+
+**The load-bearing rule:** *the driver plans, talks, and gates; **all work — however small — is a worker dispatch**.* The driver is the **single writer** of the store. It never edits a work artifact, never reads bulk input (it dispatches a read-and-summarize worker when it must inspect), and never holds a worker's output body — only a pointer. The one long-lived context carries the index, not the work.
+
+This is *not* optional for "small" tasks. A one-line fix is still a worker dispatch (batched into a partition-worker if there are several — see [`../prompts/worker-dispatch.md`](../prompts/worker-dispatch.md)). The moment the driver edits an artifact itself, the discipline is gone.
 
 ## The five rules
 
-**1. Single ledger.** `LEDGER.md` is authoritative. State that is not in the ledger is not real state. If two documents disagree, the ledger wins.
+**1. Single writer, single ledger.** The ledger is authoritative, and **only the driver writes it**. State not in the ledger is not real state; if two documents disagree, the ledger wins. Workers report results; the driver records them. (One hand writing the ledger is what makes the v2 duplicate-row race impossible by construction.)
 
-**2. Atomic units.** Each row in the ledger is one execution pass producing one named output file. Not two outputs. Not "and a small revision." Not "while we're at it." If a planned unit hides more than one output, split it before work starts. (Atomicity is about one *deliverable*, not literally one file: a module and its test file are one unit — build-and-test is a single pass. The rule forbids *unrelated* outputs in one unit, not a thing and its test.)
+**2. Atomic units = dispatch specs.** Each row in the ledger is one **self-contained worker dispatch** — bounded inputs + one named output + spec + constraints, complete without the conversation. One deliverable, not two, not "and a small revision." A thing and its test are one unit (build-and-test is one pass); *unrelated* outputs in one unit are forbidden. If a planned unit hides more than one output, split it before dispatching.
 
-**3. Foundation before drafts.** Some units are foundation (gather source, lock decisions, map terrain). Some are drafts (produce on top of foundation). Foundation precedes drafts. Drafts that begin before foundation closes fail by producing fluent prose grounded in nothing.
+**3. Foundation before drafts — enforced by the DAG, not vigilance.** The ledger is a **DAG**: foundation units are upstream nodes; drafts depend on them. A unit with an unmet dependency is simply absent from the ready set. Drafts that begin before foundation closes fail by producing fluent prose grounded in nothing — the topology prevents it.
 
-**4. Audit before downstream consumes.** Every claimed-done unit gets a mechanical check before downstream work depends on it. The check looks at: does the named output exist; does its content match what was promised; do its citations trace. Findings become new ledger units, not edits to closed ones.
+**4. Audit before downstream consumes — by an independent worker.** Every authored-done unit is checked by a *fresh* context (never its author) before anything downstream depends on it. Findings become new ledger units, not edits to closed ones. See *Audit gates*.
 
-**5. Ratification ladder routes human decisions.** Some decisions are the human's. The ladder names which and routes them to `QUESTIONS.md`. See next section.
+**5. Ratification ladder routes human decisions.** Some decisions are the human's; the ladder names which and routes them to `QUESTIONS.md`. See next section.
 
 ## The ratification ladder
 
-When a question or decision arises during work, the agent classifies it and routes:
+When a question or decision arises during work, classify it and route:
 
 | Layer | What it covers | What happens |
 |---|---|---|
-| **Mission** | mission, audience, scope, license, what counts as done | Route to `QUESTIONS.md`. Agent waits. |
-| **Execution** | next unit, sequencing, word count, atomic split, in-loop vs dispatch | Agent decides, records in `LEDGER.md` or `DECISIONS.md`, proceeds. |
-| **Ambiguous** | could be either; agent judges materiality | Agent surfaces with `MATERIAL?` flag. Human routes it. |
+| **Mission** | mission, audience, scope, license, what counts as done | Route to `QUESTIONS.md`. The driver waits. |
+| **Execution** | next unit, sequencing, length band, atomic split, dispatch shape, audit weight | The driver decides, records in the ledger or `DECISIONS.md`, proceeds. |
+| **Ambiguous** | could be either; judge materiality | Surface with a `MATERIAL?` flag. The human routes it. |
 
-The boundary is fixed. The human is not surprised by mission-level decisions made unilaterally; the human is not pulled into execution-level choices.
+The boundary is fixed: the human is never surprised by a mission-level decision made unilaterally, and never pulled into an execution choice. The ladder lives in the driver — the only context that talks to the human.
 
-## Unit lifecycle
+## The loop — the driver's scheduler
 
-A unit moves through states: **pending → in_progress → done**, or **pending → superseded** if scope changes mid-flight.
+The driver runs a deterministic scheduler over the DAG. Full discipline: [`../prompts/driver-loop.md`](../prompts/driver-loop.md). In brief, repeat until the DAG drains:
 
-A unit is "done" when:
+1. **Read the frontier → compute the ready set** (deps satisfied *and* audit gate open). Read the frontier, never the history.
+2. **Fan out** — dispatch a fresh worker per ready unit, in parallel, bounded by a **concurrency cap** (backpressure). Each carries only its bounded payload.
+3. **Collect → record (single writer).** Each worker returns a **terse result** (pointer + index facts, never the body); the driver records status + pointer.
+4. **Audit → advance the gates.** Dispatch a separate audit worker per authored-done unit; runtime units also get a `verified-done` worker. A passing verdict opens the gate for downstream.
+5. **On failure → retry on a fresh worker** (inputs on disk = lineage recompute).
+6. **Checkpoint** — compact the frontier when over band; re-hydrate on any fresh start.
 
-- The named output file exists at the stated path.
-- The content matches what the unit promised (sections, structure, word count if specified).
-- An audit has run on it — or, if explicitly deferred, the deferral is recorded with a reason and a follow-up unit appended.
+**The hard rule — fan-in is a worker, never the driver.** When N outputs must be merged (drafts → an arc, findings → a report), the merge **is a unit**: dispatch a fan-in worker that reads the N bodies *from the store* and returns one pointer. The driver records one row. Never pull N bodies into the driver to stitch them — that re-concentrates work into the long-lived context at every join, the exact monotonicity the role split exists to forbid. Default to **pipeline** (siblings flow author → audit → done independently); use a **barrier** only when a downstream genuinely needs all upstreams at once (synthesis, cross-unit audit, dedup/merge, the foundation→drafts gate), with an explicit barrier-failure policy.
 
-**Audit deferral is sanctioned, not skipping.** During an interactive design phase where the human reviews each output as it lands, human review *is* the gate — a separate mechanical audit per unit would be friction. In that case, defer the mechanical audit: set the unit's `Audit` cell to `deferred→U<n>` and append the follow-up audit unit `U<n>`. See *Audit gates* for the full lifecycle and the independence requirement.
+## The worker contract
 
-Mark done by updating the unit's row in `LEDGER.md`. Never edit a done unit's output to "fix" it later; append a new unit that supersedes or follows on. The ledger grows; it does not drift.
+Full contract: [`../prompts/worker-dispatch.md`](../prompts/worker-dispatch.md). A worker is born **stateless** — it has never seen the conversation, the mission, the ledger, or any prior worker — so everything it needs is in the dispatch. The test: *a fresh worker executes it from the dispatch alone.*
+
+- **Worker-context minimalism.** The dispatch carries exactly five things: a discipline pointer (read this protocol), unit identity, the **bounded inputs it actually consumes** (never the whole ledger, sibling outputs, or the conversation), one output path, and spec + constraints. A worker that needs more **reads it from the store itself** or **fans out** — the driver never broadens context "just in case."
+- **Terse structured result, not work product.** A worker returns a pointer plus a few index facts. The body stays on disk.
+- **Workers do not write the ledger** (or decisions, or questions). They produce one output and report; the driver — single writer — records.
+- **Workers mark `authored-done` only — never self-certify.** A producing worker can state the artifact exists; it can **not** confer `verified-done`. By audit time the executor is already discarded, so self-grading is structurally impossible.
+- **Amortized batching.** Always dispatch — but a litter of one-line fixes is one **partition-worker** (overhead paid once), and a unit that would blow its band **fans out** into a tree. Size every payload to *minimal sufficient* — neither padded nor starved. There are no project token budgets; economy comes from lean payloads.
 
 ## Audit gates
 
-Rule 4 says claimed-done work is checked before downstream consumes it. Two properties make that check meaningful rather than ceremonial — **independence** and a **gate** — and the ledger tracks audit state in its own `Audit` column so neither relies on memory.
+Rule 4 in full. Two properties make the check meaningful — **structural independence** and a **gate** — and the ledger tracks audit state in its own `Audit` column. The auditor's own dispatch is [`../prompts/audit.md`](../prompts/audit.md).
 
-**Independence is non-negotiable.** An audit is valid only if it is produced by a context that did **not** author the unit. A working agent blessing its own output reproduces its own blind spots — that is self-marking, not auditing. In practice: **dispatch the audit as a fresh subagent** that receives only the target output, the oracle (the unit's inputs / spec / the ledger), and `../prompts/audit.md` — never the authoring session's transcript. Do not audit a unit in the same session that wrote it.
+**Independence is structural, not a rule to remember.** The executor that produced the unit is an ephemeral worker, **already discarded** by the time anything checks it — so auditor ≠ author is not vigilance, there is no author left to grade itself. The driver dispatches a **separate audit worker every time**: fresh context, given only the **target output + the oracle** (the unit's inputs / spec / the relevant ledger), never the authoring session's transcript. One unit per audit, one report (`audits/<Uxx>.md`).
 
-**What the auditor checks (default 7-point checklist).** Unless the unit calls for a specialized check, the auditor runs all seven: (1) **existence** — the output exists at the ledger's stated path; (2) **spec match** — content matches what the unit promised (sections, structure, word count); (3) **cross-reference integrity** — every `D<n>` / `U<n>` / `Q<n>` it cites exists and says what's claimed; (4) **internal consistency** — no contradictions across the audited set; (5) **decision fidelity** — the output honors the relevant `DECISIONS.md` entries; (6) **enforcement check** — for each *behavioral* decision the unit cites, is there a **gate / config / assertion** that makes it hold, or is it only prose? A decision that is documented but unenforced (e.g. "exclude X from the build" with no exclude rule) is a finding, not a pass — "decision fidelity" asks *does the output honor the decision*, this asks *is the decision held by something other than good intentions*; (7) **multi-site claim check** — any "wired into **both** X and Y" / "applied across N sites" / "replaced everywhere" claim is verified by **grep/count**, not by trusting the prose, with a guard (test/assertion) expected per site. Findings are ranked in severity tiers (HIGH / MEDIUM / LOW / UNVERIFIED). *(Checks 6–7 were added after the only two FAILs in a ~113-audit project both fell in exactly these blind spots: a documented-but-unenforced decision, and a multi-site fix that a bulk-replace only half-applied.)*
+**authored-done vs verified-done are distinct states.** **authored-done** = the output exists and a producing worker reported it. **verified-done** = an independent worker checked it — and for any **deploy / infra / data** unit, *exercised the live artifact as its real consumer* (a green build or a clean exit is **not** verification — only a real-consumer check is). Only an independent worker confers verified-done.
 
-**Verdict — one of three.** The auditor returns: **`PASS`** (no findings above the trivial bar); **`PASS-FINDINGS`** (passed and consumable, but carries MEDIUM/LOW findings that become tracked non-blocking follow-on units); **`FAIL`** (one or more HIGH findings — blocks). HIGH ⇒ FAIL; MEDIUM/LOW-only ⇒ PASS-FINDINGS; clean ⇒ PASS.
+**The 7-point checklist.** Unless the unit calls for a specialized check, the auditor runs all seven: (1) **existence** — output exists at the stated path; (2) **spec match** — content matches what the unit promised; (3) **cross-reference integrity** — every `D<n>`/`U<n>`/`Q<n>` cited exists and says what's claimed; (4) **internal consistency** — no contradictions; (5) **decision fidelity** — honors the relevant `DECISIONS.md` entries; (6) **enforcement check** — for each *behavioral* decision, is there a gate/config/assertion that makes it hold, or is it only prose? (a documented-but-unenforced decision is a finding); (7) **multi-site claim check** — any "wired into both X and Y" / "applied across N sites" / "replaced everywhere" claim is verified by grep/count, not by trusting the prose. *(Checks 6–7 close the two blind spots that produced the only field FAILs: a documented-but-unenforced decision, and a half-applied bulk fix.)*
 
-**The gate.** A unit's `Audit` value is one of: `—` (no audit needed) · `pending` (done but unchecked) · `deferred→U<n>` (audit consciously deferred to a recorded follow-up unit) · `PASS→audits/U<id>.md` · `PASS-FINDINGS→audits/U<id>.md` · `FAIL→audits/U<id>.md` · `superseded by U<yy>`. A downstream unit may **consume** an input only when that input's `Audit` is `PASS`, `PASS-FINDINGS`, or `deferred→U<n>` (with the follow-up unit actually present). Drafts and code do not get built on `pending` or `FAIL` foundation. `done` (the output exists) and a passing verdict (an independent context checked it) are distinct states; the column keeps them honest.
+**Verdict — one of three.** **`PASS`** (no findings above trivial); **`PASS-FINDINGS`** (consumable, but carries MEDIUM/LOW findings that become tracked non-blocking follow-on units); **`FAIL`** (one or more HIGH findings — blocks). HIGH ⇒ FAIL; MEDIUM/LOW-only ⇒ PASS-FINDINGS; clean ⇒ PASS.
 
-**Findings become units, not edits.** The auditor does not fix — it writes findings to `audits/<Uxx>.md`. Each HIGH finding becomes a new fix unit appended to `LEDGER.md`; MEDIUM/LOW findings under a `PASS-FINDINGS` become tracked follow-on units too. The audited unit's output stays frozen. A `FAIL` blocks downstream until the fix units land and an independent re-audit returns `PASS`/`PASS-FINDINGS`.
+**The gate.** A downstream unit may **consume** an input only when that input's `Audit` is a passing verdict (`PASS` / `PASS-FINDINGS`). Drafts and code do not build on `pending` or `FAIL`. `done` (the output exists) and a passing verdict (an independent context checked it) are distinct — the column keeps them honest. **Findings become units, never edits:** the auditor does not fix; HIGH findings become fix units, MEDIUM/LOW become tracked follow-ons, and the audited output stays frozen.
 
-**A decision change can invalidate a prior pass.** When a locked decision is later refined or superseded, append a new timestamped `D<n>` — never silently edit the old entry (see the pre-edit check). Then **re-check every `done` unit whose `Inputs` cite the changed decision against the new one**: if its output no longer conforms, that unit's `Audit` reverts to `pending` (re-audit independently) or the gap becomes a fix unit. A `PASS` was true under the decision as it stood — a refinement whose dependents are never re-checked is the same silent drift the gate exists to catch.
+**Weight the audit by risk** (worker economy, not a project budget): a full independent audit for keystone/deploy/runtime units; a light existence+spec+compile worker for mechanical ones — don't spend a heavy audit where it isn't warranted, but never skip the gate.
 
-**Deferral stays honest.** `deferred→U<n>` is allowed during active human review (the human is the interim gate), but the follow-up audit unit `U<n>` must exist in the ledger **and the independent audit must run before any code/build unit consumes the design** — design may be human-reviewed on the way in, but code does not get built on a deferral. Session-start reconciliation flags two smells: a `done` unit whose `Audit` is still `pending` and has a downstream consumer, and a `deferred→U<n>` whose `U<n>` is missing.
+## Anti-drift & the freeze
 
-**Cadence — one audit, one unit, promptly.** The gate's *letter* (downstream waits for `PASS`) holds even when its *spirit* slips, so three cadence invariants are explicit:
+The discipline erodes two ways — **silent work** (acting without writing back) and **quiet edits** (changing a frozen artifact instead of appending). Guard against both, every turn.
 
-- **One report per unit.** Each unit gets its own audit dispatch and its own `audits/<Uxx>.md`. No multi-unit reports.
-- **Own-report only.** A unit's `Audit` cell is `PASS`/`PASS-FINDINGS`/`FAIL` from *its own* report — never "covered by another unit's audit." The one exception is a superseded unit, whose cell reads `superseded by U<yy>` (its output was replaced and re-audited under `U<yy>`).
-- **Audit promptly.** Dispatch a unit's audit in — or right after — the turn it becomes `done`, before starting the next unit. Don't let `Audit: pending` pile up: audit-as-you-go silently degrades into audit-in-batches, and batched-later auditing erodes into rubber-stamping.
+**Done outputs are frozen — change comes through a follow-on unit.** Before any edit/write, check the ledger: if the target is a `done`/`*-done` unit's output, **do not edit it**. Append a follow-on (or superseding) unit and put the change in the *new* unit's output. Same for prior substantive `DECISIONS.md` / `QUESTIONS.md` entries — append, don't rewrite (marking a Status line `answered` or `superseded by D<n>` is the one allowed exception). **Living governance docs** (`PROTOCOL.md`, `README.md`, the root context file) stay editable.
 
-## Anti-drift safeguards (operational)
+**Follow-on ownership.** A follow-on unit *may* legitimately own a change to a done output (a fix, a refinement). This is not a freeze violation — it is the sanctioned mechanism, and a wired immutability hook **honors it**: the active follow-on owns the change, so the edit is allowed under that unit while every *unowned* edit to a frozen output is still refused. Register a follow-on `pending`/`in_progress`, never `done` — registering it `done` before its output exists would freeze the very file you were about to write.
 
-The five rules say *what* the discipline is. These checks make the two ways it erodes — **silent work** (acting without writing back) and **quiet edits** (changing a frozen artifact instead of appending) — catchable in the moment. Run them; do not rely on memory. (Memory-based discipline is the exact thing this framework exists to not rely on.)
+**Write-back is the same turn as the work.** Never end a turn that created or changed a unit's output without, in that turn, updating the ledger (and `DECISIONS.md` / `QUESTIONS.md` as needed). Output without write-back means the unit is **not** done. A finding is *never* a silent edit — it becomes a unit.
 
-**Pre-edit check — run before every edit/write:**
-
-1. Is the target path the `Output` of a unit whose Status is `done` in `LEDGER.md`? → **STOP. Do not edit it.** A done unit's output is frozen. Append a follow-on / superseding unit and put the change in the *new* unit's output.
-2. Is the target a prior substantive entry in `DECISIONS.md` or `QUESTIONS.md`? → **Append a new entry instead.** (Allowed exception: updating a Status line to mark a question `answered` or a decision `superseded by D<n>` — that is the documented mechanism, not a substantive edit.)
-3. Otherwise — a **living governance doc** (`PROTOCOL.md`, `README.md`, the root session-context file) or a `pending` / `in_progress` unit's output → editing is allowed. The immutability rule applies to unit outputs and closed decision/question entries, *not* to the living governance docs, which must evolve.
-
-**Write-back gate — a unit's work and its ledger write-back are one turn, not two.** You may not end a turn in which you created or changed a unit's output without, in that same turn: updating the unit's row in `LEDGER.md`, appending to `DECISIONS.md` if a decision was made, and updating `QUESTIONS.md` if a question opened or closed. Output produced but not written back = the unit is **not** done; write back before yielding.
-
-**Done-means-written.** Never set a unit's Status to `done` unless its named output file actually exists at the stated path with the promised content. Verify, don't assume.
-
-**Turn-end self-check — before yielding any turn that touched the project, answer three questions:**
-
-- Did I produce or change a unit output? → Is its `LEDGER.md` row updated to match?
-- Did I make an execution decision? → Is it in `DECISIONS.md` (or captured as a new unit)?
-- Did a question open or get answered? → Is `QUESTIONS.md` updated?
-
-Any "no, but I should have" → fix it before the turn ends.
-
-> **Mechanical enforcement is optional and lives in tooling.** The pre-edit check can be *enforced* rather than remembered — a pre-tool hook in your agent harness can refuse an edit whose target is a `done` unit's frozen output. The discipline in this repo is paste-able prompts by design; runtime enforcement bindings belong in adopter tooling (for example, a Claude Code plugin), not in this framework.
+> **Mechanical enforcement lives in tooling, not here.** The freeze can be *enforced* — a pre-tool hook can refuse an edit whose target is an unowned frozen output. This framework is paste-able prompts by design; runtime enforcement bindings (the immutability hook, the session-start re-hydration hook) belong in adopter tooling, e.g. a plugin.
 
 ## Resilience — no context loss across any session end
 
-The framework's core promise is that the on-disk state alone reconstructs full working context — so an accidental session end (crash, closed terminal, killed process) with **no resume** loses nothing. The write-back gate covers clean turn-ends; these rules close the mid-turn crash window and make cold restarts self-healing.
+The core promise: on-disk state alone reconstructs full working context, so an accidental session end with no resume loses nothing. There are two failure modes and two recoveries.
 
-**Invariant — transcript independence.** At every yield point, the project files must be sufficient to resume *without* the chat transcript. Never hold decision-relevant state only in conversation. Treat `LEDGER.md` → Recent updates as the recovery log — rich enough that a cold session understands not just what is done but where we are and why.
+- **Worker crash = retry / lineage.** A crashed, timed-out, or failing worker → dispatch the *same* unit to a *new* worker. Safe by construction: a unit is a function of its bounded inputs, and those inputs live on disk — re-running is a **lineage recompute**, not a salvage of partial state. A unit that keeps failing escalates via the ratification ladder.
+- **Driver crash = re-hydrate from the store via the session-start reconcile.** On *any* fresh start (cold restart, `/clear`, or the far side of a compaction) the driver rebuilds its working set from the store — there is **NO compaction hook dependency**. The honest limit (design §4): the interactive driver *is* the session and cannot self-trigger `/compact`; so re-hydration depends only on the store, which is exactly why the same boot works on every kind of fresh start. Full sequence: [`../prompts/session-start.md`](../prompts/session-start.md) — read protocol + frontier, reconcile against disk (heal drift before acting), re-hydrate the manifest (active unit + inputs as **pointers** + recovery-log window + open questions), then hand to the loop.
 
-**One recovery log, one ordering.** `LEDGER.md` → **`Recent updates` is *the* recovery log**, and it is **newest-first** (freshest entry on top, so a cold reader sees current state without scrolling). `## Active unit` holds **only a pointer to the current unit** — never a growing stack of dated status banners. Over a long run the tempting failure is a *second* de-facto log: dated banners pile up under `## Active unit` (newest-first) while the original `Recent updates` quietly goes stale at the bottom, and a cold reader burns calls reconciling the two. Keep one. Session-start reconciliation flags a second log if it appears (see below).
+**Reconciliation heals drift, never silently.** A `done` unit whose output is missing → reopen it. An output that exists for a non-`done` unit → finalize or supersede. An `in_progress` unit → resume/verify exactly it. Record what reconciliation did in the recovery-log window — recovery is auditable.
 
-**Crash-safe write ordering (journaling).** When executing a unit:
-
-1. Mark the unit `in_progress` in `LEDGER.md` **before** producing its output.
-2. Produce the single output file.
-3. Mark the unit `done` and append any `DECISIONS.md` / `QUESTIONS.md` entries.
-
-A crash between (1) and (3) leaves a recoverable trail — never a silent gap.
-
-**A new unit is born `pending` or `in_progress` — never `done`.** Flip it to `done` only after its output exists and is verified, in the same turn. This is the same ordering, stated as a guard against a self-inflicted foot-gun: if you register a follow-on (e.g. a fix unit) as `done` *before* writing its output, the immutability hook (if wired) freezes that done unit's output and locks you out of the very file you were about to create. Batch-registering several follow-ons at once makes `done` the path of least resistance — resist it; register them `pending`/`in_progress`.
-
-**Bound the loss — size units to their loop (heavy/iterative work).** Never wrap a long loop (columns, tables, batches) in one un-checkpointed pass. Either split into per-iteration units, or checkpoint per iteration to the working state so reconciliation resumes at the last completed iteration — a crash then costs one iteration, not the whole unit.
-
-**Session-start reconciliation (crash recovery).** Before acting (checklist step 4), reconcile the ledger against disk and heal drift:
-
-- `done` row whose output file is **missing** → reopen the unit; note in Recent updates.
-- Output file **exists** for a non-`done` unit → an interrupted unit: inspect, then finalize to `done` (if complete) or supersede with a follow-on unit (if partial).
-- `in_progress` unit → resume/verify exactly that unit.
-- **Audit-gate lint:** a `done` unit whose `Audit` is `pending` and that a downstream unit consumes → audit it (independently) before that downstream proceeds; a `deferred→U<n>` whose follow-up `U<n>` is missing → restore it or audit now. See *Audit gates*.
-- **Stale-by-decision lint:** a `done` unit whose cited `D<n>` was later superseded/refined and that has not been re-checked against the new decision → flag it for re-audit before downstream relies on it. See *Audit gates*.
-- **Second-recovery-log lint:** more than one dated status entry accumulating under `## Active unit` while `Recent updates` is also being written → a second de-facto recovery log has formed. Collapse to one (Recent updates, newest-first); reduce `## Active unit` to a pointer. See *One recovery log, one ordering* above.
-- **Ledger-parse lint:** the unit table is both hand-edited *and* machine-parsed (a wired immutability hook reads it positionally to decide what to freeze). Check every `| U<n> |` row splits to the expected number of columns, with a status ∈ {`pending`, `in_progress`, `done`, `superseded`} and a parseable `Output` cell → a mangled row doesn't just mislead a reader, it can silently change *what the hook freezes* (a broken Output cell → wrong/zero frozen path) with no error. Repair any row the hook would misread. *(The check itself is cheap; the actual lint belongs in adopter tooling — see the enforcement note above.)*
-- Record what reconciliation found/did in Recent updates (recovery is auditable).
-
-Recovery produces new ledger entries, never silent edits to closed units. This does not make the crash window literally zero (a crash *during* the ledger write itself still exists), but it makes every outcome **recoverable** — the bar is "no *unrecoverable* context loss."
+**Compaction is born-tiered, lossless, and not a freeze violation.** The ledger is *born* tiered (hot frontier + cold archive), not compacted as an afterthought. At reconcile, when the frontier exceeds a size/count threshold, **compact**: rewrite each closed-and-verified unit's frontier cell down to a one-line **archive** entry that keeps its audit pointer, and roll the **recovery-log window** forward. This is **lossless** (every removed fact lives one pointer away in the cold tier) and an **index operation, not an edit to a frozen output** — you rewrite a ledger cell, never a unit's artifact. It is therefore *not* a freeze violation. Below threshold, skip it.
 
 ## Off-mission artifacts
 
-Sometimes the human asks for something that does not serve the mission — a side note, a one-off export, meta-feedback about the process itself. "Single ledger / everything is a unit" tempts you to file it as a unit, but it isn't mission work and adding it to the unit table pollutes the unit graph.
+Sometimes the human asks for something that does not serve the mission — a side note, a one-off export, meta-feedback about the process. "Everything is a unit" tempts you to file it in the unit table, but it isn't mission work and would pollute the DAG.
 
-Convention: **produce the file, then drop a one-line breadcrumb in `LEDGER.md` → Recent updates marked _not a mission unit_.** Do not add it to the Units table. This keeps traceability without distorting scope.
-
-## When to dispatch a subagent
-
-Dispatch a subagent when:
-
-- The unit's work exceeds the current session's bandwidth (long deliverable, large input set).
-- An audit needs an independent context — the agent that did the work cannot audit the same work (Rule 4; see *Audit gates*). Dispatch a fresh auditor subagent for it.
-- Multiple atomic units can run in parallel without shared state.
-
-The dispatch prompt carries:
-
-- A pointer to `.gotm/PROTOCOL.md` (this file) — so the worker reads the discipline.
-- The bounded inputs the worker is allowed to read.
-- The single named output path.
-- The output spec (sections, word count, voice).
-- The constraints (banned phrases, format, etc.).
-
-The worker does not see the rest of the project. The worker reads the protocol and its own task and produces one output. See `../prompts/subagent-dispatch.md` for the canonical dispatch template.
+Convention: **produce the file, then drop a one-line breadcrumb in the ledger's recovery log marked _not a mission unit_.** Do not add it to the Units table. Traceability without distorting scope.
 
 ## Common moves
 
-| Move | Use |
+| Move | Prompt |
 |---|---|
-| Starting a session | `../prompts/session-start.md` for the kickoff template |
-| Dispatching a subagent | `../prompts/subagent-dispatch.md` |
-| Running an audit | `../prompts/audit.md` |
+| Starting / re-hydrating a session | [`../prompts/session-start.md`](../prompts/session-start.md) |
+| Running the scheduler loop | [`../prompts/driver-loop.md`](../prompts/driver-loop.md) |
+| Dispatching a worker | [`../prompts/worker-dispatch.md`](../prompts/worker-dispatch.md) |
+| Auditing a claimed-done unit | [`../prompts/audit.md`](../prompts/audit.md) |
+| Consulting / producing cross-project learnings | [`../prompts/consult.md`](../prompts/consult.md), [`../prompts/outcome-analysis.md`](../prompts/outcome-analysis.md) |
 
-If a move does not have a prompt yet, do it carefully and add the prompt as you go.
+If a move has no prompt yet, do it carefully and add the prompt as you go.
 
 ## Mission (this project)
 
