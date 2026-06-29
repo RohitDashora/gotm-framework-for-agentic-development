@@ -55,7 +55,7 @@ The driver runs a deterministic scheduler over the DAG. Full discipline: [`promp
 1. **Read the frontier → compute the ready set** (deps satisfied *and* audit gate open). Read the frontier, never the history.
 2. **Fan out** — dispatch a fresh worker per ready unit, in parallel, bounded by a **concurrency cap** (backpressure). Each carries only its bounded payload.
 3. **Collect → record (single writer).** Each worker returns a **terse result** (pointer + index facts, never the body); the driver records status + pointer.
-4. **Audit → advance the gates.** Dispatch a separate audit worker per authored-done unit; runtime units also get a `verified-done` worker. A passing verdict opens the gate for downstream.
+4. **Audit → advance the gates.** Dispatch a separate audit worker per authored-done unit; for runtime units (deploy / infra / data) that **same audit worker** additionally exercises the live artifact as its real consumer to confer `verified-done` — one worker, one verdict, one report. A passing verdict opens the gate for downstream.
 5. **On failure → retry on a fresh worker** (inputs on disk = lineage recompute).
 6. **Checkpoint** — compact the frontier when over band; re-hydrate on any fresh start.
 

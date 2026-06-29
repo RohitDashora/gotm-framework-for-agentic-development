@@ -139,6 +139,16 @@ Conventions:
   — correct column count, a valid status, a parseable Output cell — so a botched
   edit can't silently change what the hook freezes. See PROTOCOL.md ->
   Anti-drift & the freeze / Resilience.
+- ARCHIVE ENTRIES ARE ALSO MACHINE-PARSED, AND IN ONE CANONICAL SHAPE. The
+  `## Archive` cold tier is a one-line BULLET per unit — never a table — in this
+  exact form (fields separated by " · "; an adopter's immutability hook,
+  compaction script, and v2->v3 converter all read it):
+      - U<n> — <title> · `<output/path>` · <status> · <verdict>→audits/U<n>.md
+  Every archive bullet MUST carry a parseable Status (the 3rd " · " field) and a
+  backticked Output (the path) so the hook can still freeze an aged-out closed
+  unit's output. A `verified-done` / `authored-done` / legacy `done` archive
+  bullet IS frozen exactly like a frontier row; a `superseded` one is not. Keep
+  the status token verbatim — don't downgrade `verified-done` to `done`.
 - Off-mission artifacts (work that does not serve the mission) do NOT go in the
   Frontier table. Produce the file, then add a "Recent updates" line marked
   `(not a mission unit)`. See PROTOCOL.md -> Off-mission artifacts.

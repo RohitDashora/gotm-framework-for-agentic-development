@@ -16,7 +16,7 @@ Distill the GOTM discipline into a public-ready framework — concept docs, a pr
 
 ## Active unit
 
-**v3 rewrite complete; see [`../V3-DESIGN.md §11`](../V3-DESIGN.md).** Framework v3 content (9 docs + 8 diagrams · 6 prompts · 7 templates) is produced driver/worker and independently gated (zero HIGH/FAIL). Next phases (not yet open as units here): meta-example migration (repo README rewrite, delete v2 docs, MIGRATION.md + converter) and plugin v3.0 (hook follow-on, compaction script, scheduler runtime).
+**v3 rewrite complete; see [`../V3-DESIGN.md §11`](../V3-DESIGN.md).** Framework v3 content (9 docs + 9 diagrams · 6 prompts · 7 templates) is produced driver/worker and independently gated (zero HIGH/FAIL). Next phases (not yet open as units here): meta-example migration (repo README rewrite, delete v2 docs, MIGRATION.md + converter) and plugin v3.0 (hook follow-on, compaction script, scheduler runtime).
 
 ## Frontier
 
@@ -30,7 +30,7 @@ Distill the GOTM discipline into a public-ready framework — concept docs, a pr
 
 _No open mission units in this ledger._
 
-**Recent frontier note — the v3 rewrite (executed, gated, not registered as U-rows here).** The framework was rewritten to v3 — driver/worker/store, born-tiered ledger, structural audit independence (authored-done vs verified-done), the scheduler loop, and the cross-project learning loop. It was driven *as its own GOTM v3 project* (driver plans; stateless workers author each chapter/prompt/template; fresh workers audit). The full driver log + per-chapter audit verdicts live in [`../V3-DESIGN.md §11`](../V3-DESIGN.md) and `audits/v3-*.md`. Phase status there: ✅ DOCS (9 ch + 8 diagrams) · ✅ PROMPTS (6) · ✅ TEMPLATES (7) — all gated. This `.gotm/PROTOCOL.md` + this ledger were then migrated to the v3 shape (this turn) so the repo runs the protocol it teaches.
+**Recent frontier note — the v3 rewrite (executed, gated, not registered as U-rows here).** The framework was rewritten to v3 — driver/worker/store, born-tiered ledger, structural audit independence (authored-done vs verified-done), the scheduler loop, and the cross-project learning loop. It was driven *as its own GOTM v3 project* (driver plans; stateless workers author each chapter/prompt/template; fresh workers audit). The full driver log + per-chapter audit verdicts live in [`../V3-DESIGN.md §11`](../V3-DESIGN.md) and `audits/v3-*.md`. Phase status there: ✅ DOCS (9 ch + 9 diagrams) · ✅ PROMPTS (6) · ✅ TEMPLATES (7) — all gated. This `.gotm/PROTOCOL.md` + this ledger were then migrated to the v3 shape (this turn) so the repo runs the protocol it teaches.
 
 ## Archive
 

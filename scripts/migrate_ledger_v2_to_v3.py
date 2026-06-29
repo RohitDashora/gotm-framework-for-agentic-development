@@ -50,6 +50,8 @@ CLOSED_STATUSES = ("done", "verified-done", "superseded")
 OPEN_STATUSES = ("pending", "in_progress", "in-progress", "authored-done", "blocked")
 
 UID_RE = re.compile(r"^\|\s*(U\d+)\s*\|")
+# A cold-tier `## Archive` bullet: "- U<n> — title · `out` · state · verdict".
+ARCHIVE_BULLET_RE = re.compile(r"^\s*[-*]\s*(U\d+)[a-z]*\b")
 # A passing audit verdict anywhere relevant in a row (used for v2 done -> v3 mapping).
 PASS_RE = re.compile(r"\bPASS-FINDINGS\b|\bPASS\b")
 FAIL_RE = re.compile(r"\bFAIL\b")
@@ -58,6 +60,19 @@ FAIL_RE = re.compile(r"\bFAIL\b")
 def uid_of(line):
     m = UID_RE.match(line)
     return m.group(1) if m else None
+
+
+def archive_uid_of(line):
+    """Unit ID of a `## Archive` one-line bullet, else None."""
+    m = ARCHIVE_BULLET_RE.match(line)
+    return m.group(1) if m else None
+
+
+def any_uid_of(line):
+    """Unit ID from EITHER shape: a `| U.. |` table row or a `- U.. —` archive bullet.
+    The losslessness verifier counts BOTH, so a unit already tiered into `## Archive`
+    by a prior migration is not invisible to the 'every ID still present' check."""
+    return uid_of(line) or archive_uid_of(line)
 
 
 def uid_num(uid):
@@ -118,11 +133,34 @@ def has_passing_audit(line, uid):
     return ptr.startswith("PASS")
 
 
+def has_failing_audit(line, uid):
+    """True iff this unit's OWN audit pointer is a FAIL verdict (not a stray FAIL
+    word from an earlier round in prose)."""
+    return audit_pointer(line, uid).startswith("FAIL")
+
+
 def v3_state(line, uid):
-    """Map a v2 status -> a v3 lifecycle state (conservative)."""
+    """Map a v2 status -> a v3 lifecycle state (conservative).
+
+      done + passing audit (PASS / PASS-FINDINGS) -> verified-done (consumable)
+      done + FAILing audit                        -> authored-done (FLAGGED, see
+            below) — NOT silently promoted to verified-done. The FAIL verdict is
+            preserved in the Audit pointer, so it stays BLOCKING (a downstream
+            consumer gates on `verified-done` + a PASS verdict; FAIL never clears
+            that gate). We keep the state token at `authored-done` rather than
+            inventing a `blocked` token (the five v3 states are fixed), and the
+            row keeps its `FAIL→audits/U<id>.md` pointer so the block is visible
+            and the unit is never archived as if it were settled.
+      done + no verdict / pending audit           -> authored-done (awaiting audit)
+      in-progress -> in_progress ; everything else passes through.
+    """
     s = status_of(line)
     if s == "done":
-        return "verified-done" if has_passing_audit(line, uid) else "authored-done"
+        if has_passing_audit(line, uid):
+            return "verified-done"
+        # FAILing or unaudited -> authored-done; the FAIL pointer (if any) is what
+        # keeps a failed unit blocking (it never reaches verified-done).
+        return "authored-done"
     if s == "in-progress":
         return "in_progress"
     return s or "pending"
@@ -234,7 +272,15 @@ def main(argv=None):
 
     def compactable(line):
         uid = uid_of(line)
-        return uid is not None and is_closed(line) and uid_num(uid) < keep_from
+        if uid is None or not is_closed(line) or uid_num(uid) >= keep_from:
+            return False
+        # A `done` unit whose OWN audit is FAIL is NOT settled — it stays FULL in
+        # the Frontier (flagged, blocking), never silently aged into the cold
+        # Archive as if it had passed. (Per MED-2 / v3_state: FAIL keeps it
+        # blocking; it maps to authored-done, not verified-done.)
+        if status_of(line) == "done" and has_failing_audit(line, uid):
+            return False
+        return True
 
     # ---- walk lines: split into archived rows + new ledger body ----
     out_lines, archived_rows, archive_oneliners = [], [], []
@@ -305,9 +351,13 @@ def main(argv=None):
     new_led = "\n".join(out_lines)
 
     # ---- verify losslessness BEFORE writing ----
-    orig_ids = [uid_of(l) for l in src if is_unit_row(l)]
-    new_ids = [uid_of(l) for l in new_led.split("\n") if is_unit_row(l)]
-    arc_ids = [uid_of(l) for l in archived_rows]
+    # Count ALL unit IDs in BOTH shapes — `| U.. |` table rows AND `- U.. —`
+    # `## Archive` bullets. A unit already tiered into the cold Archive by a prior
+    # migration (idempotence) is a real unit; counting only table rows made it
+    # invisible, so a dropped archive unit could still print `MISSING: NONE`.
+    orig_ids = [u for l in src if (u := any_uid_of(l))]
+    new_ids = [u for l in new_led.split("\n") if (u := any_uid_of(l))]
+    arc_ids = [uid_of(l) for l in archived_rows]  # full v2 cells spilled to LEDGER-ARCHIVE.md
     orig_unique = set(orig_ids)
     present = set(new_ids) | set(arc_ids)
     missing = sorted(orig_unique - present, key=lambda u: uid_num(u))
@@ -316,10 +366,12 @@ def main(argv=None):
     def _count_entries(lines):
         return sum(1 for l in lines if re.match(r"^\s*[-*]\s", l) or re.match(r"^\s*\d+\.\s", l))
 
+    new_table = len([l for l in new_led.split("\n") if is_unit_row(l)])
+    new_bullets = len([l for l in new_led.split("\n") if archive_uid_of(l)])
     print("=" * 64)
     print(f"ledger             : {led}")
-    print(f"keep-from (CLOSED) : U{keep_from}  (kept {len(new_ids)} full, archived {len(arc_ids)})")
-    print(f"orig units         : {len(orig_unique)} unique ({len(orig_ids)} rows)   present after : {len(present)}")
+    print(f"keep-from (CLOSED) : U{keep_from}  (kept {new_table} full, archived {new_bullets} bullets)")
+    print(f"orig units         : {len(orig_unique)} unique ({len(orig_ids)} ids: table+archive)   present after : {len(present)}")
     if dups:
         print(f"DUP IDs in source  : {', '.join(dups)}  (kept; not a loss)")
     print(f"MISSING            : {'NONE' if not missing else ', '.join(missing)}")

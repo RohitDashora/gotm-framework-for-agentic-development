@@ -60,7 +60,7 @@ The driver runs a deterministic scheduler loop over the DAG. This is where "loop
 1. **Read frontier** → compute the **ready set** (deps satisfied, audit gate open).
 2. **Dispatch workers** for ready units; **fan out independent units in parallel** (Spark stages), bounded by a **concurrency cap** (backpressure).
 3. **Collect results** → the driver (single writer) records status/outputs to the store.
-4. **Dispatch audit workers** (fresh contexts; independence is free) → apply verdicts → unblock downstream. Runtime/deploy units also get a **verified-done** worker.
+4. **Dispatch audit workers** (fresh contexts; independence is free) → apply verdicts → unblock downstream. For runtime/deploy/infra/data units the **same audit worker** also performs the **verified-done** runtime check (exercises the live artifact) — one worker, one verdict, one report (not a separate worker).
 5. **On worker failure** → retry the task on a fresh worker (inputs on disk = safe recompute).
 6. **Checkpoint** → compact the frontier (T2) when over budget; re-hydrate the driver (T1) after a compaction.
 7. **Repeat** until the DAG drains.
@@ -148,9 +148,9 @@ These were validated in the field and re-emerge from first principles — keep t
 
 **Coherence pass — DONE** (one fan-in worker reading all 9 from the store; driver never held them): terminology unified ("terse structured result", "context economy"); ch5/6/7 trimmed; ch1 ch2-encroachment fixed; ch4/8/9 validated; heading style uniform; **full ch1→9 forward chain + ch9→README/ch1 verified.** Length **ratified** (execution-level): ch5 ~1590w / ch6 ~1329w accepted at the substance floor — word bands were guidance, not hard limits.
 
-**Diagram pass — DONE.** 8 Mermaid diagrams across ch2–7 + ch9 (one shared visual language: driver/worker/store nodes + labeled dispatch/result/read/write flows); ch1 & ch8 left prose by judgment. All render-validated — `mmdc` 9/9 exit 0. ch5 shows the hard rule vs the monotonicity anti-pattern; ch7 shows no compaction hook.
+**Diagram pass — DONE.** 9 Mermaid diagrams across ch2–7 + ch9 (one shared visual language: driver/worker/store nodes + labeled dispatch/result/read/write flows; ch3 and ch5 carry two each); ch1 & ch8 left prose by judgment. All render-validated — `mmdc` 9/9 exit 0. ch5 shows the hard rule vs the monotonicity anti-pattern; ch7 shows no compaction hook.
 
-**✅ DOCS PHASE COMPLETE** — 9 chapters drafted (driver/worker), gated (zero HIGH/FAIL), harmonized, and diagrammed.
+**✅ DOCS PHASE COMPLETE** — 9 chapters drafted (driver/worker), harmonized, and diagrammed. ch1/2/3/5/6/7 carry standalone independent audits (zero HIGH/FAIL); ch4/8/9 were validated within the fan-in coherence pass, not standalone-gated (see the risk-tiering note above).
 
 **Deferred to later phases (still open):** the `CLAUDE.md`/README ref to old `docs/05-in-practice.md` → fix in migration (in-practice is now `08-in-practice.md`); ch9's prose refs to `prompts/consult.md` + `outcome-analysis.md` + `LEARNINGS.md.template` → link once the prompts/templates units land; old v2 `docs/01–06` → removed in the meta-example migration.
 
@@ -158,6 +158,6 @@ These were validated in the field and re-emerge from first principles — keep t
 
 **✅ TEMPLATES PHASE COMPLETE** — PROTOCOL.md.template (keystone, PASS) · born-tiered LEDGER.md.template (PASS) · DECISIONS/QUESTIONS/README/LEARNINGS (updated) · CONSULTED (new). Cross-refs resolved + terminology harmonized.
 
-**✅✅ FRAMEWORK v3 CONTENT COMPLETE** — docs (9 chapters + 8 diagrams) · prompts (6) · templates (7) — all produced driver/worker and independently gated. Uncommitted in the working tree.
+**✅✅ FRAMEWORK v3 CONTENT COMPLETE** — docs (9 chapters + 9 diagrams) · prompts (6) · templates (7) — all produced driver/worker. The decision-critical chapters (ch5/ch6/ch7), the keystone PROTOCOL template, and worker-dispatch/audit got full standalone independent audits; the rest (ch4/ch8/ch9, the remaining prompts, the other templates) were validated within the fan-in coherence pass rather than via standalone per-unit audits — a logged audit-budget tiering, not a silent skip. The later **build-process audit** (reports under `.gotm/audits/v3-build-*.md`) served as the deferred independent audit of that previously-unaudited set (PROTOCOL surface, prompts, tooling, ch4/8/9). Uncommitted in the working tree.
 
 **Next phases:** (4) meta-example migration (repo README rewrite, delete v2 docs, MIGRATION.md + converter) · (5) plugin v3.0 (hook follow-on fix, compaction script, scheduler runtime).
