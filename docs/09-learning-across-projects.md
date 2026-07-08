@@ -49,7 +49,7 @@ flowchart TB
     class L1,L2,L3 storeC;
 ```
 
-*Bottom-up learning: a project produces candidate learnings that rise to the user/harness pool as validated, then to a curated enterprise index as core — and at each level the pool feeds back down, tag-filtered, to seed the next project's driver.*
+*Bottom-up learning: a project produces candidate learnings that rise to the user pool as validated, then to a curated enterprise index as core — and at each level the pool feeds back down, tag-filtered, to seed the next project's driver.*
 
 The outcome is identical at every level and concrete: a project that consumes good learnings makes fewer mistakes, finishes faster, and spends fewer tokens re-discovering what is already known.
 

@@ -5,7 +5,7 @@ audited, and re-read a flat ledger every turn. v3 is the same discipline re-arch
 so that **nothing on the hot path is long-lived**. This guide is how you carry an
 existing v2 project across, mechanically and conceptually.
 
-> **The decision is settled (V3-DESIGN.md §9, ch8).** v3 is for new projects **and**
+> **The decision is settled (docs/design/V3-DESIGN.md §9, ch8).** v3 is for new projects **and**
 > existing v2 projects migrate — they are not left on v2. In-flight v2 ledgers convert
 > with `scripts/migrate_ledger_v2_to_v3.py` (below); the rest is adopting the new
 > protocol and prompts and changing how you *run* the loop.
@@ -17,7 +17,7 @@ existing v2 project across, mechanically and conceptually.
 v2's defining flaw was that the planner and the doer were the **same context**. One
 agent accumulated every input, every build log, every self-validation until it both
 graded its own work and stalled under its own weight. v3 splits that one role into
-three (V3-DESIGN.md §3, docs/02):
+three (docs/design/V3-DESIGN.md §3, docs/02):
 
 | Role | What it does | What it must never do |
 |---|---|---|
@@ -32,7 +32,7 @@ Workers are **stateless**: each one is born fresh, sees only its dispatch payloa
 is gone before the next unit starts. That is not a rule to remember — it is the default
 shape, and it is what makes the system non-monotonic.
 
-The honest limit (V3-DESIGN.md §4, ch8): in interactive Claude Code the **driver is the
+The honest limit (docs/design/V3-DESIGN.md §4, ch8): in interactive Claude Code the **driver is the
 session** — it cannot be made stateless and cannot self-trigger `/compact`. It still
 grows, but *slowly*, because it carries only plan + discipline + a terse frontier. Its
 safety net is **re-hydration from the store**, not statelessness (see §2.5).
@@ -82,7 +82,7 @@ ID was lost. See §3 for the lossless guarantee.
 ### 2.3 Adopt the 5 v3 states
 
 v2 had `pending / in_progress / done / superseded`. v3 splits the terminal "done" into
-two states to make audit independence **structural** (V3-DESIGN.md §5, docs/06):
+two states to make audit independence **structural** (docs/design/V3-DESIGN.md §5, docs/06):
 
 | v3 state | Meaning |
 |---|---|
@@ -101,7 +101,7 @@ output be the one that blesses it.
 
 ### 2.4 The freeze + follow-on ownership
 
-The immutability freeze survives, with the v2 over-blocking fixed (V3-DESIGN.md §5,
+The immutability freeze survives, with the v2 over-blocking fixed (docs/design/V3-DESIGN.md §5,
 docs/06). Closed units' outputs stay frozen — **to revise a done output, append a
 follow-on unit and put the change there**, never edit in place. The v3 hook honors
 **follow-on ownership**: an active unit may own a change to a previously-done output.

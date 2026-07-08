@@ -76,16 +76,16 @@ The framework from first principles, each chapter a consequence of the one befor
 
 Paste-ready bodies a practitioner runs in any LLM:
 
-- [`prompts/driver-loop.md`](prompts/driver-loop.md) — the scheduler the driver runs: ready-set, fan-out, collect, audit, checkpoint, repeat
-- [`prompts/worker-dispatch.md`](prompts/worker-dispatch.md) — the central worker contract: build a bounded, self-contained dispatch (supersedes v2's `subagent-dispatch`)
-- [`prompts/audit.md`](prompts/audit.md) — the fresh-worker audit: checklist, three-way verdict (`PASS` / `PASS-FINDINGS` / `FAIL`), and the `verified-done` runtime check
+- [`prompts/driver-loop.md`](prompts/driver-loop.md) — the scheduler the driver runs: ready-set, fan-out, collect, audit, checkpoint, repeat — with the destructive-op pre-execution gate and the proof-stamped DISPATCHED
+- [`prompts/worker-dispatch.md`](prompts/worker-dispatch.md) — the central worker contract: a bounded, self-contained dispatch with forced detail-to-disk (≤ ~8-line return) and the concrete-path Output micro-schema (supersedes v2's `subagent-dispatch`)
+- [`prompts/audit.md`](prompts/audit.md) — the fresh-worker audit: the 7-point checklist, three-way verdict (`PASS` / `PASS-FINDINGS` / `FAIL`), and the typed `verified-done` runtime check (per-`Kind` dimensions: ui / eval / deploy-infra / data / diagnosis)
 - [`prompts/session-start.md`](prompts/session-start.md) — the driver boot: re-hydrate from the store + reconcile against disk (no compaction hook)
-- [`prompts/consult.md`](prompts/consult.md) — start-of-project: scan prior `LEARNINGS.md`, tag-filter, surface the few that apply
-- [`prompts/outcome-analysis.md`](prompts/outcome-analysis.md) — end-of-project: distill the record into transferable, mergeable learnings
+- [`prompts/consult.md`](prompts/consult.md) — start-of-project: query the cross-project learning pool by tag, surface the few that apply (confidence weighted by the promotion gate)
+- [`prompts/outcome-analysis.md`](prompts/outcome-analysis.md) — end-of-project: distill the record into transferable learnings and merge them into the shared pool (candidate → validated via an independent project)
 
 Copy-and-fill scaffolds for a new project:
 
-- [`templates/`](templates/) — `PROTOCOL.md` (driver/worker/store + the loop), `LEDGER.md` (born-tiered: frontier + archive), `DECISIONS.md`, `QUESTIONS.md`, `README.md`, `LEARNINGS.md`, `CONSULTED.md`
+- [`templates/`](templates/) — `PROTOCOL.md` (driver/worker/store, the loop, the Output micro-schema + ledger-parse lint, typed verified-done, the destructive-op gate), `LEDGER.md` (born-tiered: frontier + archive, with the `Kind` column and Output-contract conventions), `DECISIONS.md`, `QUESTIONS.md`, `README.md`, `LEARNINGS.md`, `CONSULTED.md`
 
 ## Two repos: the idea and the runtime
 

@@ -1,6 +1,6 @@
 ---
 project: gotm-framework-for-agentic-development
-last_updated: 2026-06-26 (born-tiered v3 migration: this ledger compacted to the v3 shape it teaches — `## Active unit` = pointer · `## Frontier` = open/recent only · `## Archive` = U1–U72 one line each (lossless) · `## Recent updates` = rolling window. v3 content rewrite is complete + gated, tracked in `../V3-DESIGN.md §11`. Active protocol is now v3 — `.gotm/PROTOCOL.md` instantiates `templates/PROTOCOL.md.template`.)
+last_updated: 2026-06-26 (born-tiered v3 migration: this ledger compacted to the v3 shape it teaches — `## Active unit` = pointer · `## Frontier` = open/recent only · `## Archive` = U1–U72 one line each (lossless) · `## Recent updates` = rolling window. v3 content rewrite is complete + gated, tracked in `../docs/design/V3-DESIGN.md §11`. Active protocol is now v3 — `.gotm/PROTOCOL.md` instantiates `templates/PROTOCOL.md.template`.)
 ---
 
 # Project ledger
@@ -16,21 +16,21 @@ Distill the GOTM discipline into a public-ready framework — concept docs, a pr
 
 ## Active unit
 
-**v3 rewrite complete; see [`../V3-DESIGN.md §11`](../V3-DESIGN.md).** Framework v3 content (9 docs + 9 diagrams · 6 prompts · 7 templates) is produced driver/worker and independently gated (zero HIGH/FAIL). Next phases (not yet open as units here): meta-example migration (repo README rewrite, delete v2 docs, MIGRATION.md + converter) and plugin v3.0 (hook follow-on, compaction script, scheduler runtime).
+**v3 rewrite complete; see [`../docs/design/V3-DESIGN.md §11`](../docs/design/V3-DESIGN.md).** Framework v3 content (9 docs + 9 diagrams · 6 prompts · 7 templates) is produced driver/worker and independently gated (zero HIGH/FAIL). Next phases (not yet open as units here): meta-example migration (repo README rewrite, delete v2 docs, MIGRATION.md + converter) and plugin v3.0 (hook follow-on, compaction script, scheduler runtime).
 
 ## Frontier
 
 <!-- THE HOT TIER — re-read every turn; keep it small: open units, the recent-
      closed window, and any closed unit a still-open unit still cites as an input.
      Right now there are no open mission units in *this* ledger — the v3 rewrite was
-     driven as a self-contained GOTM project and tracked in `../V3-DESIGN.md §11`
+     driven as a self-contained GOTM project and tracked in `../docs/design/V3-DESIGN.md §11`
      (driver log + risk-tiered audits in `audits/v3-*.md`), not re-registered as
      U-rows here. The U1–U72 history (the v2 framework build + feedback folds) is
      closed and compacted into `## Archive`. -->
 
 _No open mission units in this ledger._
 
-**Recent frontier note — the v3 rewrite (executed, gated, not registered as U-rows here).** The framework was rewritten to v3 — driver/worker/store, born-tiered ledger, structural audit independence (authored-done vs verified-done), the scheduler loop, and the cross-project learning loop. It was driven *as its own GOTM v3 project* (driver plans; stateless workers author each chapter/prompt/template; fresh workers audit). The full driver log + per-chapter audit verdicts live in [`../V3-DESIGN.md §11`](../V3-DESIGN.md) and `audits/v3-*.md`. Phase status there: ✅ DOCS (9 ch + 9 diagrams) · ✅ PROMPTS (6) · ✅ TEMPLATES (7) — all gated. This `.gotm/PROTOCOL.md` + this ledger were then migrated to the v3 shape (this turn) so the repo runs the protocol it teaches.
+**Recent frontier note — the v3 rewrite (executed, gated, not registered as U-rows here).** The framework was rewritten to v3 — driver/worker/store, born-tiered ledger, structural audit independence (authored-done vs verified-done), the scheduler loop, and the cross-project learning loop. It was driven *as its own GOTM v3 project* (driver plans; stateless workers author each chapter/prompt/template; fresh workers audit). The full driver log + per-chapter audit verdicts live in [`../docs/design/V3-DESIGN.md §11`](../docs/design/V3-DESIGN.md) and `audits/v3-*.md`. Phase status there: ✅ DOCS (9 ch + 9 diagrams) · ✅ PROMPTS (6) · ✅ TEMPLATES (7) — all gated. This `.gotm/PROTOCOL.md` + this ledger were then migrated to the v3 shape (this turn) so the repo runs the protocol it teaches.
 
 ## Archive
 
@@ -163,7 +163,7 @@ _No open mission units in this ledger._
 - 2026-06-12: **Synced the repo's own governance docs to the current discipline (U49-U51).** `.gotm/PROTOCOL.md` brought up to the then-current protocol; root `CLAUDE.md` gained four Non-negotiables. Independent audit U51 → PASS.
 - 2026-06-11: **Added a Mermaid orchestrator diagram to the README (U48).** Render-checked with `mmdc` (exit 0).
 - 2026-06-11: **Migrated the repo's own machinery into `.gotm/` (D18, U47).** Deliverables stay at root; root `CLAUDE.md` is a thin bridge. Audit paths relocated `audits/…` → `.gotm/audits/…`.
-- 2026-06-11: **Concept docs rewritten from scratch → 5-chapter arc (D17, U38-U45).** Independent publication audit U46 → PASS-FINDINGS. (Later superseded by the v3 9-chapter rewrite; see `../V3-DESIGN.md §11`.)
+- 2026-06-11: **Concept docs rewritten from scratch → 5-chapter arc (D17, U38-U45).** Independent publication audit U46 → PASS-FINDINGS. (Later superseded by the v3 9-chapter rewrite; see `../docs/design/V3-DESIGN.md §11`.)
 - 2026-06-11: **Audit-verdict refinement done (U33-U37).** D16: three-way verdict (PASS/PASS-FINDINGS/FAIL) + 5-point checklist + deferral-can't-outlast-the-code-gate. U36 independent audit → PASS-FINDINGS; LOW closed by U37.
 - 2026-06-11: **Audit-gate pass done (U28-U32).** D15: audit independence as a hard rule + a consume-gate. Added *Audit gates* section, `Audit` column, independence preamble. U28 independent audit → PASS.
 - 2026-06-11: **Feedback-integration pass done (U20-U27).** Folded geniefy field feedback (G1-G10): anti-drift, resilience, `.gotm/` layout, governance carve-out, off-mission, sanctioned deferral. D12-D14 locked.

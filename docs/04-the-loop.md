@@ -49,7 +49,7 @@ That bounded-hot-path property is what makes the loop's simplicity affordable. A
 
 ## Where the loop lives — a prompt discipline, then tooling
 
-At its baseline, the loop is a **prompt discipline**. There is no runtime that *forces* the driver to run it; the driver follows it because the protocol tells it to, the same way a careful operator follows a checklist. This is deliberate (it is the resolution of Q-v3-3): the scheduler is fundamentally a discipline the driver enacts, and stating it as a discipline first keeps it runtime-agnostic — it works in any plain interactive session with nothing installed.
+At its baseline, the loop is a **prompt discipline**. There is no runtime that *forces* the driver to run it; the driver follows it because the protocol tells it to, the same way a careful operator follows a checklist. This is deliberate: the scheduler is fundamentally a discipline the driver enacts, and stating it as a discipline first keeps it runtime-agnostic — it works in any plain interactive session with nothing installed.
 
 On top of that baseline sit two further adoption tiers, for teams that want more than discipline:
 
