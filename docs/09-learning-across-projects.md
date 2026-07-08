@@ -16,27 +16,27 @@ This keeps the **context economy** honest at the largest scale. Re-discovering a
 
 The cross-project layer is two moves, one at each end of a project's life.
 
-**Produce — at project end.** When the DAG drains, one pass reads the finished record and distills it into transferable **learnings**, written to `LEARNINGS.md`. This is the *write-out* to the cold tier. Not everything in the record is a learning: a learning is a claim a *different* project would benefit from knowing — a gotcha ("use X, not Y, where the obvious path is wrong"), a prerequisite ("grant or verify X before step Y"), a pivot, a pattern that worked, or an anti-pattern the audits flagged more than once. The filter is *transferability*: a one-off detail stays in the record; a claim a stranger to the project could act on — project-specific nouns stripped, load-bearing specifics kept — becomes a learning.
+**Produce — at project end.** When the DAG drains, one pass reads the finished record and distills it into transferable **learnings**, then *merges them into the pool*. Distillation first: not everything in the record is a learning: a learning is a claim a *different* project would benefit from knowing — a gotcha ("use X, not Y, where the obvious path is wrong"), a prerequisite ("grant or verify X before step Y"), a pivot, a pattern that worked, or an anti-pattern the audits flagged more than once. The filter is *transferability*: a one-off detail stays in the record; a claim a stranger to the project could act on — project-specific nouns stripped, load-bearing specifics kept — becomes a learning. Then the merge, which is a real step, not a someday-a-consumer-reads-this write to disk: each learning is merged into the pool **by its `claim` key** — if the claim is already there, this project's evidence is *appended* to the existing record; if it is new, the claim is added. That is the *write-out* to the cold tier.
 
-**Consume — at project start.** Before the first real unit, one pass pulls tag-relevant prior learnings into the new project — a bootstrap **consult**. This is the *read-in* from the cold tier. The new driver does not load the whole pool; it scans a generated index of one-line entries, filters to the tags the project is actually touching, and expands the detail only for the few that apply. That selectivity is what makes a learning *save* tokens rather than spend them: scanning a line is cheap, and the full fix loads only when relevant — exactly the discipline the archive uses inside a project.
+**Consume — at project start.** Before the first real unit, one pass *queries* the pool for tag-relevant prior learnings and pulls them into the new project — a bootstrap **consult**. This is the *read-in* from the cold tier. The new driver does not load the whole pool; it scans a generated index of one-line entries, filters to the tags the project is actually touching, and expands the detail only for the few that apply. That selectivity is what makes a learning *save* tokens rather than spend them: scanning a line is cheap, and the full fix loads only when relevant — exactly the discipline the archive uses inside a project.
 
-Each move is one pass, and they are mirror images: produce distills the record into the cold tier; consume seeds the next driver from it. A produce step with no consumer is a write-only void — tokens spent distilling lessons nothing reads. The consume step is what closes the loop and pays the produce step back.
+Each move is one pass, and they are mirror images: produce merges the distilled record into the pool; consume queries it to seed the next driver. A produce step with no consumer is a write-only void — tokens spent distilling lessons nothing reads. The consume step is what closes the loop and pays the produce step back.
 
 ## Three levels, bottom-up
 
 Knowledge in GOTM is **bottom-up**: born in one project, rising only as far as evidence carries it.
 
 - **Level 1 — the project.** The build loop gains the two moves above. Consume at the start, produce at the end. Level 1 is itself a loop: every project both draws from the pool and contributes back to it.
-- **Level 2 — the user / harness pool.** One practitioner's projects pool their learnings into a shared store across all of that practitioner's future projects. After a few projects, consume starts paying back what produce deposited.
-- **Level 3 — the enterprise index.** Across many practitioners, the learnings combine into a curated, traversable knowledge system — a vector index or a knowledge graph — that refines them and serves them to everyone. Same loop, organizational reach.
+- **Level 2 — the user pool.** A concrete cross-project store, living at the *user tier* — outside any one project, so it is cross-project by construction (the reference layout is a user-home `learnings/` store, distinct from each project's own store). It is a single merged corpus, keyed by `claim` with an appendable evidence list, plus a generated tag index over it. Every practitioner's projects merge into it and query it. After a few projects, consume starts paying back what produce deposited. This is the layer this chapter makes concrete.
+- **Level 3 — the enterprise index.** Across many practitioners, the learnings combine into a curated, traversable knowledge system — a semantic (vector) index or a knowledge graph — that refines them and serves them to everyone. Same loop, organizational reach. L3 plugs in *above* L2 without changing it: it reads the same merged corpus and layers a richer retrieval surface on top, so nothing at L2 has to be rebuilt to reach organizational scale.
 
 ```mermaid
 flowchart TB
     subgraph L3["Level 3 — enterprise index"]
         E["curated vector index / knowledge graph<br/>(core learnings)"]
     end
-    subgraph L2["Level 2 — user / harness pool"]
-        U["one practitioner's projects pool learnings<br/>(validated learnings)"]
+    subgraph L2["Level 2 — user pool"]
+        U["cross-project store: claim-keyed corpus + tag index<br/>(validated learnings)"]
     end
     subgraph L1["Level 1 — the project"]
         P["consume at start · produce at end<br/>(candidate learnings)"]
@@ -53,7 +53,7 @@ flowchart TB
 
 The outcome is identical at every level and concrete: a project that consumes good learnings makes fewer mistakes, finishes faster, and spends fewer tokens re-discovering what is already known.
 
-## The confidence ladder
+## The promotion gate — the pool's own discipline
 
 A lesson from a single project is an anecdote, and the pool says so. Each learning carries a confidence that rises on a ladder:
 
@@ -61,11 +61,15 @@ A lesson from a single project is an anecdote, and the pool says so. Each learni
 - **validated** — confirmed independently by a *second* project;
 - **core** — broadly applicable, curated at the enterprise level.
 
-Two rules keep the ladder honest, and both are GOTM principles you have already met — recast for the cross-project scale. First, **a candidate cannot promote itself.** However many times a lesson recurred *within* its own project, that is not validation; promotion to *validated* requires an **independent** project to hit the same wall and confirm it. This is the *auditor ≠ author* rule of chapter 6, lifted across the project boundary: the authoring project produces the candidate; only a different, later project confers validation. Because a learning's record carries a stable claim as its merge key and an appendable evidence list, the second project does not create a duplicate — it appends its evidence to the existing record and the confidence ticks up. The record grows; the pool does not bloat. Second, **a contradiction demotes.** A learning a later project contradicts is not silently overwritten — it is flagged for review and demoted. That demotion path is what stops a pool from rotting into confidently-wrong advice, the failure mode every "lessons learned" wiki eventually dies of.
+The promotion gate is the key addition — it is the pool's own discipline, and it is what stops the pool rotting into confidently-wrong advice, the failure mode every "lessons learned" wiki eventually dies of. The clean way to see it is that the pool *is a store*, and GOTM recursed one level up: it runs the same disciplines a project store already runs — **merge, don't duplicate** (claim-keyed append, not a growing pile of near-copies); **audit by independent confirmation** (a claim is only trusted once someone other than its author confirms it); **append, don't overwrite** (nothing already written is destroyed). Two rules make that concrete at the cross-project scale.
+
+First, **a candidate cannot promote itself.** However many times a lesson recurred *within* its own project, that is not validation; promotion `candidate → validated` requires an **independent** project to hit the same wall and confirm the same claim. This is the *auditor ≠ author* rule of chapter 6, lifted across the project boundary: the authoring project produces the candidate; only a different, later project — auditor ≠ author, now *across projects* — confers validation. Because a learning's record carries a stable claim as its merge key and an appendable evidence list, the second project does not create a duplicate: it appends its evidence to the existing record and the confidence ticks up. The record grows; the pool does not bloat.
+
+Second, **a contradiction demotes and flags — it never overwrites.** When a later project contradicts an existing learning, the pool does not silently replace the old advice with the new: it keeps both, marks the claim contested, appends the conflicting evidence, and demotes a `validated` claim back to `candidate` for a human to resolve. Overwriting would let the newest project win by recency; demote-and-flag lets *evidence* win, and preserves the trail. That append-not-overwrite path is what keeps the pool honest as it grows.
 
 ## What ships, and what is a binding
 
-One honest note, the same boundary the framework draws around its runtime hooks. The **steps** ship: produce is a paste-able retrospective prompt scaffolded by a `LEARNINGS.md` template; consume is a paste-able bootstrap prompt that scans the pool, tag-filters, and surfaces the matches. In adopter tooling each is a single command. What the framework deliberately does **not** ship is the **pool location** — *where* the learnings live and *how* they are indexed (a folder, a sibling-repo glob, a `~/.gotm/learnings/` store, an enterprise vector index). That is a platform binding. Point the consume step at any of them and the loop runs; scale the pool into an enterprise index and the same loop runs at organizational reach. Until a pool exists, consulting is honest about finding nothing — an empty pool is a valid result, not a silent skip.
+One honest note, the same boundary the framework draws around its runtime hooks. The **store, the steps, and the discipline** are specified concretely: a single merged corpus at the user tier, keyed by `claim` with appendable evidence and a generated tag index; produce distills then *merges* by claim; consume *queries* by tag; the promotion gate governs `candidate → validated` and demote-on-contradiction. The reference layout is a user-home `learnings/` store, sibling to each project's own store. What the framework deliberately does **not** hardcode is the **runtime binding** — the actual tool that reads and writes the corpus, and the exact path it resolves. That is the platform's job: an adopter wires produce and consume to whatever performs the claim-keyed merge and the tag query over the store, and each becomes a single command. Scale the same corpus into an enterprise semantic index (L3) and the same loop runs at organizational reach. Until a pool exists, consulting is honest about finding nothing — an empty pool is a valid result, not a silent skip.
 
 ## Closing
 

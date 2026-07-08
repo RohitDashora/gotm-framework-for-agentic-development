@@ -96,9 +96,42 @@ Write `LEARNINGS.md` to the store (project root, or under the subfolder layout),
 from the template: header, generated Index, Records, and the merge model. One file.
 It ships with the project as its contribution to the pool — the project's down
 payment on the next one. A future project's *consume* step
-([`consult.md`](consult.md)) reads exactly this. A produce step with no consumer is
-a write-only void, so the loop is only closed once a later driver consults what this
-one deposited.
+([`consult.md`](consult.md)) reads exactly this.
+
+## Merge into the shared pool — the write-back step
+
+Emitting `LEARNINGS.md` is only half the produce step. The pool is a **real merged
+store**, not a folder of lonely per-project files waiting for someday a consumer to
+glob them — so the loop **merges this project's records into it now**. The pool is
+the cross-project store at the **user tier** — a merged corpus that lives at a
+convention location (default `~/.gotm/learnings/`, resolved from `$HOME` so it is
+cross-project by construction), holding one record per `claim` with an appendable
+`evidence` list, fronted by a regenerated tag Index. Merge is a distinct, concrete
+step run after the file is written (a platform binding — a generically-named merge
+operation over the pool dir):
+
+1. **Merge by claim key.** For each record, if its `claim` already lives in the pool,
+   **append** this project's `evidence` (dedupe by `(project, ref)`) to the existing
+   record — never duplicate the record. If the `claim` is absent, **add** it as a new
+   `candidate`.
+2. **Promote on independent projects.** After appending, a claim whose `evidence`
+   now spans **≥2 distinct projects** promotes `candidate → validated` — an
+   *independent* project confirmed it (the *auditor ≠ author* rule of
+   `docs/06-keeping-it-honest.md`, lifted across the project boundary, mechanized as
+   distinct `project` values). The authoring project can never self-promote.
+3. **Contradiction demotes.** An incoming record whose `fix`/`claim` **opposes** an
+   existing one does **not** overwrite it: mark the existing record `contested`,
+   append the conflicting evidence with a note, and if it was `validated`, demote it
+   `→ candidate`. Every contested claim is flagged in the merge summary for a human
+   to resolve. `core` is never set by merge (enterprise-curated only).
+4. **Regenerate the Index and report** what merged: new candidates, evidence
+   appends, promotions, contested claims.
+
+This promotion gate is what keeps the shared pool from rotting — so the confidence a
+record carries when a later project *consults* it is meaningful, not self-asserted.
+A produce step with no consumer is a write-only void; a merge that never happens is
+that void. The loop closes only once records reach the pool and a later driver
+consults what this one deposited.
 
 → The consuming half is [`prompts/consult.md`](consult.md); the loop they close is
 described in [`docs/09-learning-across-projects.md`](../docs/09-learning-across-projects.md).
