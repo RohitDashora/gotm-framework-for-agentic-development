@@ -89,7 +89,7 @@ Copy-and-fill scaffolds for a new project:
 
 ## Two repos: the idea and the runtime
 
-This repo is the platform-neutral **idea** — the concept chapters, the prompts, and the templates, all plain markdown. Paste any prompt body into ChatGPT, Cursor, Cline, the Claude API, or raw chat and it works; nothing here is tied to a runtime. The companion **`gotm` plugin** is the **runtime** — it ships the executable layer the templates only *describe*: the scheduler command, the born-tiered ledger machinery, the compaction script, and the immutability hook (with the follow-on-ownership fix). The split is deliberate: the discipline lives here and survives any tool; the automation lives in the plugin.
+This repo is the platform-neutral **idea** — the concept chapters, the prompts, and the templates, all plain markdown. Paste any prompt body into ChatGPT, Cursor, Cline, the Claude API, or raw chat and it works; nothing here is tied to a runtime. The companion **`gotm` plugin** is the **runtime** — it ships the executable layer the templates only *describe*: the scheduler command, the born-tiered ledger machinery, the compaction script, the immutability hook (with the follow-on-ownership fix), and the **cross-project learning pool** (`~/.gotm/learnings/` + a `pool.py` that merges/queries it and enforces the promotion gate — `docs/09`'s L2 store, made real). The split is deliberate: the discipline lives here and survives any tool; the automation lives in the plugin.
 
 ## What's in this repo
 
