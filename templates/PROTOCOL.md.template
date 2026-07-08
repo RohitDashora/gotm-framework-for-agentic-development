@@ -36,6 +36,18 @@ This is *not* optional for "small" tasks. A one-line fix is still a worker dispa
 
 **5. Ratification ladder routes human decisions.** Some decisions are the human's; the ladder names which and routes them to `QUESTIONS.md`. See next section.
 
+## The ledger micro-schema (the Output cell is a machine key)
+
+The ledger is two things at once — a human narrative and a **machine-authoritative index**. The immutability hook, compaction, and the ready-set computation all reverse-engineer *(unit → owned paths, status, verdict)* out of the table. So the load-bearing cells are typed, not free prose.
+
+**The Output-cell contract.** An Output cell holds **concrete backticked path(s) only** — the literal files the unit produces:
+
+- **No globs, no directories.** `` `src/app.py` `` is valid; `` `src/*` `` or `` `pipelines/` `` is not. A directory Output would freeze every file under it (including new/untracked ones) and over-grant ownership — so it is forbidden, not "matched." List the concrete files.
+- **Multi-file = comma-separated backticks.** A unit that owns a module and its test writes `` `src/app.py`, `src/app_test.py` `` — every path is owned, in both directions (the hook parses **all** backticks, not just the first).
+- **No raw `|`.** A literal pipe in any cell shifts columns and makes the machine read Output at the wrong index. Use `/` instead, or escape it. This applies to the whole row, not just Output.
+
+**The ledger-parse lint (a mechanism, not a rule).** At **session-start reconciliation** — and on **every driver write** to the ledger — the driver runs a parse lint over the rows it touched: a row that **mis-splits to the wrong column count**, carries an **invalid status**, or has an **unparseable Output** (a glob, a bare directory, no backticks) is **rejected/flagged before it can mislead the hook**. Catching a malformed row at write time is the point — the alternative is the hook silently freezing the wrong file (or nothing) hours later. The hook itself **parses all backticked paths and fails safe** on a malformed row: it does not trust a wrong-column Output, it treats the row conservatively and surfaces it rather than silently mis-freezing.
+
 ## The ratification ladder
 
 When a question or decision arises during work, classify it and route:
@@ -53,11 +65,12 @@ The boundary is fixed: the human is never surprised by a mission-level decision 
 The driver runs a deterministic scheduler over the DAG. Full discipline: [`prompts/driver-loop.md`](prompts/driver-loop.md). In brief, repeat until the DAG drains:
 
 1. **Read the frontier → compute the ready set** (deps satisfied *and* audit gate open). Read the frontier, never the history.
-2. **Fan out** — dispatch a fresh worker per ready unit, in parallel, bounded by a **concurrency cap** (backpressure). Each carries only its bounded payload.
+2. **Fan out — stamp DISPATCHED only on proof.** Dispatch a fresh worker per ready unit, in parallel, bounded by a **concurrency cap** (backpressure). Each carries only its bounded payload. A unit becomes `in_progress`/DISPATCHED **only after its worker launch returns an id** — the id is the proof it actually launched. Never write the status first and dispatch after; the ledger must record verified fact, not intent.
 3. **Collect → record (single writer).** Each worker returns a **terse result** (pointer + index facts, never the body); the driver records status + pointer.
 4. **Audit → advance the gates.** Dispatch a separate audit worker per authored-done unit; for runtime units (deploy / infra / data) that **same audit worker** additionally exercises the live artifact as its real consumer to confer `verified-done` — one worker, one verdict, one report. A passing verdict opens the gate for downstream.
 5. **On failure → retry on a fresh worker** (inputs on disk = lineage recompute).
 6. **Checkpoint** — compact the frontier when over band; re-hydrate on any fresh start.
+7. **Turn-end reconcile** — before ending a turn, rescan the frontier: no `in_progress`/DISPATCHED row may lack a real dispatch id, and the ledger-parse lint (see *The ledger micro-schema*) must pass on every row the driver wrote this turn. A DISPATCHED row with no launched worker is drift — heal it (reset to ready, or dispatch now) before yielding.
 
 **The hard rule — fan-in is a worker, never the driver.** When N outputs must be merged (drafts → an arc, findings → a report), the merge **is a unit**: dispatch a fan-in worker that reads the N bodies *from the store* and returns one pointer. The driver records one row. Never pull N bodies into the driver to stitch them — that re-concentrates work into the long-lived context at every join, the exact monotonicity the role split exists to forbid. Default to **pipeline** (siblings flow author → audit → done independently); use a **barrier** only when a downstream genuinely needs all upstreams at once (synthesis, cross-unit audit, dedup/merge, the foundation→drafts gate), with an explicit barrier-failure policy.
 
@@ -66,6 +79,7 @@ The driver runs a deterministic scheduler over the DAG. Full discipline: [`promp
 Full contract: [`prompts/worker-dispatch.md`](prompts/worker-dispatch.md). A worker is born **stateless** — it has never seen the conversation, the mission, the ledger, or any prior worker — so everything it needs is in the dispatch. The test: *a fresh worker executes it from the dispatch alone.*
 
 - **Worker-context minimalism.** The dispatch carries exactly five things: a discipline pointer (read this protocol), unit identity, the **bounded inputs it actually consumes** (never the whole ledger, sibling outputs, or the conversation), one output path, and spec + constraints. A worker that needs more **reads it from the store itself** or **fans out** — the driver never broadens context "just in case."
+- **Forced detail-to-disk (mechanical, not aspirational).** The worker writes **full detail to its output/report file** and **returns ≤ ~8 lines** — a pointer to that file + a one-line verdict + any blocker. The driver records the **pointer, never the body**; ledger cells are summary + pointer, not prose dumps. An over-cap return (a worker that streams its report body back instead of writing it to disk) is a **defect** — treat it as a failed dispatch, not a convenience. This is what makes context economy a mechanism rather than a hope: nothing on the hot path is long-lived because the worker is contractually barred from putting it there.
 - **Terse structured result, not work product.** A worker returns a pointer plus a few index facts. The body stays on disk.
 - **Workers do not write the ledger** (or decisions, or questions). They produce one output and report; the driver — single writer — records.
 - **Workers mark `authored-done` only — never self-certify.** A producing worker can state the artifact exists; it can **not** confer `verified-done`. By audit time the executor is already discarded, so self-grading is structurally impossible.
@@ -77,15 +91,36 @@ Rule 4 in full. Two properties make the check meaningful — **structural indepe
 
 **Independence is structural, not a rule to remember.** The executor that produced the unit is an ephemeral worker, **already discarded** by the time anything checks it — so auditor ≠ author is not vigilance, there is no author left to grade itself. The driver dispatches a **separate audit worker every time**: fresh context, given only the **target output + the oracle** (the unit's inputs / spec / the relevant ledger), never the authoring session's transcript. One unit per audit, one report (`audits/<Uxx>.md`).
 
-**authored-done vs verified-done are distinct states.** **authored-done** = the output exists and a producing worker reported it. **verified-done** = an independent worker checked it — and for any **deploy / infra / data** unit, *exercised the live artifact as its real consumer* (a green build or a clean exit is **not** verification — only a real-consumer check is). Only an independent worker confers verified-done.
+**authored-done vs verified-done are distinct states.** **authored-done** = the output exists and a producing worker reported it. **verified-done** = an independent worker checked it — running the 7-point plus the unit's **kind-specific dimensions** (see *Typed verified-done* below); for any runtime kind (**ui / eval / deploy-infra / data**) that means *exercised the live artifact as its real consumer* under that kind's dimension (a green build or a clean exit is **not** verification — only a real-consumer check is). Only an independent worker confers verified-done.
 
 **The 7-point checklist.** Unless the unit calls for a specialized check, the auditor runs all seven: (1) **existence** — output exists at the stated path; (2) **spec match** — content matches what the unit promised; (3) **cross-reference integrity** — every `D<n>`/`U<n>`/`Q<n>` cited exists and says what's claimed; (4) **internal consistency** — no contradictions; (5) **decision fidelity** — honors the relevant `DECISIONS.md` entries; (6) **enforcement check** — for each *behavioral* decision, is there a gate/config/assertion that makes it hold, or is it only prose? (a documented-but-unenforced decision is a finding); (7) **multi-site claim check** — any "wired into both X and Y" / "applied across N sites" / "replaced everywhere" claim is verified by grep/count, not by trusting the prose. *(Checks 6–7 close the two blind spots that produced the only field FAILs: a documented-but-unenforced decision, and a half-applied bulk fix.)*
+
+**Typed verified-done — the unit declares a Kind.** "Exercise the live artifact" means something *different* per kind, and the generic check is widest-open exactly where "looks done ≠ is done." Each unit declares a **Kind** (default `authoring`); the auditor reads it and adds **kind-specific dimensions atop the 7-point**:
+
+| Kind | Dimensions added to the 7-point |
+|---|---|
+| **authoring** (default) | the 7-point alone. |
+| **ui** | **artifact-freshness** — rebuild from *current* source before auditing (never audit a stale served bundle); **objective machine checks** (DOM/bbox/counts, not worker prose about visuals); the driver/auditor views the result **firsthand**. |
+| **eval** (judge/measurement) | **harness-fairness** — equal-fidelity inputs to both sides, a **symmetric yardstick**, position/order bias controlled via **A/B swap**, and confounds controlled or explicitly labelled. For a unit whose *purpose* is to measure, correctness **is** harness fairness — a rigged harness yields confident-wrong conclusions the whole project leans on. |
+| **deploy-infra** | exercise the artifact **end-to-end as the deployed identity** (not "is it RUNNING" — run a real query/request as the app's own principal). A **hardcoded identity/endpoint** is a check-6 **enforcement finding** (a fragile binding that breaks on recreate). |
+| **data** | **re-query the target as the downstream consumer** (a green write is not verification; read it back through the path a consumer actually uses). |
+| **diagnosis** | **reproduce under controlled conditions** (strip model/harness/config confounds) **before** root-causing — never act on a confounded "X underperforms" signal. |
 
 **Verdict — one of three.** **`PASS`** (no findings above trivial); **`PASS-FINDINGS`** (consumable, but carries MEDIUM/LOW findings that become tracked non-blocking follow-on units); **`FAIL`** (one or more HIGH findings — blocks). HIGH ⇒ FAIL; MEDIUM/LOW-only ⇒ PASS-FINDINGS; clean ⇒ PASS.
 
 **The gate.** A downstream unit may **consume** an input only when that input's `Audit` is a passing verdict (`PASS` / `PASS-FINDINGS`). Drafts and code do not build on `pending` or `FAIL`. `done` (the output exists) and a passing verdict (an independent context checked it) are distinct — the column keeps them honest. **Findings become units, never edits:** the auditor does not fix; HIGH findings become fix units, MEDIUM/LOW become tracked follow-ons, and the audited output stays frozen.
 
 **Weight the audit by risk** (worker economy, not a project budget): a full independent audit for keystone/deploy/runtime units; a light existence+spec+compile worker for mechanical ones — don't spend a heavy audit where it isn't warranted, but never skip the gate.
+
+## Destructive-op gate (pre-execution)
+
+Every audit gate is **post-hoc** — it checks a unit *after* the artifact exists. That is fine for authoring, useless for an irreversible op: **you cannot audit away a deleted app.** Destructive ops need a gate *before* execution, not a verification after. This gate is distinct from the audit and runs earlier.
+
+**The gate.** Before a worker runs an **irreversible/destructive op**, the driver requires an **independent dry-run / plan produced and reviewed by a fresh context first** — and only dispatches the executing worker after that plan review passes. Gate *before*; do not verify *after*.
+
+**What trips it (initial, extensible):** any deploy/apply that can destroy or replace a live resource (an infra-bundle deploy, `terraform apply`), `DROP`, resource `delete`, config **unbind/rebind**, grant `REVOKE`, `git push --force`, and any irreversible data mutation (truncate / purge / overwrite-in-place).
+
+**The domain trap the plan-review catches:** *removing a resource from an IaC/bundle config and applying is a **DELETE*** — the apply reconciles config→state and destroys what left the config. **Decouple with `unbind` (detach from state), never delete-from-config.** A plan review surfaces the literal "destroy" line before it runs; vigilance does not.
 
 ## Anti-drift & the freeze
 

@@ -22,6 +22,21 @@ The two states are not synonyms for "drafted" and "reviewed." They mark *who* es
 
 The distinction earns its keep where the gap between "looks done" and "is done" is widest — the units that touch live systems. authored-done says the deploy script ran without error in the author's hands; verified-done says a separate context, acting as the real consumer, got the real artifact to respond correctly. Only the second is a claim the rest of the project can build on.
 
+### Verified-done is typed by unit kind
+
+"Exercise the live artifact as its real consumer" is the right instinct, but *what a real consumer does* is different for a UI than for an eval harness than for a deployed endpoint. A single generic check leaves the sharpest failures uncaught — so verified-done **specializes by the unit's declared kind**, and the audit reads that kind to pick its dimensions.
+
+Lead with the most dangerous kind. For a **measurement or eval** unit — one whose whole *purpose* is to compare or score — "the harness runs and emits a number" is not verified-done, because a **biased harness emits a confident-wrong number**, and a project that trusts it can spend weeks fixing the wrong thing. (One real case: a judge that penalized one arm for citing evidence it was never shown, so "plain retrieval wins" was an artifact of the yardstick, not the retrieval.) For these units correctness *is* harness fairness: equal-fidelity inputs on both sides, a symmetric yardstick, position/order bias controlled by an A/B swap, and every confound either eliminated or labelled. This is the single highest-value dimension the typing adds.
+
+The other kinds follow the same "drive it as reality will" rule, specialized:
+
+- **UI / visual** — rebuild from *current* source before checking (a stale served bundle is the wrong build), then judge with objective machine checks (DOM, bounding boxes, counts), not a worker's prose about how it "looks."
+- **deploy / infra** — exercise end-to-end **as the deployed identity**, not the author's. Recreating infra can mint a new principal whose grants don't carry over, so it "runs" but every real call fails.
+- **data** — re-query the target **the way the downstream consumer will**, not just confirm rows landed.
+- **diagnosis** — reproduce the reported failure under **controlled conditions** (strip model, harness, and config confounds) *before* root-causing, so the fix targets the real cause and not a confound.
+
+Across all of them the constant is unchanged — someone who was *not* the author drove the thing the way reality will — and the typing just makes "the way reality will" concrete for the kind of unit at hand.
+
 ## The freeze, and why findings become units
 
 Once a unit is done, its output is **frozen** — nothing edits it in place, not the driver, not a later worker, not a passing fix. The freeze is v2's immutability rule, kept because it is what makes the ledger trustworthy: a done unit's output is a stable artifact other units depend on, and an artifact you can silently rewrite is not a foundation, it is a moving target.

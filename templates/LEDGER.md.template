@@ -39,13 +39,16 @@ last_updated: <YYYY-MM-DD>
      still cites it as an input, COMPACT it down to a one-line `## Archive`
      entry (see Conventions -> compaction). `Inputs` lists the prior units whose
      outputs this one consumes — the dependency edges of the DAG (foundation
-     gate). `Status` distinguishes the v3 states (see Conventions). `Audit`
-     holds the verdict + a pointer to the report. -->
+     gate). `Status` distinguishes the v3 states (see Conventions). `Kind` types
+     the unit so the audit picks the right verified-done dimensions (see
+     Conventions). `Audit` holds the verdict + a pointer to the report. -->
 
-| ID | Title | Inputs | Output | Status | Audit |
-|---|---|---|---|---|---|
-| U7 | <some pending unit title> | U3, U5 | `<output/path>` | pending | — |
-| U6 | <some closed unit in the recent window> | U2 | `<output/path>` | verified-done | PASS→audits/U6.md |
+| ID | Title | Inputs | Output | Kind | Status | Audit |
+|---|---|---|---|---|---|---|
+| U7 | <some pending unit title> | U3, U5 | `<output/path>` | authoring | pending | — |
+| U8 | <a module + its test — one deliverable> | U3 | `<src/thing.ts>`, `<src/thing.test.ts>` | authoring | pending | — |
+| U9 | <a dashboard/component unit> | U6 | `<app/panel.tsx>` | ui | pending | — |
+| U6 | <some closed unit in the recent window> | U2 | `<output/path>` | authoring | verified-done | PASS→audits/U6.md |
 
 ## Archive
 
@@ -89,9 +92,38 @@ Conventions:
   construction (no second context ever writes back). See docs/03-work-as-a-dag.md.
 - IDs are flat (U1, U2, U3...). No prefixes for hierarchy. The DAG's structure
   lives in the `Inputs` edges, not in the IDs.
-- Each row produces ONE named output file (atomicity rule). A module + its test
-  file count as ONE unit (the natural grain) — atomicity is one deliverable, not
+- Each row produces ONE deliverable (atomicity rule). A module + its test file
+  count as ONE unit (the natural grain) — atomicity is one deliverable, not
   literally one file.
+- OUTPUT CELL = the machine's OWNERSHIP KEY (parsed by the immutability hook), so
+  it is a validated micro-schema, not free prose:
+    · Concrete backticked path(s) ONLY — `src/thing.ts`. NO globs, NO directories
+      (`pipelines/`, `{server,client}/src`, `foo/*.ts`): a directory Output would
+      over-freeze every file under it, incl. new/untracked ones, and a glob
+      realpaths to a literal that matches no concrete file, so it never enters the
+      ownership set. List the actual files.
+    · Multi-file deliverable → COMMA-SEPARATED backticks: `a.ts`, `b.ts`. The hook
+      parses EVERY backticked path, so the unit owns (freezes when closed / keeps
+      editable when an active follow-on) ALL of them, not just the first.
+    · NO raw `|` in ANY cell — a literal pipe shifts the columns and breaks the
+      positional parse. Use `/` or escape it. (The hook fails safe on a mis-split
+      row: it freezes nothing for that row rather than trust a shifted index.)
+- `Kind` types the unit so the audit picks the right verified-done dimensions.
+  Values (default `authoring`):
+    authoring     — code/docs; the standard 7-point audit.
+    ui            — a rendered/visual artifact; audit rebuilds from CURRENT source
+                    + objective machine checks (DOM/bbox/counts), no reliance on
+                    worker prose about visuals.
+    eval          — a measurement/judge/comparison; audit checks HARNESS FAIRNESS
+                    (equal-fidelity inputs, symmetric yardstick, A/B-swap for
+                    position bias, confounds controlled/labelled).
+    deploy-infra  — a deployed/stateful resource; audit exercises it end-to-end AS
+                    the deployed identity (a hardcoded identity/endpoint is a finding).
+    data          — a produced dataset/table; audit re-queries it as the downstream
+                    consumer.
+    diagnosis     — a "why is X broken" unit; audit requires a CONTROLLED
+                    reproduction (strip model/harness/config confounds) before any
+                    root-cause is accepted.
 - `Inputs` lists prior units whose outputs this one consumes — the dependency
   edges of the DAG. A unit is dispatchable only once every input is closed and
   past its audit gate (foundation = upstream topology, not a reminder).
@@ -134,11 +166,13 @@ Conventions:
   and is newest-first; `## Active unit` is a one-line pointer, never a dated
   banner stack. A second de-facto log forming is a reconciliation smell.
   See PROTOCOL.md -> Resilience.
-- A frontier row is also machine-parsed (the immutability hook reads it
-  positionally to decide what to freeze). Keep every `| U<n> |` row well-formed
-  — correct column count, a valid status, a parseable Output cell — so a botched
-  edit can't silently change what the hook freezes. See PROTOCOL.md ->
-  Anti-drift & the freeze / Resilience.
+- A frontier row is also machine-parsed (the immutability hook reads it by
+  COLUMN NAME to decide what to freeze). Keep every `| U<n> |` row well-formed —
+  correct column count (matching the header), a valid status, a parseable Output
+  cell of concrete backticked path(s) — so a botched edit can't silently change
+  what the hook freezes. The hook parses ALL backticked Output paths (multi-file
+  ownership) and FAILS SAFE on a mis-split row (freezes nothing for it rather than
+  trust a shifted index). See PROTOCOL.md -> Anti-drift & the freeze / Resilience.
 - ARCHIVE ENTRIES ARE ALSO MACHINE-PARSED, AND IN ONE CANONICAL SHAPE. The
   `## Archive` cold tier is a one-line BULLET per unit — never a table — in this
   exact form (fields separated by " · "; an adopter's immutability hook,

@@ -75,6 +75,14 @@ A frontier row is terse by design — an index entry, not a record of the work:
 
 One more rule makes the ledger safe: **only the driver writes it.** Workers do not touch the ledger; they execute and **return a terse structured result**, and the driver — the single writer — records status and output pointer. In v2, multiple contexts wrote back, and the same unit could land twice as duplicate rows. Single-writer discipline kills that race by construction.
 
+## The Output cell is a machine-authoritative key
+
+The ledger is two things at once — a **human narrative** of the project and a **machine index** the runtime parses. Most cells lean toward the narrative side; the driver reads them, not tooling. But a few are load-bearing for the machine, and the **Output cell is the sharpest of them**: it is the unit's **ownership key**. The freeze hook decides whether a given file-write is legitimate by matching the write's path against the Output cell of an active unit — so the cell is not a human's convenient shorthand for "roughly where the work lands," it is the exact identity the machine keys on.
+
+That double duty is a trap when the two readings diverge. A cell that reads well to a human — "the pipelines dir", a `{server,client}/src` brace-glob, a path with a stray `|` in an adjacent prose cell — parses to something the machine cannot match to a concrete file, so a sanctioned follow-on edit gets false-blocked while the human sees a perfectly sensible row. The fix is to type the field: the **Output cell holds concrete backticked path(s) — no globs, no bare directories, no raw `|`** (a directory would over-claim ownership of every file beneath it, including ones not yet written). A unit that legitimately produces several files lists them as comma-separated backticked paths; the hook parses *all* of them, not just the first.
+
+Keeping the field honest is itself mechanical: a **ledger-parse lint** runs when the driver writes the ledger and at the session-start reconcile, rejecting any row that mis-splits its columns, carries an unparseable Output, or holds a status the scheduler doesn't recognize — *before* that row can mislead the hook. The principle generalizes past this one cell: the ledger's load-bearing fields are **typed and validated**, so the machine index stays clean while the human narrative stays readable.
+
 ## Foundation is just DAG topology
 
 v2 carried a rule: *foundation before drafts* — do the groundwork (the research, the shared decisions, the reference material) before the work that builds on it. It was a sequencing reminder, and reminders erode.

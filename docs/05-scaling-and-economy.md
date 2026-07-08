@@ -59,6 +59,8 @@ flowchart LR
 
 The obvious-but-wrong alternative is for the driver to collect the N full results and merge them itself — it has the pointers, why not read and stitch? Because the driver is the *one long-lived context*. Pull N bodies in to merge them and that work now lives there **at every barrier** — a dozen joins re-concentrate a dozen piles of work into the driver, each permanent for the rest of the session. That is monotonicity, reintroduced one join at a time, the exact thing the driver/worker split exists to forbid. The fix is the load-bearing rule from chapter 2: *the driver carries the index, not the work.* A merge is work, so a merge is a worker. This is also why workers return **terse structured results** — a pointer plus a few index facts (status, output path, headline verdict), never the body. The driver merges *pointers*; the substance stays on disk.
 
+This economy cannot rest on the driver *choosing* not to hoard, because a worker that returns a long report will get its body absorbed no matter how disciplined the driver means to be. So the discipline is made **mechanical, in the dispatch contract**: every worker writes its full detail to its output or report file and **returns a pointer plus verdict plus blocker in roughly eight lines or fewer** — never the body. An over-cap return is treated as a **defect**, the same way a failing check is, not as verbosity to tolerate. The driver records the pointer and moves on; it never reads a body to record a status. This is the mechanical form of the fan-in-is-a-worker rule turned on every dispatch, not just merges: detail lives on disk, the long-lived context holds only the index.
+
 ### The rest of the spine
 
 Four more properties make fan-out scale cleanly:

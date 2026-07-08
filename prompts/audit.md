@@ -77,6 +77,54 @@ Add or substitute kind-specific checks (render, source-fidelity, …) where the 
 
 A thing is **verified-done** only when someone who was *not* the author drove it the way reality will. The author's own green result does not count.
 
+### 4b. Kind → extra checks (typed verified-done)
+
+The §4a runtime check is generic; "exercise the live artifact" means something **different per unit kind**. Read the unit's **Kind** (the ledger's `Kind` column; default `authoring`, kinds: `authoring` · `ui` · `eval` · `deploy-infra` · `data` · `diagnosis`) and run the kind-specific dimensions **atop** the 7-point + the §4a runtime check. A unit is not verified-done because it *ran* — it is verified-done when the kind-specific yardstick passes:
+
+    Kind → extra checks:
+
+    ui / visual
+      - artifact-freshness: rebuild the artifact from CURRENT source, then audit
+        that build — never a stale served bundle. (A "renders fine" on an old
+        bundle is a self-validation, not a check.)
+      - objective machine checks: assert DOM presence, bounding-box geometry,
+        element counts — not worker prose about what it "looks like."
+      - firsthand: the auditor views the rebuilt artifact itself; it does not
+        trust a description of the visuals.
+
+    eval / judge / measurement
+      - harness-fairness (correctness IS fairness for these units — a biased
+        harness yields confident-wrong conclusions the whole project leans on):
+        * equal-fidelity inputs to BOTH arms (same evidence depth, same context
+          budget — not titles-only on one side, full text on the other).
+        * symmetric yardstick: the scoring rubric penalizes/credits both arms by
+          the same rule; a cap that flags one arm's shown-but-uncited content as
+          "fabricated" is a rigged yardstick.
+        * A/B-swap for position bias: re-run with arms swapped; a verdict that
+          flips on order is position bias, not signal.
+        * confounds controlled or labelled: no arm carries an unrelated handicap
+          (weaker model, different config); if one does, it is controlled or the
+          result is labelled with the confound.
+      - An eval unit that merely runs and emits a number is NOT verified-done.
+
+    deploy-infra
+      - exercise end-to-end AS THE DEPLOYED IDENTITY: call/query as the service
+        principal / role the deployment actually runs under — "app is RUNNING"
+        proves nothing if every query fails under the real identity's grants.
+      - a hardcoded identity or endpoint is a check-6 enforcement finding: the
+        binding is a fragile default that breaks on recreation.
+
+    data
+      - re-query the target AS THE CONSUMER: read it exactly how the downstream
+        unit will (same identity, same query shape), confirm rows/schema are
+        really there — not the author's write-side confirmation.
+
+    diagnosis
+      - reproduce under controlled conditions BEFORE root-causing: strip
+        model / harness / config confounds and reproduce the symptom in
+        isolation. A root cause named from a confounded signal (e.g. "X
+        underperforms") risks fixing the wrong thing.
+
 ### 5. Risk-tier the audit weight
 
 Spend the audit budget where the risk is (worker economy, not vigilance):

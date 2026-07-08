@@ -60,12 +60,24 @@ minimalism). A worker that turns out to need more does **not** get it pushed in
 out** to sub-workers. The driver filters context *down* to this unit; it never
 broadens it.
 
-### 4. Output path (exactly one)
+### 4. Output path (concrete backticked path(s))
 
-    Output: <one/path.ext>
+    Output: `<one/path.ext>`
 
-One named artifact. If the unit hides more than one output, the dispatch is
-wrong — split the unit before dispatching.
+One named artifact per output. The declared Output is a **concrete backticked
+path** — the machine ownership key the immutability hook matches on. Therefore:
+
+- **No globs, no directories** (`pipelines/`, `{server,client}/src`, `*.py`). A
+  dir/glob realpaths to a literal that matches no concrete file, so ownership
+  never registers and legitimate follow-on edits get false-blocked.
+- **No raw `|`** anywhere in the cell (it is the ledger's column delimiter — a
+  literal pipe shifts columns and the hook reads Output at the wrong index). Use
+  `/` or escape it.
+- **Multi-file = comma-separated backticks** (`` `a`, `b` ``). Atomicity means
+  one *deliverable*, not one *file* — a module plus its test is one unit; list
+  every file it owns so the hook can freeze all of them. If the unit hides more
+  than one *deliverable*, the dispatch is wrong — split the unit before
+  dispatching.
 
 ### 5. Spec + constraints
 
@@ -81,21 +93,26 @@ What the output must be, complete enough to execute blind:
 
 ## What the worker returns — a terse structured result
 
-A worker returns a **pointer plus a few index facts** — never its full work
-product. The body stays on disk; the driver merges *pointers*, not bodies. This
-is what keeps fan-in cheap: if the driver collected full results, every join
-would re-concentrate work into the one long-lived context — monotonicity,
-reintroduced at each barrier (`docs/05` → the hard rule).
+**Detail-to-disk is mandatory, not a preference.** The worker writes its full
+detail — the artifact, the report, the findings, the numbers — to its output
+file, and **returns ≤ ~8 lines**: a pointer plus a few index facts, plus a
+blocker if any. **Never the body.** The body stays on disk; the driver merges
+*pointers*, not bodies. This is what makes context economy mechanical rather than
+aspirational: if the driver absorbed worker bodies, every join would
+re-concentrate work into the one long-lived context — monotonicity, reintroduced
+at each barrier (`docs/05` → the hard rule).
 
-    Return:
+    Return (≤ ~8 lines):
     - Output path written: <path>
     - Status: authored-done   (see "no self-certification" below)
     - One-line summary: <what it is>
     - Index facts: <e.g. word count, section list, headline number>
-    - Gaps surfaced: <missing input / ambiguous spec, or "none">
+    - Blocker / gaps surfaced: <missing input / ambiguous spec, or "none">
 
-If the result would not fit in a handful of lines, the worker is returning work,
-not an index — trim it to the pointer.
+An **over-cap return is a defect** — a worker that returns the body instead of a
+pointer has broken the contract, and the driver treats it as a failed dispatch
+(the detail belongs on disk; re-dispatch or trim). If the result would not fit in
+a handful of lines, the worker is returning work, not an index.
 
 ## Rules the worker obeys
 
@@ -144,8 +161,8 @@ The driver fills this in and sends it to the worker runner:
     - <path or pointer 1>
     - <path or pointer 2>
 
-    Output (write exactly this one file):
-    - <one/path.ext>
+    Output (write exactly this — concrete backticked path(s), no globs/dirs, no raw `|`):
+    - `<one/path.ext>`   (multi-file: `<a>`, `<b>`)
 
     Spec:
     - Sections / shape: <required structure>
@@ -155,12 +172,12 @@ The driver fills this in and sends it to the worker runner:
     Constraints:
     - <banned phrases / anonymization / fence + table conventions / other>
 
-    Return (terse — pointer + index facts, NOT the work product):
+    Return (≤ ~8 lines — pointer + index facts, NOT the work product; over-cap = defect):
     - Output path written
     - Status: authored-done
     - One-line summary
     - Index facts (word count / sections / headline number)
-    - Gaps surfaced, or "none"
+    - Blocker / gaps surfaced, or "none"
 
 ## After the worker returns
 
