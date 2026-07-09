@@ -136,6 +136,17 @@ self-grading is structurally impossible — which is the point.
 context." If a bounded input proves insufficient, the worker reads from the store
 or fans out — it never silently widens its own scope or invents missing decisions.
 
+**A worker never runs destructive shell operations outside its own task scratch
+directory.** No `rm -rf`, force-overwrite, `git clean`, or truncation anywhere but
+the worker's own scratch — and **NEVER** against the cross-project home stores under
+`~/.gotm/` (the learning pool `~/.gotm/learnings/` and the context pool
+`~/.gotm/context/`). When a unit exercises a pool/context tool (`pool.py` /
+`context.py`) to verify behavior, the worker always points it at a scratch store
+(`--pool <tmpdir>`) — it never operates on the default `~/.gotm` path and never
+deletes a home directory. These stores are cross-project and irreplaceable, and the
+driver's destructive-op pre-execution gate does **not** reach inside a dispatched
+worker — so this constraint is the worker's own to keep.
+
 ## Amortized batching — size the payload to a band
 
 The rule never bends: *always dispatch; the driver never edits a work artifact,

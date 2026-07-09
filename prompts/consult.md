@@ -59,8 +59,8 @@ path, and no further.
 3. **Tag-filter.** Keep the entries whose tags intersect this project's tags. (The
    query does this; sanity-check its output.) Drop the rest unread.
 4. **Expand the matches.** For the kept entries only, read the full record (`claim`,
-   `fix`, `scope`, `evidence`, `confidence`). Discard any whose `scope` clearly
-   does not fit this project after all.
+   `fix`, `scope`, `evidence`, `confidence`, `grounding`). Discard any whose `scope`
+   clearly does not fit this project after all.
 5. **Surface them where the driver and its workers will look.** Write the survivors
    to a context note in the store — `CONSULTED.md` — grouped by the phase or area
    they bite. A `prerequisite` becomes an early to-do; a `gotcha`/`anti-pattern`
@@ -68,6 +68,12 @@ path, and no further.
    carries the surviving lines; their detail still lives a pointer away.
 
 ## Confidence — a candidate is an anecdote, not a law
+
+Trust in a consulted learning is **two orthogonal axes** — weigh both, don't collapse
+them into one. **Axis B (evidence)** is the confidence gate below; **Axis A
+(authority)** is the constraint that facts and decisions impose, covered next.
+
+### Axis B — evidence: confirmation count, then grounding
 
 The confidence a consulted record carries is **meaningful** because the pool's merge
 enforces a promotion gate: `candidate → validated` happens only when an *independent*
@@ -84,17 +90,50 @@ and weight accordingly:
 - **core** — broadly applicable, enterprise-curated (never set by merge). Treat as
   common knowledge.
 
-Never let a consulted learning override a project decision silently. It informs;
-`DECISIONS.md` still governs. A learning that shapes a decision is cited in that
-decision's rationale (`evidence` flows both ways).
+Each learning now also carries **`grounding`** — *how* the claim was known, not how
+often — one of `observed | audited | decided`:
+
+- **observed** — seen in a ledger revert / a real run that went a particular way.
+- **audited** — established by a FAIL→fix that an audit caught and closed.
+- **decided** — asserted from a decision or preference, never reality-tested.
+
+Weight `observed`/`audited` **above** `decided`, *then* by confirmation count. A
+`grounding: observed` candidate is a **reality-tested hint** — the world already
+pushed back on it once, so it outranks a `grounding: decided` candidate, which is an
+**untested preference** someone merely chose. Carry each record's `grounding` through
+to the note alongside its `confidence`, and let the two combine: a well-grounded
+learning earns weight faster than a bare confirmation count implies.
+
+### Axis A — authority: a learning never silently overrides canonical context or a decision
+
+A consulted learning **informs; it never silently overrides** `canonical` context
+(from the context pool) or `DECISIONS.md`. Authority and evidence are orthogonal: a
+well-grounded, oft-confirmed learning is still *weighted*, not *obeyed* — it does not
+win by weight alone against something authoritative. Where the two axes collide, the
+**re-ratification rule** governs:
+
+- A **`validated`** learning that is **well-grounded** (`observed`/`audited`) and
+  contradicts a `DECISIONS.md` choice **forces a `QUESTION`** — re-ratification. It
+  neither silently wins nor is quietly dropped; the human re-decides with the new
+  evidence on the table.
+- A **`candidate`** learning that is `observed` (not yet validated) contradicting a
+  decision surfaces as a **note** in `CONSULTED.md`, not a `QUESTION` — a flag to
+  watch, not yet strong enough to force re-ratification.
+
+A learning that shapes a decision is cited in that decision's rationale (`evidence`
+flows both ways). This complements [`consult-facts.md`](consult-facts.md), which
+handles **facts** as Axis-A authority (the same 2-axis authority/evidence rule,
+stated for facts, lives there); this section covers the learning side of the same
+boundary.
 
 ## Output
 
 Write `CONSULTED.md` to the store: a short header naming the pool consulted (its
 location) and this project's filter tags, then the surviving learnings grouped by
-where they apply, each with its `claim`, `fix`, and `confidence`. If the pool was
-empty or none matched, say so plainly. One file; it is context, not a frozen
-deliverable, and may be refreshed when the work moves to a new area.
+where they apply, each with its `claim`, `fix`, `confidence`, and `grounding` (both
+axes visible). Include any Axis-A note or `QUESTION` the re-ratification rule raised.
+If the pool was empty or none matched, say so plainly. One file; it is context, not a
+frozen deliverable, and may be refreshed when the work moves to a new area.
 
 → The producing half is [`prompts/outcome-analysis.md`](outcome-analysis.md); the
 loop they close is described in
