@@ -2,6 +2,14 @@
 
 A discipline for surviving bounded-context agentic execution — when serious work spans hundreds of LLM sessions and many subagents and fits in none of them.
 
+## Why care — in 60 seconds
+
+**In plain English:** GOTM keeps a long-running agent's work from collapsing under context drift by moving memory out of the chat and into a durable **project store** — the agents become disposable **workers**, and the **project** becomes the source of truth.
+
+The trap it avoids: serious agentic work spans hundreds of sessions and fits in none of them. Context fills up, quality quietly degrades, and everything the agent "knew" vanishes at the session boundary — so it drifts, repeats itself, and eventually stalls. GOTM writes the plan, the decisions, and the progress to disk; runs each unit of work in a fresh throwaway agent; and rebuilds any lost context from the store. Nothing load-bearing lives only in the conversation.
+
+**Use it** for multi-session work where drift is expensive. **Skip it** for one-off tasks. New here? Start at [`docs/01`](docs/01-the-problem-and-thesis.md) — everything below is the same idea in more depth.
+
 ---
 
 **Your agent's context is scarce, lossy, and gone at the session boundary. GOTM makes the *project* the system of record — so any context can be thrown away and rebuilt from disk.**
