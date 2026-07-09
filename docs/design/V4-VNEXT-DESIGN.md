@@ -216,4 +216,4 @@ context.py status [--pool DIR]
 
 ### Phase 3 — finalize
 - **U-coherence-audit** ✅ — cross-repo sweep **GREEN**: 8 commands / 8 prompts; worker-guard ×2; shareable-default-yes ×4; `grounding` enum consistent; **no stale hierarchy**; README 14 v4 markers; framework `CONTEXT.md.template` round-trips via `context.py` (`MISSING: NONE`).
-- **Release** — **STAGED; awaiting user go** (outward-facing): commit framework repo (RohitDashora), sync plugin → marketplace monorepo + `marketplace.json` (4.0.0, desc match ≤200), PR to `databricks-eng/plugin-marketplace` (rohit-dashora_data), CI + owner approval + merge queue.
+- **Release** ✅ **shipped / in-flight** — **Framework:** PR #1 squash-merged to `main` (`0d80729`, 12 files, +876). **Marketplace:** PR [#8637](https://github.com/databricks-eng/plugin-marketplace/pull/8637) open (branch `gotm-v4.0.0`, `plugin-self-reviewed` labeled); `plugin.json`↔`marketplace.json` consistency verified (4.0.0 / 188-char desc match); `__pycache__` excluded, `REVIEWERS` preserved; CI running; **awaiting owner approval + merge queue** (external, not ours). gh restored to `RohitDashora`.
