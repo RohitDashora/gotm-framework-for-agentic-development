@@ -14,9 +14,9 @@ The trap it avoids: serious agentic work spans hundreds of sessions and fits in 
 
 **Your agent's context is scarce, lossy, and gone at the session boundary. GOTM makes the *project* the system of record — so any context can be thrown away and rebuilt from disk.**
 
-GOTM v3 reframes the whole problem as a **context economy**. Context is the binding resource: every token is paid for on every turn it survives, quality degrades long before the window overflows, and nothing crosses the session boundary unless it was written down. On a long project, getting this wrong does not fail loudly — it grinds to a halt under its own accumulated weight. That failure has a name: **monotonicity** — cost that grows without bound because work, recovery logs, and the plan all pile up in a long-lived context and get re-read forever.
+GOTM reframes the whole problem as a **context economy**. Context is the binding resource: every token is paid for on every turn it survives, quality degrades long before the window overflows, and nothing crosses the session boundary unless it was written down. On a long project, getting this wrong does not fail loudly — it grinds to a halt under its own accumulated weight. That failure has a name: **monotonicity** — cost that grows without bound because work, recovery logs, and the plan all pile up in a long-lived context and get re-read forever.
 
-GOTM v3 fixes monotonicity with one law: **nothing on the hot path is long-lived.** The durable store is the system of record; every working context is disposable and reconstructable from it. That law produces a three-role architecture.
+GOTM fixes monotonicity with one law: **nothing on the hot path is long-lived.** The durable store is the system of record; every working context is disposable and reconstructable from it. That law produces a three-role architecture.
 
 ## The thesis
 
@@ -77,7 +77,7 @@ The framework from first principles, each chapter a consequence of the one befor
 - [`docs/05-scaling-and-economy.md`](docs/05-scaling-and-economy.md) — fan-out/fan-in (fan-in = a worker reading the store, never the driver holding N results), worker-context minimalism, amortized batching, risk-tiered audits, model tiering
 - [`docs/06-keeping-it-honest.md`](docs/06-keeping-it-honest.md) — structural audit independence (a worker cannot grade itself); authored-done vs verified-done; the freeze
 - [`docs/07-resilience-and-memory.md`](docs/07-resilience-and-memory.md) — the two-level crash model (worker retry, driver re-hydrate) and the three-tier memory economy
-- [`docs/08-in-practice.md`](docs/08-in-practice.md) — adopting v3 across three tiers, interactive vs SDK driver, bootstrapping, and the worked example (this rewrite)
+- [`docs/08-in-practice.md`](docs/08-in-practice.md) — adopting GOTM across three tiers, interactive vs SDK driver, bootstrapping, and the worked example (this rewrite)
 - [`docs/09-learning-across-projects.md`](docs/09-learning-across-projects.md) — how finished projects compound: the **two** cross-project cold tiers — the learning pool (experience) and the context pool (facts) — that seed future drivers
 
 ## Operational prompts and templates
@@ -112,7 +112,7 @@ templates/    8 copy-and-fill scaffolds for a new project (root, or a .gotm/ sub
 CLAUDE.md     thin root bridge → .gotm/PROTOCOL.md (auto-loads the discipline each session)
 ```
 
-This project is itself driven as a v3 GOTM project: the conversation agent is the driver, every chapter / prompt / template was produced by a stateless worker and gated by an independent audit worker. The repo's own `.gotm/` is the live demonstration of the layout described in [`docs/08-in-practice.md`](docs/08-in-practice.md).
+This project is itself driven as a GOTM project: the conversation agent is the driver, every chapter / prompt / template was produced by a stateless worker and gated by an independent audit worker. The repo's own `.gotm/` is the live demonstration of the layout described in [`docs/08-in-practice.md`](docs/08-in-practice.md).
 
 ## How to start
 
