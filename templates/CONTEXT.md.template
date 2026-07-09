@@ -1,0 +1,100 @@
+# Context — <project name>
+
+> The project's **declarative** store — *what is true* (facts). It is the sibling of [`LEARNINGS.md`](LEARNINGS.md), the **procedural** store — *what I've learned* (methods). A fact answers *"what do I know is true?"*; a learning answers *"what have I learned to do?"*. Same shape (Index + Records + merge model), different rules — because facts and experience decay, promote, and are trusted differently.
+>
+> **Facts are point-in-time, obeyed, and privacy-gated.** Each fact carries `asof` + `volatility` (a decay clock — re-verify on a cadence, not "true forever"), is **obeyed not weighted** (a `canonical` fact *constrains* a worker; a learning only *informs* it), and carries `shareable` (the privacy gate — only `shareable: yes` ever rises to the enterprise pool).
+>
+> **Pin-on-discovery — the mid-project mechanic.** Unlike learnings (distilled once, at project end), a fact is pinned here *the moment a worker surfaces it*. A worker that discovers a fact mid-unit ("this column lies"; "this API needs that header") returns it on a `FACT: <subject> — <assertion>` line in its ≤8-line terse return; the **driver, as single writer, pins it here**. It is then a first-class, slice-able input the driver can hand to *this project's own* downstream workers as bounded context — not buried in `DECISIONS.md` prose or lost in chat. At project end a confirm-and-merge pass sets `shareable`/`volatility` and merges the shareable facts up.
+>
+> **Two consumers, one artifact.** A future project's driver (or the enterprise merge) scans the **Index** (one line each), filters to the `subject`/`tags` it's touching, and expands a record only when relevant — cheap to read. An aggregation layer ingests the **Records** and merges on `subject`. See *How facts differ from learnings* and *Shared pool* below, and `docs/09-learning-across-projects.md` for the full picture.
+
+## Index — generated from the Records below
+
+> Format: `` `subject` → value-gist  (kind · trust · asof · volatility) ``, sorted by subject. This mirrors `context.py`'s generated Index — a future driver reads this first and expands a record only when its `subject`/`tags` are relevant. A superseded or never-export record carries a trailing `[superseded→<id>]` / `[NEVER-EXPORT]` flag.
+
+- `main.fin_gold.contracts.paid_usage` → unreliable for consumption; real source is paid_usage_...  (schema · personal · 2026-03-27 · slow)
+- `repo:services/ dir layout` → single source of truth for Google/Slack/Glean/JIRA integrations  (convention · personal · 2026-04-02 · stable)
+
+### Example retrieval
+> A project touching `{databricks, consumption}` filters the Index to those tags → surfaces the `paid_usage` fact *before* querying, and (via its `links`) arrives *with* the method that computes the real value. The rest never enter its driver's context.
+
+## Records — source of truth
+
+Schema (mirrors `context.py`'s `RECORD SCHEMA` exactly — a hand-filled copy must `context.py merge` cleanly). Field-by-field:
+
+- `id` — `<project>/F<n>`, stable per record.
+- `subject` — **THE MERGE KEY**: a fully-qualified entity+attribute (a column, a path, a convention name). Merge is on `subject`, not the whole assertion — so a changed value *supersedes* the old rather than duplicating.
+- `fact` — the assertion in one line (what is true).
+- `kind` — `schema` | `resource` | `convention` | `constraint` | `entity` | `best-practice` (an endorsed/curated normative standard — the recommended way; distinct from a `pattern` learning, and it `links` to the method-learning that grounds it).
+- `value` — the value / what it means / what to do about it.
+- `tags` — `[<tech>, <domain>, <phase>]`, for retrieval.
+- `scope` — where this fact holds.
+- `asof` — `<YYYY-MM-DD>`; facts are point-in-time.
+- `volatility` — `stable` | `slow` | `volatile`; the decay clock (re-verify cadence — `stable` never auto-stales, `slow`≈180d, `volatile`≈30d).
+- `provenance` — **appendable** across projects/users; each row inline `- {project: .., user: .., ref: .., note: ".."}`. ≥2 *distinct users* on one subject promotes `personal → shared` (L3-only; never auto at a single-user L2).
+- `trust` — `personal` | `shared` | `canonical`. Facts **constrain**: `canonical` > `shared` > `personal`. `canonical` is curation-only — never minted by merge.
+- `shareable` — `yes` | `no`; the **privacy gate**. **Defaults `yes`** — a user's own facts are shareable within their own (L2) pool by default; set `no` **only** for genuinely private facts (accounts, comp, secrets, personal schedules). Only `yes` is ever exported upward; a `no` fact still merges into the L2 pool but is flagged NEVER-EXPORT so it never rises to `shared`/L3.
+- `links` — `[<learning-id>, ...]`; cross-links into `LEARNINGS.md` (methods). **Decompose-on-produce** (split a compound observation fact↔method), **relink-on-consume** (a pulled fact arrives *with* its linked method).
+- `superseded_by` — optional; set when a newer value replaces this one. Facts **supersede on change**: retain the old value + its `asof`, point it at the new record, **never overwrite**.
+
+```yaml
+- id: "<project>/F1"
+  subject: "main.fin_gold.contracts.paid_usage"
+  fact: "a NetSuite/financial field, not actual consumption — can read wildly high vs real spend"
+  kind: schema
+  value: "unreliable for consumption; the real source is paid_usage_metering (SUM(usage_dollars))"
+  tags: ["databricks", "finance", "consumption"]
+  scope: "consumption/spend reporting off the contracts tables"
+  asof: 2026-03-27
+  volatility: slow
+  provenance:
+    - {project: "<project>", user: "<id>", ref: "<D## or audit Uxx>", note: "column read 10x real spend in the dashboard unit"}
+  trust: personal
+  shareable: yes
+  links: ["<project>/L4"]
+
+- id: "<project>/F2"
+  subject: "repo:services/ dir layout"
+  fact: "services/ is the single source of truth for Google/Slack/Glean/Confluence/JIRA integrations"
+  kind: convention
+  value: "import from services.google_api; never duplicate get_token()/api_call() or hardcode the auth script path"
+  tags: ["repo-convention", "integrations", "setup"]
+  scope: "any script in this repo needing a Google/Slack/Glean/JIRA integration"
+  asof: 2026-04-02
+  volatility: stable
+  provenance:
+    - {project: "<project>", user: "<id>", ref: "<D##>", note: "codified in RULES.md; two prior wrappers deleted"}
+  trust: personal
+  shareable: yes
+  links: []
+
+# - id: "<project>/F3"
+#   subject: "<entity+attribute — the merge key>"
+#   fact: "<the assertion — what is true>"
+#   kind: entity              # schema | resource | convention | constraint | entity | best-practice
+#   value: "<the value / what it means / what to do about it>"
+#   tags: ["<tech>", "<domain>", "<phase>"]
+#   scope: "<where this holds>"
+#   asof: <YYYY-MM-DD>
+#   volatility: stable        # stable | slow | volatile
+#   provenance:
+#     - {project: "<project>", user: "<id>", ref: "<D##/audit>", note: "<observed>"}
+#   trust: personal           # personal | shared | canonical (canonical = curation-only)
+#   shareable: yes            # yes | no  (only yes ever exports upward)
+#   links: []                 # cross-links into LEARNINGS.md (methods)
+#   # superseded_by: "<id>"   # set ONLY when a newer value replaces this one
+```
+
+## How facts differ from learnings
+
+Same Index + Records + merge shape as `LEARNINGS.md`, but the semantics diverge on three axes — because a fact is *what is true* and a learning is *what worked*:
+
+- **Decay.** A fact decays by **change** → `superseded` (retain old value + `asof`, point it at the new; never overwrite). A learning decays by **contradiction** → `contested` + demote. A fact isn't "wrong" when it changes — it *was* true `asof` then; a learning that gets contradicted *was* mistaken.
+- **Promotion.** A fact promotes by **commonality + curation** — ≥2 distinct *users* pin the same `subject` (`personal → shared`), then an authority endorses (`→ canonical`). A learning promotes by **independent confirmation** — ≥2 independent *projects* confirm the same `claim` (`candidate → validated → core`). `canonical` is never minted by merge.
+- **Privacy.** Facts carry a **`shareable` gate the learning pool lacks** — only `shareable: yes` ever rises to the enterprise pool; `shareable: no` (accounts, comp, secrets) stays local, flagged NEVER-EXPORT. The upward flow for facts is partly a *filter*, not just a promotion.
+
+And on trust: a `canonical` fact **outranks** `DECISIONS.md`-consulted learnings — facts constrain, learnings inform. A learning that contradicts a `canonical` fact loses (or raises a `QUESTION`); a learning that contradicts a `personal` fact is signal — surface it.
+
+## Shared pool
+
+The cross-project shared pool is `~/.gotm/context/CONTEXT.md`, merged via `context.py merge` (supersede-on-change, provenance-append, promote-on-≥2-users, `shareable:no` never-exported). The runtime binding — the tool, the `/gotm:context` command, the `FACT:` worker-return convention — lives in the plugin; **the discipline lives here** (pin-on-discovery, decompose/relink, confirm-and-merge at project end). A newcomer with no plugin can adopt from this template + the docs alone.

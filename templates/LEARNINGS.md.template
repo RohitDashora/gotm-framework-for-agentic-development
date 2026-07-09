@@ -8,17 +8,17 @@
 
 ## Index — generated from the Records below
 
-> Format: `L#  [tags]  claim → fix-gist.  (kind · confidence · source)`. This is what a future driver reads first; it expands a record only when its tags are relevant.
+> Format: `L#  [tags]  claim → fix-gist.  (kind · confidence · grounding · source)`. This is what a future driver reads first; it expands a record only when its tags are relevant.
 
-- `L1  [<tag>·<tag>]` <one-line claim> → <fix gist>. *(gotcha · candidate · <ref>)*
-- `L2  [<tag>]` <one-line claim> → <fix gist>. *(prerequisite · candidate · <ref>)*
+- `L1  [<tag>·<tag>]` <one-line claim> → <fix gist>. *(gotcha · candidate · observed · <ref>)*
+- `L2  [<tag>]` <one-line claim> → <fix gist>. *(prerequisite · candidate · decided · <ref>)*
 
 ### Example retrieval
 > A project touching <X> filters the index to tags `{<tag>, <tag>}` → surfaces L#, L# before starting, and expands only those. The rest never enter its driver's context.
 
 ## Records — source of truth
 
-Schema: `id` · `claim` (the merge key) · `kind` (`gotcha` | `prerequisite` | `pivot` | `pattern` | `anti-pattern`) · `tags` (tech / domain / phase, for retrieval) · `fix` (actionable) · `scope` (where it applies) · `evidence[]` (appendable — which project, which `D##`/audit) · `confidence` (+ optional `strength`).
+Schema: `id` · `claim` (the merge key) · `kind` (`gotcha` | `prerequisite` | `pivot` | `pattern` | `anti-pattern`) · `tags` (tech / domain / phase, for retrieval) · `fix` (actionable) · `scope` (where it applies) · `evidence[]` (appendable — which project, which `D##`/audit) · `confidence` (+ optional `strength`) · `grounding` (`observed` | `audited` | `decided` — how the learning was known).
 
 ```yaml
 - id: <project>/L1
@@ -30,6 +30,7 @@ Schema: `id` · `claim` (the merge key) · `kind` (`gotcha` | `prerequisite` | `
   evidence:
     - {project: <project>, ref: <D## or audit Uxx>, note: "<what was observed>"}
   confidence: candidate   # candidate (1 project) → validated (≥2 independent) → core
+  grounding: observed     # observed (a LEDGER revert/pivot/supersession) | audited (independent FAIL→fix verdict) | decided (a DECISIONS.md choice, may be untested)
   strength: "<within-project weight, e.g. '1 decision' or 'recurred ~6 units'>"
 
 # - id: <project>/L2
@@ -40,4 +41,5 @@ Schema: `id` · `claim` (the merge key) · `kind` (`gotcha` | `prerequisite` | `
 
 - **Ladder.** `candidate` (seen in 1 project) → `validated` (≥2 *independent* projects confirm the same `claim`) → `core` (enterprise-curated, broadly applicable). A project can't mint `validated` on its own — that needs independent confirmation (the *auditor ≠ author* principle, lifted across the project boundary).
 - **Strength** weights a candidate by recurrence *within* this project; it never substitutes for cross-project confirmation. A lesson the audits flagged across many units is a sturdy candidate — still a candidate.
+- **Grounding** is the *within-record evidence axis* (Axis B): how the learning was known — `observed`/`audited` outweigh `decided` on a tie (reality corrected the agent, vs. an untested choice). It complements the candidate→validated *count* axis (Axis B's cross-record side) rather than replacing it. Absent = `decided`/unknown (back-compat); the merge key stays `claim`.
 - **Merge.** Match incoming records on `claim`; on a match, **append** the new `evidence` and recompute `confidence` — the second project doesn't create a duplicate, it ticks the existing record up. The record grows; the pool does not bloat. On a **contradiction** (a later project reports the opposite outcome), don't overwrite — flag for review and demote. That demotion path is the decay that keeps the pool from rotting into stale, confidently-wrong advice.

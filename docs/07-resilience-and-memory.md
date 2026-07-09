@@ -49,6 +49,12 @@ flowchart TB
 
 The relationships run downward. T1 is reconstructed from T2 — that *is* re-hydration: a dead driver rebuilt from the frontier. T2 is reconstructed from T3 when needed — a compacted ledger cell still points at the full audit and decision detail in the cold tier, so nothing is gone, only moved off the path read every turn. Each tier is the recovery medium for the one above it: the volatile tier is small and cheap to rebuild, the durable tiers large and rarely touched, and no recovery move ever requires reading the big cold tier on the **hot path**.
 
+## A second axis: provenance
+
+The three tiers sort memory by **heat** — how long a piece of context lives before it is reconstructed. That is one axis. Cutting across it is a second, orthogonal one: **provenance** — not *how hot* the knowledge is but *what kind* it is, and therefore how much to trust it. Three provenances: **session** memory — the ephemeral work of a single run (the worker's bounded context, the driver's T1) — which is what this whole chapter is about; **experience** — earned, weighted lessons distilled from past projects (the learning pool); and **facts** — given, authoritative truths about the world the work lives in (the context pool).
+
+The distinction is load-bearing because the two axes answer different questions. The heat axis (T1/T2/T3) says *how long context lives*; the provenance axis says *what kind it is and how much to trust it* — **facts are obeyed; experience is weighted**. The two cross-project provenances — experience and facts — and their pools are the subject of [`docs/09`](09-learning-across-projects.md).
+
 ## Compaction is the anti-monotonicity mechanism
 
 The reason a thousand-unit project reads no more per turn than a ten-unit one is **compaction** — precisely what the v2 ledger lacked (chapter 1). Here is the mechanism, and why it loses nothing.

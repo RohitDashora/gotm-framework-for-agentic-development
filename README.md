@@ -70,7 +70,7 @@ The framework from first principles, each chapter a consequence of the one befor
 - [`docs/06-keeping-it-honest.md`](docs/06-keeping-it-honest.md) — structural audit independence (a worker cannot grade itself); authored-done vs verified-done; the freeze
 - [`docs/07-resilience-and-memory.md`](docs/07-resilience-and-memory.md) — the two-level crash model (worker retry, driver re-hydrate) and the three-tier memory economy
 - [`docs/08-in-practice.md`](docs/08-in-practice.md) — adopting v3 across three tiers, interactive vs SDK driver, bootstrapping, and the worked example (this rewrite)
-- [`docs/09-learning-across-projects.md`](docs/09-learning-across-projects.md) — how finished projects compound: the learning pool as a cold tier that seeds future drivers
+- [`docs/09-learning-across-projects.md`](docs/09-learning-across-projects.md) — how finished projects compound: the **two** cross-project cold tiers — the learning pool (experience) and the context pool (facts) — that seed future drivers
 
 ## Operational prompts and templates
 
@@ -82,21 +82,23 @@ Paste-ready bodies a practitioner runs in any LLM:
 - [`prompts/session-start.md`](prompts/session-start.md) — the driver boot: re-hydrate from the store + reconcile against disk (no compaction hook)
 - [`prompts/consult.md`](prompts/consult.md) — start-of-project: query the cross-project learning pool by tag, surface the few that apply (confidence weighted by the promotion gate)
 - [`prompts/outcome-analysis.md`](prompts/outcome-analysis.md) — end-of-project: distill the record into transferable learnings and merge them into the shared pool (candidate → validated via an independent project)
+- [`prompts/consult-facts.md`](prompts/consult-facts.md) — start-of-project: query the cross-project **context pool** for authoritative *facts* by subject/tag (declarative sibling of `consult`; facts are obeyed, not weighted — prefers current records, trust as caveat)
+- [`prompts/context-analysis.md`](prompts/context-analysis.md) — pin facts on discovery (the `FACT:` return convention) and, at end, merge the shareable ones into the context pool (declarative sibling of `outcome-analysis`; supersede-on-change, the `shareable` privacy gate, decompose/relink)
 
 Copy-and-fill scaffolds for a new project:
 
-- [`templates/`](templates/) — `PROTOCOL.md` (driver/worker/store, the loop, the Output micro-schema + ledger-parse lint, typed verified-done, the destructive-op gate), `LEDGER.md` (born-tiered: frontier + archive, with the `Kind` column and Output-contract conventions), `DECISIONS.md`, `QUESTIONS.md`, `README.md`, `LEARNINGS.md`, `CONSULTED.md`
+- [`templates/`](templates/) — `PROTOCOL.md` (driver/worker/store, the loop, the Output micro-schema + ledger-parse lint, typed verified-done, the destructive-op gate), `LEDGER.md` (born-tiered: frontier + archive, with the `Kind` column and Output-contract conventions), `DECISIONS.md`, `QUESTIONS.md`, `README.md`, `LEARNINGS.md`, `CONSULTED.md`, `CONTEXT.md` (declarative facts — the `subject`-keyed sibling of `LEARNINGS.md`)
 
 ## Two repos: the idea and the runtime
 
-This repo is the platform-neutral **idea** — the concept chapters, the prompts, and the templates, all plain markdown. Paste any prompt body into ChatGPT, Cursor, Cline, the Claude API, or raw chat and it works; nothing here is tied to a runtime. The companion **`gotm` plugin** is the **runtime** — it ships the executable layer the templates only *describe*: the scheduler command, the born-tiered ledger machinery, the compaction script, the immutability hook (with the follow-on-ownership fix), and the **cross-project learning pool** (`~/.gotm/learnings/` + a `pool.py` that merges/queries it and enforces the promotion gate — `docs/09`'s L2 store, made real). The split is deliberate: the discipline lives here and survives any tool; the automation lives in the plugin.
+This repo is the platform-neutral **idea** — the concept chapters, the prompts, and the templates, all plain markdown. Paste any prompt body into ChatGPT, Cursor, Cline, the Claude API, or raw chat and it works; nothing here is tied to a runtime. The companion **`gotm` plugin** is the **runtime** — it ships the executable layer the templates only *describe*: the scheduler command, the born-tiered ledger machinery, the compaction script, the immutability hook (with the follow-on-ownership fix), and the **two cross-project pools** — the learning pool (`~/.gotm/learnings/` + `pool.py`, for experience) and the context pool (`~/.gotm/context/` + `context.py`, for facts), each enforcing its own promotion gate — `docs/09`'s L2 stores, made real. The split is deliberate: the discipline lives here and survives any tool; the automation lives in the plugin.
 
 ## What's in this repo
 
 ```
 docs/         9 concept chapters — the framework from first principles
-prompts/      6 operational prompts a practitioner pastes into their LLM
-templates/    7 copy-and-fill scaffolds for a new project (root, or a .gotm/ subfolder)
+prompts/      8 operational prompts a practitioner pastes into their LLM
+templates/    8 copy-and-fill scaffolds for a new project (root, or a .gotm/ subfolder)
 .gotm/        this repo's own GOTM machinery — a working meta-example:
                 PROTOCOL.md · LEDGER.md (born-tiered) · DECISIONS.md · QUESTIONS.md · audits/
 CLAUDE.md     thin root bridge → .gotm/PROTOCOL.md (auto-loads the discipline each session)

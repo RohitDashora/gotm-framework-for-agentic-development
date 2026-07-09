@@ -34,14 +34,18 @@ A GOTM project wrote its reasoning down as it went; that is the raw material. Yo
 do **not** need the chat transcript — transcript-independence means the store is
 sufficient.
 
-- **`DECISIONS.md`** — the richest source. Every decision carries its rationale;
-  reversals and refinements mark the **pivots** (a constraint forced plan A → B).
-  Most learnings come from here.
-- **`audits/`** — findings, especially a class of issue that **recurs across
-  units**, are **anti-patterns**: a warning the auditor kept having to give.
-- **`LEDGER.md`** — supersession chains and the recovery log show where work
-  churned and why; weaker signal, useful context. Read the archive tier here, not
-  just the frontier — closed units are exactly what holds the finished lessons.
+- **`LEDGER.md`** — the **primary, richest** source. Reverts, supersession chains,
+  and retries record what **reality did to the plan** — the strongest gotchas and
+  anti-patterns, because a revert is *evidence* (something actually went wrong), not
+  intention. Read the archive tier here, not just the frontier — closed units are
+  exactly what holds the finished lessons.
+- **`audits/`** — equally primary. An independent FAIL→fix verdict, especially a
+  class of issue that **recurs across units**, is an **anti-pattern**: a warning the
+  auditor kept having to give, grounded in a real correction.
+- **`DECISIONS.md`** — **authoritative but possibly untested**. Every decision
+  carries its rationale, so still read it — it is where the *why* lives. But a
+  decision is an **intention** that may never have been exercised; it is weaker
+  evidence than an observed correction (a ledger revert or an audit FAIL).
 
 ## How to extract — filter, generalize, dedupe
 
@@ -55,9 +59,14 @@ sufficient.
    **prerequisite** (do/grant/verify X before Y), **pivot** (a constraint forced a
    change), **pattern** (worked, repeatable), **anti-pattern** (failed, repeatable —
    often a recurring audit finding).
-4. **Dedupe.** Two records describing the same trap collapse into one `claim` with
+4. **Stamp `grounding`** — how the learning was *known*: **`observed`** (from a
+   `LEDGER.md` revert / pivot / supersession — reality corrected the agent),
+   **`audited`** (from an independent `audits/` FAIL→fix verdict), or **`decided`**
+   (from a `DECISIONS.md` choice — an intention that may be untested). `observed` and
+   `audited` are the strongest evidence; `decided` is authoritative-but-possibly-untested.
+5. **Dedupe.** Two records describing the same trap collapse into one `claim` with
    multiple `evidence` entries.
-5. **Tag** for retrieval — tech, domain, and (optionally) the phase where the lesson
+6. **Tag** for retrieval — tech, domain, and (optionally) the phase where the lesson
    bites (`design` / `build` / `deploy`).
 
 ## The record — source of truth
@@ -73,6 +82,7 @@ Emit each learning as a structured record per `templates/LEARNINGS.md.template`:
       evidence:
         - {project: <this project>, ref: <D## / audit Uxx>, note: "<observed>"}
       confidence: candidate
+      grounding: <observed|audited|decided>
       strength: "<within-project weight>"
 
 Then generate the **Index** at the top of `LEARNINGS.md` — one tag-prefixed line
