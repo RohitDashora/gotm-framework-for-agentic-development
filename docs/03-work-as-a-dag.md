@@ -4,7 +4,7 @@ The previous chapter named the three roles — **driver**, **worker**, **store**
 
 ## The unit is a self-contained worker dispatch spec
 
-A **unit** is the atom of work. In v2 a unit was "one pass, one output." That was right but underspecified: it described the *size* of the work without pinning down the thing that actually makes the architecture run. In v3 a unit is a **self-contained worker dispatch spec** — and that phrase is the load-bearing one.
+A **unit** is the atom of work. In v2 a unit was "one pass, one output." That was right but underspecified: it described the *size* of the work without pinning down the thing that actually makes the architecture run. In GOTM a unit is a **self-contained worker dispatch spec** — and that phrase is the load-bearing one.
 
 A worker is born stateless. It has never seen the conversation, the mission, the other units, or any prior worker's context. Everything it needs to do its job must be *in the dispatch*. So a unit is exactly that payload:
 
@@ -37,7 +37,7 @@ flowchart LR
 
 *A small unit DAG: a foundation unit upstream of the dependents it feeds; the synthesis is a fan-in node that waits on all of its upstreams. Edges are dependencies, and a unit is dispatchable only once its upstreams are done.* The **ledger** is where that graph lives, and it carries two things at once: the *topology* (which units exist, what each depends on) and the *scheduler state* (the status of each unit — ready, active, done, blocked). The ledger is the plan and the runtime state in one structure.
 
-This is a sharp break from v2, where the ledger was a flat, append-only log, re-read whole on every turn. As chapter 1 recounted, that design was **monotonic**: a unit closed weeks ago still paid its full cell on every re-read, forever, until the record of the work outweighed the work. The v3 ledger is **born tiered** — split into two tables from the first unit, not compacted as an afterthought:
+This is a sharp break from v2, where the ledger was a flat, append-only log, re-read whole on every turn. As chapter 1 recounted, that design was **monotonic**: a unit closed weeks ago still paid its full cell on every re-read, forever, until the record of the work outweighed the work. The GOTM ledger is **born tiered** — split into two tables from the first unit, not compacted as an afterthought:
 
 | Tier | Holds | Read | Cost shape |
 |---|---|---|---|
@@ -75,6 +75,7 @@ A frontier row is terse by design — an index entry, not a record of the work:
 
 One more rule makes the ledger safe: **only the driver writes it.** Workers do not touch the ledger; they execute and **return a terse structured result**, and the driver — the single writer — records status and output pointer. In v2, multiple contexts wrote back, and the same unit could land twice as duplicate rows. Single-writer discipline kills that race by construction.
 
+
 ## The Output cell is a machine-authoritative key
 
 The ledger is two things at once — a **human narrative** of the project and a **machine index** something parses. Most cells lean toward the narrative side; the driver reads them, and nothing else needs to. But a few are load-bearing for the machine, and the **Output cell is the sharpest of them**: it is the unit's **ownership key**. Whatever enforces the freeze — the driver's own pre-write check, or an optional file-write hook where the runtime offers one — decides whether a given write is legitimate by matching the write's path against the Output cell of an active unit. So the cell is not a human's convenient shorthand for "roughly where the work lands"; it is the exact identity the freeze keys on.
@@ -87,7 +88,7 @@ Keeping the field honest is itself mechanical: a **ledger-parse lint** runs when
 
 v2 carried a rule: *foundation before drafts* — do the groundwork (the research, the shared decisions, the reference material) before the work that builds on it. It was a sequencing reminder, and reminders erode.
 
-In v3 it stops being a reminder and becomes a **property of the graph**. **Foundation** units are simply the *upstream nodes* of the DAG — the ones with no unmet dependencies that many other units list as inputs. The scheduler respects dependencies natively (next chapter): a draft unit declaring the research unit as a dependency *cannot* be dispatched until that dependency is done. "Foundation before drafts" is no longer something to remember and enforce; it is what a correct topological walk of the DAG *does*. The discipline is encoded in the edges, not in the operator's vigilance.
+In GOTM it stops being a reminder and becomes a **property of the graph**. **Foundation** units are simply the *upstream nodes* of the DAG — the ones with no unmet dependencies that many other units list as inputs. The scheduler respects dependencies natively (next chapter): a draft unit declaring the research unit as a dependency *cannot* be dispatched until that dependency is done. "Foundation before drafts" is no longer something to remember and enforce; it is what a correct topological walk of the DAG *does*. The discipline is encoded in the edges, not in the operator's vigilance.
 
 ## Two done states — a preview
 

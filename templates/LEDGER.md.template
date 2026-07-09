@@ -39,7 +39,7 @@ last_updated: <YYYY-MM-DD>
      still cites it as an input, COMPACT it down to a one-line `## Archive`
      entry (see Conventions -> compaction). `Inputs` lists the prior units whose
      outputs this one consumes — the dependency edges of the DAG (foundation
-     gate). `Status` distinguishes the v3 states (see Conventions). `Kind` types
+     gate). `Status` distinguishes the states (see Conventions). `Kind` types
      the unit so the audit picks the right verified-done dimensions (see
      Conventions). `Audit` holds the verdict + a pointer to the report. -->
 
@@ -127,7 +127,7 @@ Conventions:
 - `Inputs` lists prior units whose outputs this one consumes — the dependency
   edges of the DAG. A unit is dispatchable only once every input is closed and
   past its audit gate (foundation = upstream topology, not a reminder).
-- Status — the v3 lifecycle, FIVE states:
+- Status — the lifecycle, FIVE states:
     pending        — born, not yet dispatched (a leaf of the ready-set once
                      its inputs clear).
     in_progress    — a worker is executing it (or it is mid-recovery).

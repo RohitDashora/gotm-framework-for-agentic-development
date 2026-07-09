@@ -13,7 +13,7 @@ The audit runs as a worker dispatch (`worker-dispatch.md`) with the audit-specif
 
 ### Independence is structural (not a rule to remember)
 
-In v3 the executor that produced the unit is an **ephemeral worker, already discarded** by the time anything checks the unit. So **auditor ≠ author** is not vigilance — there is no author left to grade itself. Therefore:
+In GOTM the executor that produced the unit is an **ephemeral worker, already discarded** by the time anything checks the unit. So **auditor ≠ author** is not vigilance — there is no author left to grade itself. Therefore:
 
 - **The driver dispatches a separate audit worker, every time.** Fresh context, no memory of producing anything.
 - **The audit worker receives only the Target + the Oracle + the checks below** — never the authoring session's transcript, plan, or reasoning. The producing context is gone; do not reconstruct it.

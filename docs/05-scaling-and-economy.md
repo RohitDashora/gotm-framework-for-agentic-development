@@ -4,7 +4,7 @@ The previous chapter set the DAG in motion, one unit at a time. This chapter is 
 
 ## Fan-out and fan-in — the parallelism spine
 
-Two primitives carry all the parallelism. **Fan-out** is dispatching N independent workers at once. **Fan-in** is joining their outputs at a **barrier** — where a downstream unit needs several upstreams before it can run. Getting these right is most of v3's leverage and most of where it can relapse, so the rules are worth stating sharply.
+Two primitives carry all the parallelism. **Fan-out** is dispatching N independent workers at once. **Fan-in** is joining their outputs at a **barrier** — where a downstream unit needs several upstreams before it can run. Getting these right is most of GOTM's leverage and most of where it can relapse, so the rules are worth stating sharply.
 
 **Minimize barriers; default to pipeline.** The batch-systems instinct is to think in stages — author *all* the units, then audit *all*, then mark *all* done — with a barrier between each. That is wrong here: a barrier makes every unit wait for the slowest sibling in its stage, so wall-clock becomes the *sum* of stage maxima. The default instead is a **pipeline** — each unit flows author → audit → done **independently**, going straight to its own audit while siblings still draft. Wall-clock collapses to the **slowest single chain** through the DAG, not the sum of stages.
 
@@ -21,7 +21,7 @@ Everywhere else, pipeline. The foundation→drafts gate from chapter 3 is a real
 
 ### The hard rule: fan-in is a fresh worker reading the store
 
-This is the single most important rule in the chapter, and the reason v3 does not relapse into the failure mode chapter 1 diagnosed:
+This is the single most important rule in the chapter, and the reason GOTM does not relapse into the failure mode chapter 1 diagnosed:
 
 > **A fan-in is a fresh worker that reads the N outputs from the store and emits the merged output. The driver receives one pointer — never the N bodies.**
 
@@ -96,7 +96,7 @@ Four more properties make fan-out scale cleanly:
 
 ## Token economy — worker minimalism, not project budgets
 
-The second half of scaling is cost. v3's economy rests on one deliberate asymmetry: **be frugal where there are many contexts; be generous where there is one.** This is **worker minimalism**, and it is emphatically *not* project-level budgeting.
+The second half of scaling is cost. GOTM's economy rests on one deliberate asymmetry: **be frugal where there are many contexts; be generous where there is one.** This is **worker minimalism**, and it is emphatically *not* project-level budgeting.
 
 **Workers are kept lean.** A worker's dispatch payload is exactly the bounded inputs it consumes, plus its spec and constraints — nothing else. **Never** the whole ledger, never sibling outputs it won't read, never the conversation. A worker that needs more either **reads from the store itself** or **fans out**; it is never handed extra context "just in case." The reason is arithmetic: dozens of workers run per project, and every needless token is paid *per dispatch*. Trimming a worker payload is the highest-leverage economy lever there is — a hundred tokens of slop times a hundred dispatches is real money that buys nothing.
 
@@ -111,9 +111,9 @@ The rest of the economy is four concrete levers riding on that asymmetry:
 
 ### What we deliberately did *not* build
 
-The omission is a decision, not an oversight. v3 has **no project token budgets, no DAG cost-forecasting, and no budget-governed loop.** We do not predict total spend, allocate a ceiling per branch, or let a governor steer the scheduler. The loop stays simple (chapter 4); economy comes from **lean workers + a fat-but-checkpointed driver + cheap store reads** — three structural properties — not from a governor watching a meter.
+The omission is a decision, not an oversight. GOTM has **no project token budgets, no DAG cost-forecasting, and no budget-governed loop.** We do not predict total spend, allocate a ceiling per branch, or let a governor steer the scheduler. The loop stays simple (chapter 4); economy comes from **lean workers + a fat-but-checkpointed driver + cheap store reads** — three structural properties — not from a governor watching a meter.
 
-One honest framing, so the chapter does not oversell: **v3 does not necessarily spend fewer total tokens.** Fan-out runs more work in parallel; risk-tiered audits add passes a single self-certifying agent skipped. What changes is the *shape* of the spend, not its sum. The spend becomes **bounded** (no context grows without limit), **attributable** (each unit's cost is its own), **parallelizable** (independent chains run at once), and **tier-able** (cheap models do cheap work). A monotonic system's cost is unbounded and unattributable; v3's is bounded and accounted for. That, not a lower bill, is the win.
+One honest framing, so the chapter does not oversell: **GOTM does not necessarily spend fewer total tokens.** Fan-out runs more work in parallel; risk-tiered audits add passes a single self-certifying agent skipped. What changes is the *shape* of the spend, not its sum. The spend becomes **bounded** (no context grows without limit), **attributable** (each unit's cost is its own), **parallelizable** (independent chains run at once), and **tier-able** (cheap models do cheap work). A monotonic system's cost is unbounded and unattributable; GOTM's is bounded and accounted for. That, not a lower bill, is the win.
 
 ---
 
