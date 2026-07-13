@@ -91,6 +91,26 @@ What the output must be, complete enough to execute blind:
     Constraints:
     - <banned phrases, anonymization rules, fence/table conventions, …>
 
+### Tier resolution — set at spawn, never read by the worker
+
+The dispatch payload above is *everything the worker reads*. The worker's
+**tier** — its `(model, effort)` — is **not** in it. At spawn the driver reads
+the unit's `Tier` cell (a static per-unit label; `economy` / `standard` /
+`frontier`, default `standard`), resolves it to a concrete `(model, effort)`,
+and **binds it when it spawns the worker** — the **worker never reads its own
+tier**. This parallels the output contract exactly: the worker just writes
+`Output` and never parses the immutability hook's ownership key; likewise it
+just runs at the tier it was spawned with and never inspects it.
+
+Tiers are **abstract** — GOTM never hardcodes model names; the **runtime** maps
+each tier to a concrete `(model, effort)`. The binding is per-dispatch: **model**
+is set on the dispatch call (e.g. Claude Code's dispatch `model` parameter);
+**effort** where the runtime exposes per-worker effort, else the tier **degrades
+to model-only**. The rubric that turns a unit's signals into its `Tier`, and the
+kill-and-respawn escalation ladder, live with the driver's scheduling
+(`driver-loop.md`); here the worker's only relationship to tiering is the
+`ESCALATE:` return convention below.
+
 ## What the worker returns — a terse structured result
 
 **Detail-to-disk is mandatory, not a preference.** The worker writes its full
@@ -113,6 +133,17 @@ An **over-cap return is a defect** — a worker that returns the body instead of
 pointer has broken the contract, and the driver treats it as a failed dispatch
 (the detail belongs on disk; re-dispatch or trim). If the result would not fit in
 a handful of lines, the worker is returning work, not an index.
+
+**`ESCALATE:` — the out-of-depth return.** A worker that finds itself out of its
+depth returns `ESCALATE: <reason>` in its terse return **instead of** producing a
+low-quality output — a worker cheaper-tiered than the task turned out to need does
+**not** grind out garbage and leave it for the audit to catch. This is a *hint* to
+the driver to re-dispatch a fresh worker **one tier up** (`driver-loop.md` →
+kill-and-respawn); it is **not** trusted on its own — a small worker may over- or
+under-estimate itself, so the **independent audit remains the reliable backstop**.
+`ESCALATE:` is a whole-return convention: the worker returns the escalate line and
+its reason *in place of* the pointer + index facts, having written no output worth
+keeping.
 
 ## Rules the worker obeys
 
@@ -189,6 +220,8 @@ The driver fills this in and sends it to the worker runner:
     - One-line summary
     - Index facts (word count / sections / headline number)
     - Blocker / gaps surfaced, or "none"
+    (Out of depth? Return `ESCALATE: <reason>` in place of the above — do not
+    ship a low-quality output.)
 
 ## After the worker returns
 

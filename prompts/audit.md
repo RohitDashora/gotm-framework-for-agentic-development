@@ -125,12 +125,20 @@ The §4a runtime check is generic; "exercise the live artifact" means something 
         isolation. A root cause named from a confounded signal (e.g. "X
         underperforms") risks fixing the wrong thing.
 
-### 5. Risk-tier the audit weight
+### 5. Risk-tier the audit weight — depth *and* model tier
 
-Spend the audit budget where the risk is (worker economy, not vigilance):
+Spend the audit budget where the risk is (worker economy, not vigilance). Two things scale with the unit's risk: **how much you check** (depth) and **how strong the auditor is** (model tier).
+
+**Depth — the audit worker's `Kind` already drives it:**
 
 - **Keystone / deploy / infra / data units** → the **full** independent audit: the 7-point checklist *plus* the §4a runtime check.
 - **Low-risk mechanical units** → a **lighter** check: existence + spec-match + compile/scan only. Record explicitly in the report that the light tier was used and why — a deliberate, logged tiering, never a silent skip.
+
+**Model tier — the audit worker's tier tracks the *unit's* risk, the same way its depth does.** `Kind` already drives audit depth (risk-tiered audits); frame the auditor's model tier identically. A **frontier / keystone / irreversible** unit earns a strong, full audit — a frontier auditor. A **mechanical economy** unit earns a light check — an economy auditor is enough.
+
+- **Reverse-tier the audit.** When a unit is **cheap-to-produce but hard-to-verify or irreversible**, audit it with a **strong (frontier) auditor even if the worker ran economy** — cheap-to-produce + costly-if-wrong = a strong auditor. Sizing the auditor to *verification difficulty*, not to what the worker cost, is why a cheap unit can still get an expensive audit.
+- The gate's **independence** (auditor ≠ author, §"Independence is structural") does the primary safety work; **tiering just sizes it** — it decides how strong the independent auditor is, never *whether* there is one.
+- **Never skip or cheapen the audit to save money on economy-tier units.** The whole model-tiering safety rests on this gate — a cheap worker is only safe *because* an independent audit backs it. Cheapening the check to match a cheap worker would remove the exact thing that made the cheap worker allowable.
 
 ### 6. Severity tiers (universal)
 
@@ -191,6 +199,7 @@ Return terse — a pointer plus index facts, never the report body:
 The driver reads the returned verdict and:
 
 - **Stamps the ledger `Audit` cell** to match: `PASS→audits/<Uxx>.md`, `PASS-FINDINGS→audits/<Uxx>.md`, or `FAIL→audits/<Uxx>.md`. `PASS` / `PASS-FINDINGS` **open the gate** for downstream; a `FAIL` holds it shut until a follow-on unit lands and an independent re-audit passes.
+- **An audit-`FAIL` is an escalation trigger.** It is the reliable backstop of the model-tiering escalation ladder: the worker that produced the unit is already gone, so the driver **re-dispatches the unit one tier up** (economy → standard → frontier, capped at frontier → human) on a fresh worker from the same on-disk inputs. The re-run is then independently re-audited before its gate can open.
 - **Turns findings into units.** Each **HIGH** becomes a follow-on fix unit referencing the report. **MEDIUM** findings become optional follow-on units (or one batched "polish" unit). **LOW** findings are acted on now or deferred with a note. Findings never reach back and patch the audited output — the freeze means every change is an owned follow-on unit.
 - **Routes UNVERIFIED** to `QUESTIONS` if a human decision is needed, or refines the audit's "what to check" and re-runs.
 
