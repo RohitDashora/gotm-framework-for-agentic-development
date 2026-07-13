@@ -107,11 +107,84 @@ The rest of the economy is four concrete levers riding on that asymmetry:
 - **Amortized batching.** The rule never bends — *always dispatch*, the driver never edits a work artifact. But dispatch has overhead, so a litter of one-line fixes is not N tiny workers; it is one **partition-worker** carrying the batch, its overhead paid once across the lot. Size each payload to a sensible band — minimal sufficient, neither padded nor starved; a unit that would blow past its band fans out instead. The target is "minimal sufficient," never "hit a forecasted number."
 - **Audit weight by risk.** A keystone chapter, a deploy unit, or an infra change earns a **full independent audit** — a fresh worker re-deriving the verdict from scratch. A mechanical unit (a rename, a formatting pass) earns a **light check**: existence, spec-match, compile. A hundred-thousand-token audit on a one-line change is waste; skipping the deep audit on a deploy is negligence. Match the audit to the risk. (The independence and verdict mechanics are chapter 6; here it is purely an economy lever.)
 - **Cheap hot tier.** The store's **hot tier** is read by every consuming worker *and* every driver turn — squarely on the **hot path**, so its size recurs forever. Three habits keep it small: terse frontier cells (an index entry, not a record of the work); read the audit *file* for a verdict's detail, not the whole ledger; and a born-tiered ledger so closed detail never sits in the part that gets re-read. (Compaction keeps it bounded over time — chapter 7.)
-- **Model tiering.** The economy compounds with the obvious move: one **strong driver** plus many **cheap, fast workers** — mechanical units on a small model, keystone reasoning and full audits on the strong one. The fan-in-worker rule makes this safe: because the driver stays thin, it can afford to be the strong, expensive model while the breadth of cheap workers absorbs the volume.
+- **Model tiering.** The economy compounds with the obvious move: one **strong driver** plus many **cheap, fast workers** — mechanical units on a small model, keystone reasoning and full audits on the strong one. The fan-in-worker rule makes this safe: because the driver stays thin, it can afford to be the strong, expensive model while the breadth of cheap workers absorbs the volume. This is the compute-economy analog of everything above — *frugal in the many, generous in the one* applied to model spend, not just context — and it has enough moving parts to earn its own section, next.
+
+### Model tiering — the mechanism
+
+The bullet above states the principle; this is how the driver actually spends it. The prose version — "mechanical → small, keystone + audit → strong" — is a slogan until something decides *which worker gets which model on which unit*. That decision has a shape, and getting the shape right is what separates a real cost lever from a cheap router that mis-assigns models and quietly degrades the whole project.
+
+**The driver is the allocator; workers are tiered per task.** The driver stays pinned at the user's strongest setting (§ *the driver may be larger*) and does one extra job at plan time: for each worker it dispatches, it chooses that worker's resources. This is the compute-economy twin of the fan-in rule — the long-lived context holds the *allocation authority*, not the cheap work. Crucially, **the allocator is the frontier model.** The dominant failure mode in the cost-routing literature is *bad routing*: a small, cheap classifier picks the model and picks wrong. GOTM never runs that classifier. The entity choosing each worker's tier is the SOTA driver at max effort — the same context that just planned the unit — so routing quality is your best model's judgment, and the decision **piggybacks on the dispatch reasoning the driver already does.** No separate router, no extra pass, nothing to train.
+
+**Two knobs, not one: model × effort.** A worker's tier is a *pair* — `(model, effort)` — because effort (the reasoning / thinking budget) is a **cheaper lever than a model-swap**. A task that needs the strong model's *knowledge* but only shallow *reasoning* keeps the model and drops the effort: no quality loss, less thinking spend. The driver trades either knob per task, and reaches for effort first because it is the cheaper adjustment. Where a runtime cannot set per-worker effort, tiering degrades gracefully to model-only — still agnostic, still working.
+
+**Three abstract tiers, bound by the runtime.** GOTM names three tiers and **never hardcodes model names** — the runtime maps each to a concrete `(model, effort)`:
+
+- **economy** — small/fast model, low effort — mechanical extraction, reformatting, renames.
+- **standard** — mid model, medium effort — routine authoring and data work. **(the default)**
+- **frontier** — strong model, high effort — diagnosis, design, keystone units, anything irreversible.
+
+The driver itself sits at the user's choice, **≥ frontier**, and never escalates — it is already at the top.
+
+**The rubric — complexity → tier.** At plan time the driver reads a handful of signals, all cheaply inferable from the unit spec: `Kind`; reasoning depth (single- vs multi-hop); critical-path fan-out; audit-risk (how hard the output is to verify); input size and heterogeneity; novelty / ambiguity; and **blast radius** (reversible scratch vs an irreversible or external side-effect). It applies them as a short ordered rubric, first match wins — kept short so a driver actually applies it:
+
+| # | Condition | Tier |
+|---|---|---|
+| R1 | irreversible blast radius **OR** diagnosis / design **OR** deep-reasoning + high-novelty | **frontier** |
+| R2 | critical-path hub **OR** authoring / synthesis **OR** multi-hop **OR** hard-to-audit | **standard** |
+| R3 | mechanical, low-reasoning, reversible, easily audited | **economy** |
+| — | unsure | **standard** (default) |
+
+Because a frontier model applies it, the rubric is **guidance for judgment, not a rigid router table** — and it uses *semantic* signals (Kind, reasoning depth, blast radius), never the classic "length ≈ difficulty" heuristic that mis-routes. In practice `Kind` largely **predicts** Tier (eval / deploy-infra / diagnosis → frontier; ui / mechanical → economy); the exception is `authoring`, which splits on keystone-ness, so tier stays its own decision rather than a mechanical function of `Kind`.
+
+**Escalation — kill and respawn one tier up.** A cheap worker that is out of its depth is not a disaster, because the audit gate makes cheapness safe: a failed cheap worker is **killed and respawned one tier up**, capped, until it passes or a human takes it. This reuses the loop's crash model exactly — "a worker crash is a task retry" (chapter 4, chapter 7): re-dispatch a fresh worker on the same on-disk inputs, a lineage recompute — plus a tier bump. There are **three triggers, cheapest first**:
+
+1. **Self-escalate** — a worker sensing it is out of its depth returns `ESCALATE: <reason>` instead of producing garbage, skipping the wasted bad-output → audit round. It is a *hint*, not trusted (small models over-estimate themselves), so the audit remains the backstop.
+2. **Watchdog kill** — a worker that hangs, loops, or blows a liveness timer is **killed** and re-dispatched a tier up, without waiting for a bad return.
+3. **Audit-FAIL** — the reliable backstop; the worker is already gone, so the FAIL re-dispatches fresh, a tier up.
+
+The ladder: start at the rubric tier, and on any trigger re-dispatch fresh **one tier up** (economy → standard → frontier), **capped at frontier** (**max two bumps per unit**). A frontier failure is a **hard stop → human** via the ratification ladder — never a loop. Every escalation is **recorded** (start tier, final tier, trigger, reason): a mis-tiering signal for tuning the rubric, and a fact for the learning pool.
+
+```mermaid
+flowchart TB
+    P["driver plans unit<br/>reads rubric signals"]
+    T{"tier?"}
+    E["economy"]
+    S["standard"]
+    F["frontier"]
+    TR{"trigger?<br/>self-escalate ·<br/>watchdog · audit-FAIL"}
+    K["kill + respawn fresh<br/>one tier up"]
+    H(["hard stop → human<br/>(ratification ladder)"])
+    P --> T
+    T -->|R3 mechanical| E
+    T -->|R2 / default| S
+    T -->|R1 irreversible / design| F
+    E --> TR
+    S --> TR
+    TR -->|pass| DONE(["audit PASS → done"])
+    TR -->|"trigger (cap 2 bumps)"| K
+    K --> TR
+    F --> FTR{"trigger?"}
+    FTR -->|pass| DONE
+    FTR -->|"any FAIL at frontier"| H
+    classDef driverC fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a;
+    classDef workerC fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a;
+    classDef stopC fill:#fce8e6,stroke:#d93025,color:#1a1a1a;
+    class P driverC;
+    class E,S,F,K workerC;
+    class H stopC;
+```
+
+*The escalation ladder: the driver tiers each unit by rubric, and any of the three triggers kills the worker and respawns it fresh one tier up — capped at frontier, where a failure stops for a human rather than looping.*
+
+**The safety keystone: blast-radius = kill-safety (one rule, two jobs).** Killing and respawning is clean only because of two facts that turn out to be the same fact. First, **the driver is the single writer**: a killed worker's partial output never lands in the ledger (the driver records only results it *receives*), so a kill mid-run leaves the store untouched and the fresh worker re-runs from clean inputs — chapter 7's worker-retry guarantee. Second, **irreversible workers are never cheap-tiered**: rubric **R1** sends anything with an external side-effect to **frontier from the start**, so the only workers ever killed-and-respawned are reversible / scratch ones. You never kill a worker mid-`deploy`, mid-write. So the blast-radius rubric rule and the kill-safety rule are **the same rule** — escalation is safe *by construction*, not by luck.
+
+**Audit reverse-tiering.** The audit's tier tracks the *unit's* risk, and here it can run *against* the worker's tier. **Reverse-tier the audit to frontier for cheap-but-hard-to-verify or irreversible units even when the worker ran economy**: cheap-to-produce plus costly-if-wrong earns a strong auditor over a weak producer. This composes with "audit weight by risk" above — that lever sizes *how much* audit; this one sizes *how strong*. The gate's *independence* (auditor ≠ author, chapter 6) does the primary safety work; tiering only sizes it. And the standing rule holds: **never skip or cheapen the audit to save money on economy units** — the whole safety of cheap workers rests on the gate.
+
+**One honest guardrail, so this doesn't contradict the next section.** `Tier` is a **static per-unit label** — like `Kind`, a property the driver assigns once at dispatch — **not a cost governor.** It does not watch a meter, forecast spend, or steer the scheduler. A worker never even reads its own tier; the driver resolves `tier → (model, effort)` and sets it at spawn, exactly as the worker writes its output and never parses the hook's key. This is why model tiering coexists with everything in the next section rather than contradicting it: a static label attached to each unit is a world apart from a budget-governed loop that allocates a ceiling and reacts to consumption. Tiering picks the right-sized tool per unit up front; it never becomes a governor watching the bill.
 
 ### What we deliberately did *not* build
 
-The omission is a decision, not an oversight. GOTM has **no project token budgets, no DAG cost-forecasting, and no budget-governed loop.** We do not predict total spend, allocate a ceiling per branch, or let a governor steer the scheduler. The loop stays simple (chapter 4); economy comes from **lean workers + a fat-but-checkpointed driver + cheap store reads** — three structural properties — not from a governor watching a meter.
+The omission is a decision, not an oversight. GOTM has **no project token budgets, no DAG cost-forecasting, and no budget-governed loop.** We do not predict total spend, allocate a ceiling per branch, or let a governor steer the scheduler. The loop stays simple (chapter 4); economy comes from **lean workers + a fat-but-checkpointed driver + cheap store reads** — plus the per-unit model tiering above — not from a governor watching a meter. Model tiering is not a counter-example to this: a static per-unit `Tier` label is a *choice of tool*, not a *scheduler that steers by cost*. The driver never sums tiers into a budget, never throttles dispatch when spend climbs, never re-plans to hit a number. The tier is set once and read once, at spawn — the same shape as `Kind`. There is no meter anywhere in the loop.
 
 One honest framing, so the chapter does not oversell: **GOTM does not necessarily spend fewer total tokens.** Fan-out runs more work in parallel; risk-tiered audits add passes a single self-certifying agent skipped. What changes is the *shape* of the spend, not its sum. The spend becomes **bounded** (no context grows without limit), **attributable** (each unit's cost is its own), **parallelizable** (independent chains run at once), and **tier-able** (cheap models do cheap work). A monotonic system's cost is unbounded and unattributable; GOTM's is bounded and accounted for. That, not a lower bill, is the win.
 

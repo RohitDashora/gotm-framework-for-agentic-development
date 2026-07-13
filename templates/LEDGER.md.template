@@ -41,14 +41,16 @@ last_updated: <YYYY-MM-DD>
      outputs this one consumes — the dependency edges of the DAG (foundation
      gate). `Status` distinguishes the states (see Conventions). `Kind` types
      the unit so the audit picks the right verified-done dimensions (see
-     Conventions). `Audit` holds the verdict + a pointer to the report. -->
+     Conventions). `Tier` is the static per-unit model tier the driver sets by
+     the rubric — `Kind` largely predicts it (see Conventions). `Audit` holds the
+     verdict + a pointer to the report. -->
 
-| ID | Title | Inputs | Output | Kind | Status | Audit |
-|---|---|---|---|---|---|---|
-| U7 | <some pending unit title> | U3, U5 | `<output/path>` | authoring | pending | — |
-| U8 | <a module + its test — one deliverable> | U3 | `<src/thing.ts>`, `<src/thing.test.ts>` | authoring | pending | — |
-| U9 | <a dashboard/component unit> | U6 | `<app/panel.tsx>` | ui | pending | — |
-| U6 | <some closed unit in the recent window> | U2 | `<output/path>` | authoring | verified-done | PASS→audits/U6.md |
+| ID | Title | Inputs | Output | Kind | Tier | Status | Audit |
+|---|---|---|---|---|---|---|---|
+| U7 | <some pending unit title> | U3, U5 | `<output/path>` | authoring | standard | pending | — |
+| U8 | <a module + its test — one deliverable> | U3 | `<src/thing.ts>`, `<src/thing.test.ts>` | authoring | standard | pending | — |
+| U9 | <a dashboard/component unit> | U6 | `<app/panel.tsx>` | ui | economy | pending | — |
+| U6 | <some closed unit in the recent window> | U2 | `<output/path>` | authoring | frontier | verified-done | PASS→audits/U6.md |
 
 ## Archive
 
@@ -124,6 +126,18 @@ Conventions:
     diagnosis     — a "why is X broken" unit; audit requires a CONTROLLED
                     reproduction (strip model/harness/config confounds) before any
                     root-cause is accepted.
+- `Tier` is a STATIC PER-UNIT LABEL — the worker's model tier — the driver sets
+  by the rubric at plan time, like `Kind`. Values (default `standard`):
+    economy   — small/fast model, low effort — mechanical extraction/reformat.
+    standard  — mid model, medium effort — routine authoring/data. (default)
+    frontier  — strong model, high effort — diagnosis/design/keystone/irreversible.
+  `Kind` largely PREDICTS Tier (eval/deploy-infra/diagnosis → frontier;
+  ui/mechanical → economy); the exception is `authoring`, which splits on
+  keystone-ness — so `Tier` stays its OWN column, not a value derived from `Kind`.
+  The runtime binds `tier → (model, effort)` and sets it at spawn (the worker
+  never reads its own tier). It is NOT a cost governor / budget scheduler — just a
+  static difficulty label; escalation (kill-and-respawn one tier up on audit-FAIL)
+  handles a mis-tiered unit at run time. See docs/05 model tiering.
 - `Inputs` lists prior units whose outputs this one consumes — the dependency
   edges of the DAG. A unit is dispatchable only once every input is closed and
   past its audit gate (foundation = upstream topology, not a reminder).
@@ -173,6 +187,13 @@ Conventions:
   what the hook freezes. The hook parses ALL backticked Output paths (multi-file
   ownership) and FAILS SAFE on a mis-split row (freezes nothing for it rather than
   trust a shifted index). See PROTOCOL.md -> Anti-drift & the freeze / Resilience.
+- LOCKSTEP CAVEAT — a column change shifts positional indices. Any runtime parser
+  that reads ledger columns BY POSITION (the immutability hook, the compaction
+  script) MUST be updated in the SAME change that lands this `Tier` column, and
+  RUN against a real ledger — inserting a column silently re-numbers every column
+  after it, so a stale positional parser reads the wrong cells (freezes the wrong
+  path, mis-reads Status). This is the v3.35 ledger-shape lesson: never ship a
+  column move without its parser update + a real-ledger parse test.
 - ARCHIVE ENTRIES ARE ALSO MACHINE-PARSED, AND IN ONE CANONICAL SHAPE. The
   `## Archive` cold tier is a one-line BULLET per unit — never a table — in this
   exact form (fields separated by " · "; an adopter's immutability hook,
