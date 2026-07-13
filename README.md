@@ -1,10 +1,12 @@
 # GOTM
 
-A discipline for surviving bounded-context agentic execution — when serious work spans hundreds of LLM sessions and many subagents and fits in none of them.
+A **loop-engineering** discipline for surviving bounded-context agentic execution — when serious work spans hundreds of LLM sessions and many subagents and fits in none of them.
 
 ## Why care — in 60 seconds
 
 **In plain English:** GOTM keeps a long-running agent's work from collapsing under context drift by moving memory out of the chat and into a durable **project store** — the agents become disposable **workers**, and the **project** becomes the source of truth.
+
+**Where it sits:** GOTM is **loop engineering** — the layer above prompt engineering (the turn) and context engineering (the window): engineering the *repeated process* so it survives thousands of iterations.
 
 The trap it avoids: serious agentic work spans hundreds of sessions and fits in none of them. Context fills up, quality quietly degrades, and everything the agent "knew" vanishes at the session boundary — so it drifts, repeats itself, and eventually stalls. GOTM writes the plan, the decisions, and the progress to disk; runs each unit of work in a fresh throwaway agent; and rebuilds any lost context from the store. Nothing load-bearing lives only in the conversation.
 
