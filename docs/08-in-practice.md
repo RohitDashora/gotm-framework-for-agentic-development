@@ -1,53 +1,135 @@
 # In practice
 
-The previous seven chapters built the machine: a thin driver, disposable workers, a tiered store, a scheduler loop over a DAG, parallel fan-out, structural audit independence, and the three-tier memory economy. This chapter is about *doing it* — how a practitioner picks the framework up, what to build first, which constraints actually apply to them, what happens to existing projects, and a concrete demonstration that all of it works. It re-explains nothing; it points back and puts the pieces to use.
+The previous seven chapters built the framework. This chapter is about *doing it* — how practitioners adopt GOTM, deliberate at the dispatch gate, bind tiers, and triage upward signals.
 
-## Adopting GOTM: three tiers, one discipline
+## Adoption tiers
 
-The driver loop is, at its base, a **prompt discipline** — a way the driver agent behaves, not a piece of software you have to install. That is the most important practical claim in this chapter, because it means adoption has **no floor and no dependency on any plugin**. Everything GOTM needs is in this repository as plain text: the operating contract in [`templates/PROTOCOL.md.template`](../templates/PROTOCOL.md.template), the ledger shape in [`templates/LEDGER.md.template`](../templates/LEDGER.md.template), and the operational moves — the scheduler, the worker contract, the audit, the boot sequence — as paste-able bodies in [`prompts/`](../prompts/). To adopt GOTM with nothing else: copy the protocol template into your project as its standing instructions, seed a born-tiered ledger from the template, and have the driver follow the loop prompt each turn, pasting the worker-dispatch and audit prompts as it makes those moves. That is a complete, working GOTM — no runtime, no install.
+The driver loop is a **prompt discipline**, not a software install. Three adoption tiers exist:
 
-There are three adoption tiers, and they share the same underlying discipline:
+1. **Prompt discipline (baseline).** The driver follows the loop by hand: read frontier, compute ready set, dispatch worker per unit, collect result, dispatch auditor, record status. No plugin needed. If your agent reads files, dispatches subagents, and writes files, it runs GOTM.
+2. **Runtime command.** A plugin or harness packages the loop as one invocable step — loads protocol, reads ledger, drives a turn. Same architecture, scripted.
+3. **Workflow-style script.** Programmatic loop outside interactive turns — headless or batch.
 
-1. **Prompt discipline (baseline — works anywhere, no plugin).** The driver follows the scheduler loop by hand from the pasted prompts: read the frontier, compute the ready set, dispatch a **worker** per ready unit, collect the terse result, dispatch an audit worker, record status, repeat. Nothing here depends on a particular runtime or plugin. If your agent can read a file, dispatch a subagent, and write a file, it can run GOTM. This is the tier the rest of this section bootstraps, and it is the tier the worked example below actually used.
-2. **Runtime command.** A **command in a runtime** (a plugin, an SDK harness, whatever your platform offers) packages the loop as an invocable step — it loads the protocol, reads the ledger, and drives a turn of the scheduler for you. It removes the burden of remembering the loop and standardizes dispatch, but it changes nothing architecturally: it is the same pasted discipline, scripted. The reference GOTM plugin is **one such runtime**, not a requirement — anything that can run the prompts qualifies.
-3. **Workflow-style script.** At the top tier a **Workflow-style script** runs the loop programmatically outside an interactive turn — useful for headless or batch operation where you want the scheduler to grind the DAG to completion without a human in the seat for each step.
+Start at prompt discipline; move up only to amortize the chore.
 
-Pick the lowest tier that meets your need. Most people should *start* at the prompt-discipline baseline, because it teaches the loop and costs nothing to set up; reach for the command or the script only when the manual loop becomes a chore you want to amortize. The higher tiers add convenience and mechanical enforcement (the immutability hook of chapter 6, for one) — never new capability the baseline lacks.
+### Bootstrapping a fresh project
 
-### Bootstrapping a fresh GOTM project
+Three things in place before the first unit runs:
 
-A new project is three things in place before the first unit runs:
+- **The store:** a `.gotm/` subfolder alongside the repo. Holds protocol, ledger, decisions/questions, `audits/` and `docs/` (chapters 2–3).
+- **Born-tiered ledger:** hot frontier (ready + active units) + cold archive (closed units as one-line pointers). Seed with foundation units.
+- **Driver/worker split:** driver plans and writes store; workers read inputs, produce one output, return terse result. Establish this on turn one to prevent work leaking back.
 
-- **The store.** Create a durable file-set alongside the repo — a `.gotm/` subfolder is the reference layout. This is the system of record (chapter 2). It holds the protocol (copy [`templates/PROTOCOL.md.template`](../templates/PROTOCOL.md.template) and fill in the mission line), the ledger, the decisions and questions logs, and the `audits/` and `docs/` detail that the cold tier points into.
-- **The born-tiered ledger.** The ledger is **born tiered** from the first unit, not flattened and compacted later (chapter 3). Create it with two tables: a hot **frontier** (ready and active units plus their immediate input pointers) and a cold archive (closed units as one-line pointers). Seed the frontier with your foundation units — the upstream DAG nodes everything else depends on. Do not start with a flat log you intend to tier "once it gets big"; that is the v2 mistake, re-introduced.
-- **The driver/worker split.** Establish the load-bearing rule at the outset: the driver plans and talks, and *all* work is a worker dispatch. The driver writes the store; workers read inputs, produce one output, and return a terse structured result. Setting this expectation on turn one is what keeps work from leaking back into the long-lived context later.
+Trap: harnesses auto-load from project root, so a `.gotm/` subfolder silently breaks auto-load. Keep a thin root pointer.
 
-With the store, a born-tiered ledger seeded with foundation, and the split declared, the driver runs its loop and the project is live.
+## Dispatch-gate deliberation in practice
 
-Where the file-set physically sits is a **layout choice bound by your harness, not by the framework** — the protocol talks about *the store* abstractly. A `.gotm/` subfolder keeps the repo root reserved for produced assets, and this repository uses exactly that layout as its own worked example. There is one trap: many harnesses auto-load a context file from the *project root* on session start, so moving that file into the subfolder silently stops the auto-load. Keep a thin pointer file at the root that points into the subfolder, and adjust the relative paths to match. (The protocol template carries this note inline.)
+The **dispatch gate** is where the driver decides: split into subtasks, or atom (one worker, one deliverable, one output)? This decision happens *before* dispatch so the worker is born bounded.
 
-## Interactive vs SDK driver: the honest limit
+```mermaid
+flowchart TD
+    T["Task lands ready"]
+    Q1{"Can one worker<br/>own this deliverable<br/>in bounded time?"}
+    A["ATOM:<br/>one worker,<br/>one output"]
+    Q2{"More than<br/>one deliverable?"}
+    S["SPLIT:<br/>mint subtasks<br/>decimal IDs"]
+    D["Dispatch each<br/>with bounded inputs"]
+    T --> Q1
+    Q1 -->|yes, one output| A
+    Q1 -->|no, or unclear| Q2
+    Q2 -->|yes| S
+    Q2 -->|no| A
+    A --> D
+    S --> D
+    classDef decision fill:#fff4e6,stroke:#f9ab00,color:#1a1a1a
+    classDef action fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    class Q1,Q2 decision
+    class A,S,D action
+```
 
-Which constraints apply to you depends entirely on *how the driver runs*, and the framework is deliberate about not over-promising here (chapter 2, chapter 7).
+**Stopping rule:** one deliverable (one file, one decision, one region) = one worker. Two workers on the same file is always wrong.
 
-In an **interactive** session, the driver *is* the session. On most interactive harnesses it cannot be made stateless, and it cannot self-trigger compaction — that action is typically human-only, no hook or model directive fires it, and the auto-compact threshold is not tunable. (Concretely, this is the situation in an interactive Claude Code session — one common runtime — but the limit is a property of interactive harnesses generally, not of one tool.) So in interactive use the driver grows, slowly, across a long project. What rescues it is not statelessness but re-hydration: on *any* fresh start — a cold restart, a context clear, or after an auto- or manual compaction — the driver rebuilds its working set from the store through the **session-start reconcile**. This is the same transcript-independence guarantee GOTM has always made, and it depends on no compaction hook. An optional hook could auto-inject the re-hydration manifest where a runtime supports one, but the framework deliberately does not build on it; the store-plus-reconcile path works without it. If you are an interactive user, this is your reality: keep the driver thin, and trust re-hydration to carry you across every session boundary.
+Examples: "Write chapter 3" → atom. "Rewrite nine chapters" → split to U2.1–U2.9. "Deploy to three regions + aggregate" → split: three deploys (atoms) + one aggregate worker (atom, the reduce step). "Fix PR comments" → check first: if "typo" + "add validation" then atom; if "rewrite" + "rethink API" + "add tests" then split.
 
-In an **SDK** or headless setting, the driver gains one capability the interactive driver lacks — it *can* compact itself programmatically, mid-run, without a human. That is a genuine bonus where the runtime allows it. But it is additive, not foundational: the architecture leans on re-hydration, which both settings have, not on self-compaction, which only the programmatic one has. The rule is the same in both worlds — never sell a stateless interactive driver. Know which world you are in, and apply the matching constraint.
+### Tier binding: grain meets Kind
 
-## Migration: existing v2 projects convert
+After split-or-atom, the driver chooses tier. Defaults: leaves (hours) → economy, keystones (days, hubs) → standard, milestones → frontier. **Kind overrides:** deploy-infra, eval, diagnosis → frontier always, because live-verification is forced (chapters 4–5).
 
-The decision is settled — **v2 projects migrate to GOTM** rather than being left behind. Two artifacts make that practical.
+**Tier-binding walkthrough:** Kind overrides grain. Leaves (hours) + authoring = economy. Keystones (days, hub) + design = standard. Any deploy-infra, eval, diagnosis = frontier. Unsure = standard (default).
 
-A `MIGRATION.md` documents the conversion: what changes in the ledger shape, how the driver/worker split maps onto a project that previously ran as one long-lived doer, and what to verify after converting. Alongside it, a one-shot **v2→v3 ledger converter** does the mechanical work: it takes the old flat, append-only ledger and tiers it — recent and open units become the hot frontier, closed units collapse into one-line archive pointers, and the dependency edges are recorded so the flat log becomes a proper DAG. The converter generalizes the `compact_ledger.py` already proven on the knowledge-graph project. Existing projects — geniefy, knowledge-graph, this framework's own repo — convert through it. The **migration** is a tiering-and-edge-recording pass, not a rewrite of the work itself; the docs, decisions, and audits all survive untouched.
+## Upward-signal triage: the driver's options
+
+Workers report observations; signals are typed suggestions. The driver (sole full-context holder) decides:
+
+```mermaid
+flowchart LR
+    W["Worker returns<br/>signal"]
+    Q{"Signal<br/>type?"}
+    M1["1. MINT:<br/>new unit"]
+    M2["2. RESHAPE:<br/>split scope"]
+    M3["3. MERGE:<br/>combine units"]
+    M4["4. ABSORB:<br/>record, move on"]
+    M5["5. ROUTE:<br/>to human"]
+    M6["6. DECLINE<br/>+ reason"]
+    W --> Q
+    Q -->|new blocker| M1
+    Q -->|scope was wrong| M2
+    Q -->|two become one| M3
+    Q -->|true but noise| M4
+    Q -->|needs human| M5
+    Q -->|unsound| M6
+    M1 --> L["Driver updates<br/>ledger"]
+    M2 --> L
+    M3 --> L
+    M4 --> L
+    M5 --> L
+    M6 --> L
+    classDef worker fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a
+    classDef decision fill:#fff4e6,stroke:#f9ab00,color:#1a1a1a
+    classDef action fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    class W worker
+    class Q decision
+    class M1,M2,M3,M4,M5,M6,L action
+```
+
+**1. Mint:** signal suggests new unit. Driver validates, creates unit, original stays authored-done, new is pending.
+**2. Reshape:** scope was wrong. Driver amends Output (follow-on, not edit), mints split units, marks parent as container.
+**3. Merge:** two units are one. Driver supersedes one, folds into follow-on.
+**4. Absorb:** true but not a unit. Driver records in decision log for audit to find, moves on.
+**5. Route:** for human. Driver adds to QUESTIONS.md or human-review unit; loop pauses/branches.
+**6. Decline + reason:** unsound or out-of-scope. Driver records reason (one-line in ledger). Must be durable so not re-raised.
+
+## Interactive vs SDK driver
+
+**Interactive drivers** (like Claude Code) cannot self-compact. The driver grows across a long project, but re-hydration from store on fresh start (cold restart, context clear, manual compaction) rescues it. This is the same transcript-independence guarantee GOTM always had — it depends on no hook. Keep the driver thin; trust re-hydration.
+
+**SDK/headless drivers** can compact programmatically, but that is additive, not foundational. The architecture leans on re-hydration (both modes) not self-compaction (programmatic only). Know which world you are in; apply the matching constraint.
 
 ## The worked example: this rewrite itself
 
-The most honest demonstration of GOTM is that **this framework's own documentation was produced driver/worker.** The rewrite was run as a GOTM project, and you are reading its output.
+**This framework's own documentation was produced driver/worker.** The rewrite was run as a GOTM project.
 
-It worked like this. The design blueprint was the single foundation unit — the upstream DAG node every chapter depended on. With foundation in place, the driver **fanned out** chapter workers: each chapter was an independent unit whose dispatch carried the blueprint plus its bounded slice of prior chapters, and nothing else. No chapter worker saw the conversation; none held a sibling's draft. Each produced exactly one file and returned a terse pointer — the driver never held the chapter bodies. Then each chapter was **independently audited by a fresh worker** — the author was ephemeral and gone by audit time, so self-certification was structurally impossible (chapter 6); the worker that wrote a chapter could not be the one that blessed it. Chapters reached authored-done from their writer and verified-done only from that separate auditor.
+Foundation: **U23** (design blueprint, change-map, per-chapter scope). At dispatch gate, the driver deliberated: split nine-chapter rewrite or atom? Answer: nine deliverables, nine owners. Driver minted **U24.1–U24.9** (one per chapter). Each dispatch: change-map + prior chapters referenced, nothing else. No worker saw the conversation or a sibling's draft. Each produced one file, returned terse pointer. Driver never held chapter bodies.
 
-Finally, because nine chapters written in parallel will drift in terminology and cross-references, the rewrite closed with a **fan-in coherence worker** — a single worker that read all nine outputs *from the store* and harmonized them: reconciling canonical terms, fixing the forward and backward links between chapters, and resolving the small encroachments the per-chapter audits had deliberately deferred to this barrier. The driver received one pointer to the harmonized result, never the nine bodies — the token-critical fan-in rule (chapter 5) held even at the final join. The result is a repo that is its own live demonstration of the discipline: foundation as topology, parallel fan-out, structural audit independence, and a fan-in that reads the store instead of swelling the driver. GOTM is not described here so much as exhibited.
+Each chapter: **independently audited by fresh worker** (auditor ≠ author, chapter 6). Auditor checked: (a) logic-verified (match spec?), (b) diagrams mmdc-parse (machine validation, not claim). Chapters: authored-done from writer, verified-done from auditor only.
+
+Parallel drift fixed via **fan-in coherence U24.12**: one worker read all eleven verified outputs *from store* and harmonized them (canonical terms, cross-references, voice). Driver got one pointer, never eleven bodies — fan-in rule (chapter 5) held at final join. Coherence audited, verified-done.
+
+### Dispatch-gate visibility in the retrospective
+
+Ledger snapshot showing dispatch-gate discipline:
+
+| Unit | Title | Status | Output |
+|---|---|---|---|
+| U23 | Change-map + brief | verified-done | GOTM-4.5-DOCS-BRIEF.md |
+| U24 | Rewrite 11 docs (9 chapters + README) | *split* | — |
+| U24.1–U24.9 | Chapter 1–9 | verified-done | 01-*.md through 09-*.md |
+| U24.10 | README | verified-done | README.md |
+| U24.12 | Coherence + terminology | verified-done | COHERENCE-FINDINGS.md |
+
+Parent **U24**: no Output (all in U24.1–U24.12), verified-done when children pass. Hierarchy (decimals), parallel siblings (no inter-child Inputs), convergence (U24.12 reads eleven, harmonizes).
 
 ---
 
-That is the practice: adopt at the tier that fits, know your runtime's honest limit, convert your v2 projects, and trust that the discipline is real because it built the very thing you are reading. The next chapter looks beyond a single project to how the cold tier feeds forward — **learning across projects**.
+**In practice:** adopt at the tier that fits, deliberate at dispatch gate with stopping rule, bind each unit to tier, and know your runtime's limit. The discipline is real because it built what you're reading. Next: **learning across projects**.
+

@@ -1,83 +1,119 @@
 # Keeping it honest
 
-The last three chapters built the machine: the three roles, the work as a DAG, the scheduler that walks it. But a machine that produces output is not yet one you can trust. This chapter is about the difference — how the framework knows a unit's output is *correct*, not merely *present*, and how it keeps a correct output correct once the project moves on. The mechanism has three parts: a producing context that can never grade itself, two distinct notions of "done," and a freeze that turns every later change into a new, owned unit rather than a silent edit.
+The last three chapters built the machine: the three roles, the work as a DAG, the scheduler that walks it. But a machine that produces output is not yet one you can trust. This chapter is about the difference — how the framework knows a unit's output is *correct*, not merely *present*, and how it keeps a correct output correct once the project moves on. The mechanism has three parts: a producing context that can never grade itself, a **typed verification gate that splits on unit kind**, and a freeze that turns every later change into a new, owned unit rather than a silent edit.
 
 ## A worker cannot grade its own work
 
-Chapter 3 left two terminal states on the table — **authored-done** and **verified-done** — and promised the full treatment here. Start with the producer.
-
-A worker does one unit, writes one output, returns a terse structured result, and is discarded. The strongest thing it may claim is **authored-done**: *the artifact exists.* That is all — not that it is right, builds, deploys, or behaves as its consumer needs. A worker **never self-certifies**, and this is not a rule it is asked to honor. It is impossible by construction.
+Chapter 2 left the fundamental principle in place: a worker does one unit, writes one output, returns a terse result, and is discarded. The strongest thing it may claim is **authored-done**: *the artifact exists.* That is all — not that it is right, builds, deploys, or behaves as its consumer needs. A worker **never self-certifies**, and this is not a rule it is asked to honor. It is impossible by construction.
 
 Here is the construction. The executor that produces a unit is an ephemeral worker; by the time anything checks that unit, the executor is **gone** — its context discarded the moment it returned. There is no long-lived "doer" left to bless its own output, because the architecture forbids one in the first place (chapter 2). The driver, seeing an authored-done unit, **always launches a separate audit worker** — a fresh context with no memory of having produced anything. Producer and checker are never the same context. We name this **auditor ≠ author**, and the point of saying it this way is that it is *structural*, not a guideline someone has to remember and can quietly let slip.
 
-This is the exact failure the design eliminates. In v2 one long-lived doer planned, executed, deployed, and then validated *its own* deploy work — judged by the same context that did it. That is no audit at all, and independence eroded precisely because nothing prevented it. GOTM does not ask the doer to be disciplined about not grading itself; it removes the doer before the grading happens. Self-grading is not discouraged — it is unavailable. So the loop has a built-in seam: a unit becomes authored-done when its worker returns, and only a *second* worker, launched by the driver, can move it further. Independence is not bought with vigilance; it falls out of the fact that workers are disposable.
+This is the exact failure the design eliminates. In v2 one long-lived doer planned, executed, deployed, and then validated *its own* deploy work — judged by the same context that did it. That is no audit at all. GOTM does not ask the doer to be disciplined about not grading itself; it removes the doer before the grading happens. Self-grading is not discouraged — it is unavailable. So the loop has a built-in seam: a unit becomes authored-done when its worker returns, and only a *second* worker, launched by the driver, can move it further. Independence is structural.
 
-## authored-done versus verified-done
+## The typed verification gate: logic-verified vs live-verified
 
-The two states are not synonyms for "drafted" and "reviewed." They mark *who* established the claim and *how strong* the check was.
+The two states are not synonyms for "drafted" and "reviewed." They mark *who* established the claim, *what they checked*, and *what kind of unit matters*.
 
 **authored-done** is the producer's claim: the output exists, the worker did the job it was dispatched to do. Necessary but not sufficient. A draft chapter no one but its author read is authored-done; a config written but never applied is authored-done. The artifact is on disk; nothing independent has touched it.
 
-**verified-done** is conferred *only* by an independent worker — never by the producer, never by the driver asserting it, never by a green result the author saw. The audit worker reads the bounded inputs, the output, and the spec, and confirms the output meets the spec. For a prose or code unit that is a careful independent read against the contract. For **deploy, infra, and data units the bar is higher**: the verification worker performs a **runtime** check — not inspecting the artifact from the outside but **exercising the live artifact as its real consumer**. If the unit deployed an endpoint, the worker hits it as the real identity a consumer would use and confirms the real response; if it produced a table, the worker queries it the way a downstream unit will. The author's own green build or local run does *not* count: that is **self-validation**, the author watching its own machinery work, exactly what verified-done excludes. A thing is verified-done when someone who was *not* the author drove it the way reality will.
+**verified-done** is conferred *only* by an independent worker, but with a critical split: the depth of the check depends on the unit's **Kind**. For units that are purely about authoring (narrative, documentation, design proposals), **logic-verified** is terminal — an independent worker reads the bounded inputs, the output, and the spec, and confirms the output meets the spec. For **runtime kinds** — those whose whole job is to touch a live system (deploy-infra, data production, eval harnesses, diagnostic probes) — **logic-verified is insufficient**. A logic-only audit says "the script is well-written" but not "the script does what the real consumer needs when the real consumer runs it." These units must reach **live-verified**: an independent worker exercises the live artifact *as its real consumer would*.
 
-The distinction earns its keep where the gap between "looks done" and "is done" is widest — the units that touch live systems. authored-done says the deploy script ran without error in the author's hands; verified-done says a separate context, acting as the real consumer, got the real artifact to respond correctly. Only the second is a claim the rest of the project can build on.
+The distinction earns its keep where the gap between "looks done" and "is done" is widest.
 
-### What the audit actually checks
+### What live-verified means for each kind
 
-Independence says *who* checks; it does not say *what* they check. The default is a small mechanical checklist the audit worker runs against the output and its spec — existence, spec match, cross-reference integrity, internal consistency, decision fidelity — plus two checks that earn their place by catching the failures a naive read misses. **Enforcement**: for every *behavioral* decision the unit claims to honor, is there an actual gate, config, or assertion that makes it hold, or is it only prose? A decision documented but not enforced *reads* done and silently isn't. **Multi-site**: any "wired into both X and Y," "applied across N places," or "replaced everywhere" claim is verified by an actual grep or count, never trusted from the prose. In the field these two — a decision with no gate behind it, and a bulk fix that silently half-applied — were the only checks that turned up hard failures; a checker that skips them ships confident-wrong output. The auditor categorizes each finding by severity, which is what the verdicts below turn on.
+The principle is: "exercise the live artifact as its real consumer." But what a real consumer does depends on what the artifact is. Here is the per-kind specification:
 
-### Verified-done is typed by unit kind
+| Kind | What live-verified looks like | Stops us from |
+|---|---|---|
+| **authoring** | Logic-verified (spec match, independent read, internal consistency). Terminal. | — (logic-only is terminal) |
+| **UI / visual** | Rebuild from *current* source (a stale served bundle is the wrong build), then check with objective machine criteria: DOM structure, element counts, rendering bounds. Not a worker's prose about how it "looks." | Shipping a stale/cached build; accepting subjective "looks right" |
+| **deploy-infra** | Exercise end-to-end **as the deployed identity**, not the author's identity. Recreating infra can mint a new principal whose access grants don't port over, so "it runs locally" but every real call fails. | Deploying as one identity, then the real consumer hitting it as a different identity and failing |
+| **data** | Re-query the target **the way the downstream consumer will** — same credentials, same scope, same freshness expectations. Not just "rows landed." | A table that exists but isn't queryable / joinable the way the consumer expects it |
+| **eval** | Harness fairness: equal-fidelity inputs on both arms, symmetric yardstick, position/order bias controlled (A/B swap). Every confound either eliminated or labeled. A biased harness emits a confident-wrong number. | A harness that looks rigorous but silently biases one arm (the field's highest-value catch) |
+| **diagnosis** | Reproduce the reported failure under **controlled conditions** (isolate model, harness, config from the live system). Root-cause only once reproduction is clean. | Fixing a confound and missing the real bug; incomplete diagnosis that breaks in production |
 
-"Exercise the live artifact as its real consumer" is the right instinct, but *what a real consumer does* is different for a UI than for an eval harness than for a deployed endpoint. A single generic check leaves the sharpest failures uncaught — so verified-done **specializes by the unit's declared kind**, and the audit reads that kind to pick its dimensions.
+Across all of them the constant is unchanged — someone who was *not* the author drove the thing the way reality will — and the typing just makes "the way reality will" concrete.
 
-Lead with the most dangerous kind. For a **measurement or eval** unit — one whose whole *purpose* is to compare or score — "the harness runs and emits a number" is not verified-done, because a **biased harness emits a confident-wrong number**, and a project that trusts it can spend weeks fixing the wrong thing. (One real case: a judge that penalized one arm for citing evidence it was never shown, so "plain retrieval wins" was an artifact of the yardstick, not the retrieval.) For these units correctness *is* harness fairness: equal-fidelity inputs on both sides, a symmetric yardstick, position/order bias controlled by an A/B swap, and every confound either eliminated or labelled. This is the single highest-value dimension the typing adds.
+### The unverified failure
 
-The other kinds follow the same "drive it as reality will" rule, specialized:
+A logic-only audit of a runtime unit is a **FAIL-as-UNVERIFIED**, not a PASS. This is a hard rule, not a judgment call. A runtime unit that reaches authored-done but whose audit worker skips the live-exercise gate is blocked downstream — the gate does not open. The fix is a follow-on unit that adds the live check (or redoes it properly). This prevents the silent "we verified it at the desk and nobody noticed it fails live" failure.
 
-- **UI / visual** — rebuild from *current* source before checking (a stale served bundle is the wrong build), then judge with objective machine checks (DOM, bounding boxes, counts), not a worker's prose about how it "looks."
-- **deploy / infra** — exercise end-to-end **as the deployed identity**, not the author's. Recreating infra can mint a new principal whose grants don't carry over, so it "runs" but every real call fails.
-- **data** — re-query the target **the way the downstream consumer will**, not just confirm rows landed.
-- **diagnosis** — reproduce the reported failure under **controlled conditions** (strip model, harness, and config confounds) *before* root-causing, so the fix targets the real cause and not a confound.
+## The milestone as the live-verification boundary
 
-Across all of them the constant is unchanged — someone who was *not* the author drove the thing the way reality will — and the typing just makes "the way reality will" concrete for the kind of unit at hand.
+For runtime and eval tasks, **the Milestone** is an explicit ledger row that marks where live verification is forced. When a task splits into subtasks (e.g., deploy to three regions → three subtasks, one per region), each subtask is live-verified individually. Then the milestone aggregates them and re-verifies the system as a whole (e.g., "all three regions alive and talking to each other"). The milestone is what keeps each piece accountable *and* the whole system accountable.
 
-## The freeze, and why findings become units
+For pure-authoring tasks, milestones are implicit — the parent closes when all children verify-done. There is no forced re-aggregation check because the outputs don't touch live systems.
 
-Once a unit is done, its output is **frozen** — nothing edits it in place, not the driver, not a later worker, not a passing fix. The freeze is v2's immutability rule, kept because it is what makes the ledger trustworthy: a done unit's output is a stable artifact other units depend on, and an artifact you can silently rewrite is not a foundation, it is a moving target.
+```mermaid
+flowchart TD
+    A["Task registers<br/>in coarse plan"] --> B{Kind = runtime<br/>or eval?}
+    
+    B -->|No<br/>authoring only| C["Dispatch gate<br/>split or atom"]
+    B -->|Yes<br/>deploy-infra, data,<br/>eval, diagnosis| D["Dispatch gate<br/>split or atom"]
+    
+    C --> E["Each subtask<br/>audited for<br/>logic-verified<br/>only"]
+    D --> F["Each subtask<br/>audited for<br/>logic + live"]
+    
+    E --> G["Parent closes<br/>when all children<br/>verified-done<br/>implicit milestone"]
+    F --> H["Explicit Milestone<br/>row registered<br/>aggregates children"]
+    
+    H --> I["Milestone audit:<br/>live-verify the<br/>*system as a whole*<br/>cross-region, end-to-end,<br/>real consumer"]
+    
+    I --> J["All verified-done"]
+    G --> J
+    
+    classDef driver fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    classDef worker fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a
+    classDef store fill:#e6f4ea,stroke:#188038,color:#1a1a1a
+    
+    class A,B,C,D,H driver
+    class E,F,I worker
+```
+
+## The freeze and follow-on ownership
+
+Once a unit is done, its output is **frozen** — nothing edits it in place, not the driver, not a later worker, not a passing fix. The freeze is the foundation that makes the ledger trustworthy: a done unit's output is a stable artifact other units depend on, and an artifact you can silently rewrite is not a foundation.
 
 But a real project *does* need to change things that are already done — an audit finds a gap, a downstream reveals an inconsistency, a decision is revisited. The freeze does not forbid change; it forbids *silent* change. To change a frozen output you register a **follow-on unit** — a new node in the DAG whose declared output is the change, attributed and audited like any other unit. This is **follow-on ownership**: a follow-on unit may legitimately own a change to a previously-done output, and that is the *only* sanctioned way a done output moves.
 
-The enforcement can be made real, not honor-system — but where it lives matters. v2's immutability hook blocked writes to done outputs — correct in spirit but over-blocking, refusing legitimate follow-on edits along with illegitimate ones. A GOTM enforcement hook **honors follow-on ownership**: a write to a frozen output is rejected *unless* an active follow-on unit owns that output, so the freeze holds against drift while the sanctioned path still gets through. But that hook is a **runtime binding**, not part of this platform-neutral framework — *this* repo only *describes* the enforcement path, and the freeze works without it. At the framework level the freeze rests on doc-level discipline: the driver reads the ledger before any write and, seeing a `done` unit's output, appends a follow-on instead of editing. That discipline alone is enough to run GOTM; where an adopter wants mechanical enforcement, a runtime can wire the hook described above (the reference GOTM plugin is one such runtime — see chapter 8 on adoption tiers, and chapter 9 / the protocol template on what a framework *specifies* versus what a runtime *binds*). Either way the load-bearing rule is the same: **findings become new units, never silent edits.** An audit that turns up a problem does not reach back and patch the output it was auditing — it produces a finding registered as a follow-on unit some worker will own. The history stays legible: every change to a done output is a node with an author, an audit, and a place in the graph.
+An audit that turns up a problem does not reach back and patch the output it was auditing — it produces a finding registered as a follow-on unit some worker will own. The history stays legible: every change to a done output is a node with an author, an audit, and a place in the graph.
 
 ## Verdicts and the gate
 
-An audit returns one of three verdicts, and the choice of three (not two) is deliberate.
-
-- **PASS** — the output meets its spec; nothing to track. The unit is verified-done.
-- **PASS-FINDINGS** — good enough to consume, but the audit surfaced real issues. The findings are *tracked* and become follow-on units, but they are **non-blocking**: downstream may proceed. This is the common middle case — a usable output with known, recorded follow-ups, so "good enough to build on" and "perfect" need not be the same thing.
-- **FAIL** — the output does not meet its spec. This **blocks**: dependent units cannot be dispatched until the failure is owned by a follow-on unit and that unit passes.
-
-These verdicts feed **the gate**: *downstream consumes an input only on a passing verdict.* A unit that lists another as a dependency is not dispatched the moment the dependency is authored-done — it waits for a verifying worker to return PASS or PASS-FINDINGS; a FAIL holds the gate shut. This is what makes the DAG's edges mean something at runtime: a dependency is not "the upstream produced something," it is "the upstream produced something an independent worker confirmed." The gate is where authored-done, verified-done, and the verdicts converge into a single scheduling rule — the reason a long project does not accumulate a sediment of unverified, silently-mutated outputs that only look done.
+An audit returns one of three verdicts: **PASS** (spec met; verified-done; downstream may proceed), **PASS-FINDINGS** (good enough to consume; findings become non-blocking follow-on units), or **FAIL** (spec not met; blocks downstream until a follow-on unit fixes and passes). **The gate**: downstream consumes an input only on a passing verdict. A dependency is not "upstream produced something" but "upstream produced something an independent worker confirmed, or fixed if broken."
 
 ```mermaid
 flowchart TB
     W["worker produces output<br/>→ authored-done"] --> ST[("store")]
     DR(["driver"]) -->|"dispatch independent<br/>audit worker (author is gone)"| AW["audit worker"]
-    ST -->|"read output + spec"| AW
-    AW --> V{verdict}
-    V -->|PASS| VD["verified-done →<br/>open gate for downstream"]
-    V -->|PASS-FINDINGS| VD2["verified-done<br/>+ findings → follow-on units<br/>(non-blocking)"]
-    V -->|FAIL| BL["gate stays shut →<br/>fix as follow-on unit"]
-    classDef driverC fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a;
-    classDef workerC fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a;
-    classDef storeC fill:#e6f4ea,stroke:#188038,color:#1a1a1a;
-    class DR driverC;
-    class W,AW workerC;
-    class ST storeC;
+    ST -->|"read output + spec<br/>+ Kind"| AW
+    AW --> K{Kind}
+    
+    K -->|authoring| LC["Logic check<br/>only"]
+    K -->|deploy-infra,<br/>data, eval,<br/>diagnosis| LV["Logic check +<br/>live-exercise"]
+    
+    LC --> V{verdict}
+    LV --> V
+    
+    V -->|PASS| VD["verified-done →<br/>open gate for<br/>downstream"]
+    V -->|PASS-FINDINGS| VD2["verified-done<br/>+ findings →<br/>follow-on units<br/>non-blocking"]
+    V -->|FAIL| BL["gate stays shut<br/>fix as follow-on<br/>unit"]
+    V -->|logic-pass<br/>but live-FAIL<br/>runtime kind| UFAIL["FAIL-as-UNVERIFIED<br/>no gate open<br/>no downstream"]
+    
+    classDef driverC fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    classDef workerC fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a
+    classDef storeC fill:#e6f4ea,stroke:#188038,color:#1a1a1a
+    
+    class DR driverC
+    class W,AW workerC
+    class ST storeC
 ```
 
-*The audit flow: a worker can only reach authored-done; the driver then dispatches a separate audit worker (the author is already gone, so independence is structural) that reads output and spec from the store and renders a verdict — PASS / PASS-FINDINGS confer verified-done and open the gate; FAIL holds it shut until a follow-on unit fixes it.*
+## How findings are tracked
+
+Audit findings (severity: HIGH/MEDIUM/LOW) are triaged inline in the loop. HIGH becomes a blocking follow-on (FAIL blocks downstream); MEDIUM becomes non-blocking (PASS-FINDINGS opens downstream); LOW is deferred or batched. Every finding is recorded in the ledger with its disposition (owned unit or deferral reason) — never silent drops. This prevents "we knew about it but forgot" and keeps issues owned.
 
 ---
 
-Honesty here is structural, not aspirational: the producer is gone before the grade is given, the strong "done" requires an outsider exercising the live thing, and every later change is an owned unit the freeze can enforce. The next chapter turns to what happens when contexts *die* mid-flight and how the store stays affordable over a long project: **resilience and the three-tier memory economy**.
+Honesty is structural: the producer is gone before grading, the check depth depends on unit Kind (logic for authoring, live-exercise for runtime), and every later change is an owned follow-on unit. The next chapter: **resilience and the three-tier memory economy**.

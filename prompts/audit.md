@@ -67,19 +67,22 @@ Add or substitute kind-specific checks (render, source-fidelity, …) where the 
 > exactly these blind spots — a decision documented but not enforced (no gate behind it),
 > and a multi-site fix a bulk-replace silently half-applied. The 5-point core misses both.
 
-### 4a. Runtime check — verified-done, for deploy/infra/data units
+### 4a. Verify-grain split: logic-verified vs live-verified
 
-`authored-done` says the artifact exists and the author saw it work. That is **self-validation**, not verification: a green build or a clean local run, watched by the hand that built it, proves nothing independent. For any unit that **deploys, provisions infra, or produces data**, the audit must additionally **exercise the live artifact as its real consumer**:
+The audit must distinguish **logic-verified** (audit the spec, check fidelity, no execution needed) from **live-verified** (exercise the live artifact as the real consumer would). Read the unit's **Kind** and apply the right grain:
 
-- **Endpoint / service** → call it as the **real identity** a consumer uses (real auth, real route), and confirm the real response — not a localhost smoke test the author already ran.
-- **Table / dataset** → **re-query the target** the way a downstream unit will, and confirm the rows/schema are actually there.
-- **Config / gate** → trigger the behavior it's supposed to control and confirm it actually fires.
+**`logic-verified` (terminal for authoring kinds)**
+- Audit against spec using the 7-point checklist (existence, spec match, cross-ref, consistency, fidelity, enforcement, multi-site).
+- Terminal verdict for `Kind = authoring` (default).
 
-A thing is **verified-done** only when someone who was *not* the author drove it the way reality will. The author's own green result does not count.
+**`live-verified` (required for runtime kinds)**
+- Run the 7-point logic audit *plus* exercise the live artifact as its real consumer (no hardcoded endpoints, real identity/permissions, actual data path).
+- Required for `Kind ∈ {deploy-infra, data, eval, diagnosis}`.
+- **A logic-only audit of a runtime kind = FAIL-as-UNVERIFIED**, not a pass.
 
-### 4b. Kind → extra checks (typed verified-done)
+### 4b. Kind → live-verification dimensions (typed verified-done per Kind)
 
-The §4a runtime check is generic; "exercise the live artifact" means something **different per unit kind**. Read the unit's **Kind** (the ledger's `Kind` column; default `authoring`, kinds: `authoring` · `ui` · `eval` · `deploy-infra` · `data` · `diagnosis`) and run the kind-specific dimensions **atop** the 7-point + the §4a runtime check. A unit is not verified-done because it *ran* — it is verified-done when the kind-specific yardstick passes:
+When a runtime kind requires live-verify, the dimension depends on what the unit does. Run the 7-point logic audit, then the kind-specific exercise below:
 
     Kind → extra checks:
 

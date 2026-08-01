@@ -108,14 +108,15 @@ It ships with the project as its contribution to the pool — the project's down
 payment on the next one. A future project's *consume* step
 ([`consult.md`](consult.md)) reads exactly this.
 
+## Learn as a meta-unit (GOTM 4.5 discipline)
+
+The `learn` unit is **Inputs-gated** on the settled subtree it distills (cannot run on un-audited work). It is **independently audited for faithfulness** (not sufficiency — every learning traces to a real settled unit; contradictions flagged). It is **tier-matched and delegated** like any unit. Results go to **L1 (project-local store)** — high-volume, private, allowed to be messy/contradictory. At project end, a deliberate reconciliation pass promotes **verified L1 → L2** (cross-project pool) as concise, curated, transfer-grade records. The `learn` unit is separate from milestone closure; the driver must **explicitly decide** (deliberate-or-defer prompt) whether to harvest learnings at each milestone.
+
 ## Merge into the shared pool — the write-back step
 
 Emitting `LEARNINGS.md` is only half the produce step. The pool is a **real merged
-store**, not a folder of lonely per-project files waiting for someday a consumer to
-glob them — so the loop **merges this project's records into it now**. The pool is
-the cross-project store at the **user tier** — a merged corpus that lives at a
-convention location (default `~/.gotm/learnings/`, resolved from `$HOME` so it is
-cross-project by construction), holding one record per `claim` with an appendable
+store**, not a folder of lonely per-project files — so the loop **merges this project's records into it now**. The pool is the **L2** cross-project store at the **user tier** — a merged corpus that lives at a
+convention location (default `~/.gotm/learnings/`, resolved from `$HOME`), holding one record per `claim` with an appendable
 `evidence` list, fronted by a regenerated tag Index. Merge is a distinct, concrete
 step run after the file is written (a platform binding — a generically-named merge
 operation over the pool dir):

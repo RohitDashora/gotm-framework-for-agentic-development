@@ -1,99 +1,128 @@
-# Work as a DAG: units, the ledger, foundation
+# Work as a DAG: units, decomposition, and the ledger
 
-The previous chapter named the three roles — **driver**, **worker**, **store** — and the law they enforce: nothing on the hot path is long-lived. That law describes the runtime. This chapter describes the *shape of the work itself*: how a project decomposes into pieces, how those pieces relate, and how the plan that tracks them stays cheap forever. The structure is a **DAG** — a directed acyclic graph of **units**, recorded in a **ledger** that is the graph plus the scheduler's state. We define the static structure here; the dynamics — how the driver walks the graph — are the next chapter.
+The previous chapter introduced the Spark reframe: the driver plans and schedules, never executes. That means the driver must be deliberate about how a coarse task becomes a set of concrete, executable pieces. This chapter describes how work decomposes: how a **Task** becomes **Subtasks** (via a deliberate dispatch gate), how those pieces relate through dependencies, and how the ledger records both the provenance (decimal IDs) and the data flow (Inputs). We start with the unit — the atomic dispatch spec — and then build the mechanisms of deliberate decomposition and tiered storage that keep the driver's context cheap.
 
 ## The unit is a self-contained worker dispatch spec
 
-A **unit** is the atom of work. In v2 a unit was "one pass, one output." That was right but underspecified: it described the *size* of the work without pinning down the thing that actually makes the architecture run. In GOTM a unit is a **self-contained worker dispatch spec** — and that phrase is the load-bearing one.
+A **unit** is the atom of work — one dispatch payload that a fresh, stateless worker receives, executes, and returns a result from. In earlier GOTM versions, a unit was loosely "one pass, one output." That was correct but vague. In GOTM 4.5, we are precise: a unit is a **self-contained worker dispatch spec**.
 
-A worker is born stateless. It has never seen the conversation, the mission, the other units, or any prior worker's context. Everything it needs to do its job must be *in the dispatch*. So a unit is exactly that payload:
+A worker begins with no context: it has never seen the conversation, the mission, other units, or prior workers' outputs. Every scrap of information it needs must be *in the dispatch itself*. A well-formed unit contains:
 
-- **Bounded inputs** — the specific files, pointers, or values the worker reads, and nothing more. Not the whole ledger, not sibling outputs it won't touch, not the conversation.
-- **Exactly one output** — one artifact the worker produces. One unit, one deliverable.
+- **Bounded inputs** — the exact files, pointers, or values the worker reads (and nothing else; not the entire ledger, not unrelated sibling outputs).
+- **One output** — one artifact the worker produces (one document, one query result, one report; one deliverable with one owner).
 - **A spec** — what to produce, in what form, to what standard.
-- **Constraints** — voice, length, canonical terms, things to avoid.
+- **Constraints** — tone, length, canonical terms, things to avoid, output format.
 
-The test of a well-formed unit is simple: *a fresh, stateless worker could execute it from the dispatch alone, with no access to the conversation that created it.* If the worker would have to ask "what did we decide earlier?" the unit is underspecified — the missing context belongs in the dispatch (as a bounded input or a constraint), not in the worker's imagination. **The dispatch contract is the center of gravity** of the whole framework: get it right and everything downstream — parallelism, audit independence, recovery — follows; get it wrong and work leaks back into the long-lived context.
+The test is stark: *a fresh worker could execute the dispatch from its text alone, needing no unspoken context*. If the worker would have to ask "what did we decide earlier?", the unit is underspecified — the missing information belongs in the dispatch (in the Inputs or Constraints cell), not left to imagination.
 
-This has a corollary for trivia. The discipline is *always dispatch* — the driver never edits a work artifact, however small the change. But dispatching has overhead, so a litter of one-line fixes is not N tiny workers; it is **amortized batching**: group the trivia into one **partition-worker** whose dispatch overhead is paid once and spread across the batch. Size each worker's payload to a sensible band — minimal sufficient, not padded, not starved. A unit that would blow past its band fans out instead (chapter 5). The rule never bends: the driver plans and talks; all work is a worker dispatch.
+This dispatch contract is the center of gravity of GOTM 4.5. Get it right and parallelism, audit independence, and recovery all flow from it. Get it wrong and work leaks back into the driver's context, re-creating the monotonicity we forbid.
 
-## The ledger is the DAG plus the scheduler's state
+The corollary is that the driver never edits a work artifact directly, no matter how small. A one-line typo fix is still a worker dispatch (costing one turn + one ledger row, nothing more). Small fixes batch together in a **partition-worker** whose dispatch overhead is amortized across the batch. The rule is absolute: all work is a worker dispatch.
 
-Units do not float free; they depend on each other. A draft depends on the research it draws from; a synthesis depends on every chapter it merges; an audit depends on the output it checks. Those dependencies form a **DAG** — directed (inputs flow one way), acyclic (no unit waits on itself, transitively).
+## The dispatch gate: deliberate decomposition before execution
+
+See Chapter 4 (§The loop, step 2) and Chapter 2 (§The dispatch gate) for full mechanics. Briefly: when a Task enters the ready set, the driver takes a **deliberation pass** using closed information (closed upstream outputs, frontier state) and decides: atomic or split? The **stopping rule**: split down to one-deliverable grain (one artifact, one owner), never below. Registration is **lazy**: the parent Task is upfront in the coarse plan; children are minted only when the parent is picked up, eliminating provisional row churn.
+
+## Decimal IDs, Inputs, and the parallelism trap
+
+When Task U5 splits into three subtasks, it mints `U5.1`, `U5.2`, `U5.3` — **decimal IDs** that form an append-only tree. The parent becomes a **pure container**: it has no Output cell of its own; it closes verified-done only when all its children pass. Any integration or convergence step is itself the final delegated subtask (the "reduce"), never done by the driver.
+
+Here is where a critical distinction emerges, and it is load-bearing: **decimal position is inert; Inputs is everything.**
+
+**Decimal IDs** (`U3.1`, `U3.2`, `U3.3`) represent **provenance** — "these subtasks came from the split of U3." They are a tree structure that records *how* the task decomposed, not *when* or *in what order* the pieces execute.
+
+**The `Inputs` column** (or dependencies listed in a unit's statement) represents the **dependency DAG** — "this unit needs the output of that one before it can start." Inputs are data dependencies, the only mechanism for expressing sequence.
+
+**Critical rule: sibling decimals do not imply sequence.** Reading `U3.1, U3.2, U3.3` and concluding they run sequentially is a silent misread that destroys parallelism. Sibling parallelism comes *only* from empty inter-sibling Inputs: if `U5.1`, `U5.2`, and `U5.3` list no dependencies on each other (only on their common upstream `U4`), they are **data-independent** and **run in parallel**. If `U5.2` lists `Inputs: U5.1` — declaring a dependency on U5.1's output — then U5.2 must wait for U5.1; but U5.3 may still run in parallel with U5.1 if it has no dependency on U5.1.
+
+This is the *only* mechanism for expressing parallelism. Decimal position means nothing.
+
+## Milestones: forced live-verification boundaries
+
+For runtime tasks (Kind ∈ {deploy-infra, data, eval, diagnosis}), the driver often needs to force a **re-aggregation point** where the system as a whole is verified live, not just individual pieces in isolation.
 
 ```mermaid
-flowchart LR
-    F["worker: foundation<br/>(upstream node)"]
-    D1["worker: draft A"]
-    D2["worker: draft B"]
-    S["fan-in worker: synthesis"]
-    F --> D1
-    F --> D2
-    D1 --> S
-    D2 --> S
-    classDef workerC fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a;
-    class F,D1,D2,S workerC;
+flowchart TD
+    Task["Task U5<br/>Deploy: 3 regions"]
+    G["Dispatch Gate<br/>Deliberation"]
+    S1["Subtask U5.1<br/>Deploy us-west"]
+    S2["Subtask U5.2<br/>Deploy us-east"]
+    S3["Subtask U5.3<br/>Deploy eu-west"]
+    M["Milestone U5-m<br/>All 3 live"]
+    
+    Task -->|"driver picks up"| G
+    G -->|"split"| S1
+    G --> S2
+    G --> S3
+    S1 --> M
+    S2 --> M
+    S3 --> M
+    
+    classDef task fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    classDef gate fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    classDef subtask fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a
+    classDef milestone fill:#e6f4ea,stroke:#188038,color:#1a1a1a
+    
+    class Task task
+    class G gate
+    class S1,S2,S3 subtask
+    class M milestone
 ```
 
-*A small unit DAG: a foundation unit upstream of the dependents it feeds; the synthesis is a fan-in node that waits on all of its upstreams. Edges are dependencies, and a unit is dispatchable only once its upstreams are done.* The **ledger** is where that graph lives, and it carries two things at once: the *topology* (which units exist, what each depends on) and the *scheduler state* (the status of each unit — ready, active, done, blocked). The ledger is the plan and the runtime state in one structure.
+A **Milestone** is an explicit ledger row (for runtime tasks) or implicit (for pure-authoring tasks) that marks a forced **live-verification boundary**. When U5 splits into three regional deployments, each can be verified individually (each region's deploy tested in isolation). But the milestone is where the *system as a whole* is verified: all three must be running; a cross-region query must succeed; the end-to-end path works.
 
-This is a sharp break from v2, where the ledger was a flat, append-only log, re-read whole on every turn. As chapter 1 recounted, that design was **monotonic**: a unit closed weeks ago still paid its full cell on every re-read, forever, until the record of the work outweighed the work. The GOTM ledger is **born tiered** — split into two tables from the first unit, not compacted as an afterthought:
+**Explicit milestones** (registered as a ledger row) are required for runtime tasks — they mark the re-aggregation gate and force the verified-done verdict to include a live-consumer check. **Implicit milestones** (for pure-authoring tasks) happen when the parent closes: once all children pass logic audit, the parent is automatically verified-done, no separate row needed.
 
-| Tier | Holds | Read | Cost shape |
+Here is the key rule: **a milestone is where the verify-grain shifts from logic-only (the individual subtasks) to live-verified (the system as a whole).** Chapter 6 covers this in detail; the point here is that milestones are explicit objects in the ledger that force verification boundaries.
+
+## The ledger: born-tiered, one graph plus scheduler state
+
+Units do not float free. They depend on each other: a draft depends on research; a synthesis depends on chapters; an audit depends on what it checks. Those dependencies form a **DAG** — directed, acyclic, no loops.
+
+The **ledger** records both the graph topology (which units exist, what each depends on) and the scheduler state (ready, active, done, blocked). It is the plan and the runtime state in one structure.
+
+GOTM's ledger is **born tiered**, split from the first unit into two storage tiers, not compacted retroactively:
+
+| Tier | Holds | Read pattern | Cost |
 |---|---|---|---|
-| **frontier** (hot) | ready + active units and their immediate inputs/pointers | re-read every turn | small, roughly constant |
-| **archive** (cold) | closed units — terse pointer only; detail lives in `audits/`, `DECISIONS.md`, `docs/` | pulled on demand, never on the hot path | grows, but off the hot path |
+| **Frontier** (hot) | Ready + active units; their immediate inputs and pointers | Re-read every turn | Small, roughly constant (independent of total project size) |
+| **Archive** (cold) | Closed units — terse pointer only; detail in `audits/`, `DECISIONS.md`, docs | Pulled on demand, never on the hot path | Grows unbounded, but off the hot path |
 
-```mermaid
-flowchart TB
-    subgraph store["store · .gotm/ + repo"]
-        direction TB
-        subgraph frontier["frontier (hot · re-read every turn)"]
-            R1["ready / active units<br/>+ immediate inputs"]
-        end
-        subgraph archive["archive (cold · pulled on demand)"]
-            A1["closed units → one-line pointer"]
-        end
-        frontier -.->|"compact closed unit"| archive
-    end
-    classDef storeC fill:#e6f4ea,stroke:#188038,color:#1a1a1a;
-    class store storeC;
-```
+The frontier is the only part on the **hot path**. The driver reads the frontier each turn, not the history. The archive accumulates closed units as one-line pointers; the detail already lives in audit and decision files, so the archive row costs nothing per turn.
 
-*The born-tiered ledger: a small hot frontier the driver re-reads every turn, and a cold archive that accumulates closed units as one-line pointers. Closed units compact downward; only the frontier is ever on the hot path.*
-
-The frontier is the only part on the **hot path**. The driver reads the frontier each turn, not the history. The archive grows without bound as the project runs, but because nothing recurring reads it, that growth costs nothing per turn — the cold detail already lives in the audit, decision, and doc files, so the archive cell is a one-line pointer, not a duplicate. This is how a thousand-unit project keeps the same per-turn read cost as a ten-unit one.
-
-A frontier row is terse by design — an index entry, not a record of the work:
+A frontier row is terse by design:
 
 ```
-| id    | unit                     | deps      | status        | audit | output                  |
-|-------|--------------------------|-----------|---------------|-------|-------------------------|
-| ch3   | Write ch3 — work as DAG  | design,ch2| authored-done | —     | docs/03-work-as-a-dag.md|
-| ch4   | Write ch4 — the loop     | design,ch3| ready         | —     | docs/04-the-loop.md     |
+| id     | unit                            | Inputs      | status        | Output                  |
+|--------|----------------------------------|-------------|---------------|-------------------------|
+| U5     | Deploy: 3-region replication    | U4          | authored-done | (pure-container)        |
+| U5.1   | Deploy to us-west (Oregon)      | U4          | verified-done | `deploy/us-west.log`    |
+| U5.2   | Deploy to us-east (Virginia)    | U4          | verified-done | `deploy/us-east.log`    |
+| U5.3   | Deploy to eu-west (Ireland)     | U4          | verified-done | `deploy/eu-west.log`    |
+| U5-m   | Replication: all 3 live         | U5.1,U5.2,U5.3 | verified-done | `milestones/u5-live.md` |
+| U6     | Analyze replication metrics     | U5-m        | ready         | `reports/repl-metrics.md` |
 ```
 
-One more rule makes the ledger safe: **only the driver writes it.** Workers do not touch the ledger; they execute and **return a terse structured result**, and the driver — the single writer — records status and output pointer. In v2, multiple contexts wrote back, and the same unit could land twice as duplicate rows. Single-writer discipline kills that race by construction.
+Notice the structure: U5 has no Output (it is a pure container); U5.1–U5.3 are the actual work units with concrete artifacts; U5-m is the milestone that re-aggregates. All five rows are in the ledger. The driver records status and pointers; workers do not touch the ledger.
 
+One more rule makes the ledger safe: **only the driver writes it.** Workers execute and return a terse result; the driver — the single writer — records status and output pointers. This eliminates the duplicate-row race: a unit cannot land twice because only one context writes.
 
-## The Output cell is a machine-authoritative key
+## Foundation is just graph topology
 
-The ledger is two things at once — a **human narrative** of the project and a **machine index** something parses. Most cells lean toward the narrative side; the driver reads them, and nothing else needs to. But a few are load-bearing for the machine, and the **Output cell is the sharpest of them**: it is the unit's **ownership key**. Whatever enforces the freeze — the driver's own pre-write check, or an optional file-write hook where the runtime offers one — decides whether a given write is legitimate by matching the write's path against the Output cell of an active unit. So the cell is not a human's convenient shorthand for "roughly where the work lands"; it is the exact identity the freeze keys on.
+Earlier GOTM versions had a reminder: *foundation before drafts* — do the research before the synthesis. It was a useful discipline that required constant enforcement.
 
-That double duty is a trap when the two readings diverge. A cell that reads well to a human — "the pipelines dir", a `{server,client}/src` brace-glob, a path with a stray `|` in an adjacent prose cell — parses to something the machine cannot match to a concrete file, so a sanctioned follow-on edit gets false-blocked while the human sees a perfectly sensible row. The fix is to type the field: the **Output cell holds concrete backticked path(s) — no globs, no bare directories, no raw `|`** (a directory would over-claim ownership of every file beneath it, including ones not yet written). A unit that legitimately produces several files lists them as comma-separated backticked paths; the enforcer parses *all* of them, not just the first.
+In GOTM 4.5, it becomes a **property of the graph itself.** **Foundation** is simply the set of *upstream nodes* — units with no unmet dependencies that many other units list as inputs. A unit that declares the research as a dependency *cannot* be dispatched until that research is done. The scheduler respects the graph natively. "Foundation before drafts" is no longer something to remember; it is what a correct topological walk *does*.
 
-Keeping the field honest is itself mechanical: a **ledger-parse lint** runs when the driver writes the ledger and at the session-start reconcile, rejecting any row that mis-splits its columns, carries an unparseable Output, or holds a status the scheduler doesn't recognize — *before* that row can mislead the freeze. (An adopter with a runtime that supports it can wire this as an automated hook; with nothing installed, it is a check the driver runs on itself. The lint is the discipline; the hook is one way to enforce it.) The principle generalizes past this one cell: the ledger's load-bearing fields are **typed and validated**, so the machine index stays clean while the human narrative stays readable.
+## Two done states: authored-done vs verified-done
 
-## Foundation is just DAG topology
+The ledger distinguishes two terminal states, and the distinction is structural:
 
-v2 carried a rule: *foundation before drafts* — do the groundwork (the research, the shared decisions, the reference material) before the work that builds on it. It was a sequencing reminder, and reminders erode.
+**`authored-done`** means a worker produced the output. The artifact exists. The worker is already gone (it was short-lived).
 
-In GOTM it stops being a reminder and becomes a **property of the graph**. **Foundation** units are simply the *upstream nodes* of the DAG — the ones with no unmet dependencies that many other units list as inputs. The scheduler respects dependencies natively (next chapter): a draft unit declaring the research unit as a dependency *cannot* be dispatched until that dependency is done. "Foundation before drafts" is no longer something to remember and enforce; it is what a correct topological walk of the DAG *does*. The discipline is encoded in the edges, not in the operator's vigilance.
+**`verified-done`** means an independent auditor confirmed it. The output was checked against spec, and for runtime tasks (deploy-infra, data, eval, diagnosis), the artifact was exercised live as the real consumer would use it. A producing worker can only reach authored-done; it never self-certifies. Only a separate, driver-launched auditor confers verified-done.
 
-## Two done states — a preview
-
-You may have noticed the `authored-done` status in the ledger sketch above. The ledger actually distinguishes two terminal states, and the difference matters enough to flag here. **authored-done** means a worker produced the output — the artifact exists. **verified-done** means an *independent* worker confirmed it — the output was checked (and for deploy, infra, or data units, exercised live as its real consumer). A producing worker can only ever reach authored-done; it never self-certifies, because by the time the check runs the executor is already gone. Only a separate, driver-launched worker confers verified-done. These are distinct ledger states, not decoration — and the full treatment of structural audit independence is the subject of chapter 6.
+These are distinct ledger states, not decoration. The full treatment of audit independence and verify-grain (logic-only vs live-verified) is Chapter 6's subject. The point here is that the terminal states are typed: a unit does not become verified-done until a fresh context has reviewed it.
 
 ---
 
-We now have the static picture: work is a DAG of self-contained unit dispatch specs, recorded in a born-tiered ledger that the driver alone writes, with foundation encoded as graph topology. The next chapter sets it in motion — **the loop: the driver's scheduler**, walking the DAG to compute the ready set, dispatch workers, and collect results.
+Work is a DAG of self-contained unit specs; the ledger records provenance (decimal IDs) and dependencies (Inputs). Deliberate decomposition at the dispatch gate keeps the driver reasoning about scope, not drowning in execution state. The next chapter (**the loop**) sets this in motion.

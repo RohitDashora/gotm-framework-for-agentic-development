@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This project follows the GOTM v3 operating protocol. Its orchestration file-set lives in [`.gotm/`](.gotm/), kept out of the root so the root stays reserved for the framework's produced assets (`docs/`, `prompts/`, `templates/`).
+This project follows the GOTM v4.5 operating protocol. Its orchestration file-set lives in [`.gotm/`](.gotm/), kept out of the root so the root stays reserved for produced assets (`docs/`, `prompts/`, `templates/`).
 
 Before doing any work in this repo:
 
@@ -8,13 +8,15 @@ Before doing any work in this repo:
 2. Read [`.gotm/LEDGER.md`](.gotm/LEDGER.md) — read the **frontier**, not the history.
 3. Read [`.gotm/QUESTIONS.md`](.gotm/QUESTIONS.md) for any open ratifications.
 
-`.gotm/PROTOCOL.md` is canonical. This file lives at the repo root only because a root `CLAUDE.md` is what auto-loads across sessions — it is the thin bridge that points into `.gotm/`. Do not move it into `.gotm/`; that silently breaks the auto-load. (This repo uses the subfolder layout as a worked example of it; see [`docs/08-in-practice.md`](docs/08-in-practice.md).)
+`.gotm/PROTOCOL.md` is canonical. This file lives at the repo root only because a root `CLAUDE.md` is what auto-loads across sessions — it is the thin bridge that points into `.gotm/`. Do not move it into `.gotm/`; that silently breaks the auto-load.
 
-## Non-negotiables (v3)
+## Non-negotiables (v4.5)
 
-These are the load-bearing rules of v3. Guard them every turn (full detail in `.gotm/PROTOCOL.md`):
+These are the load-bearing rules of v4.5. Guard them every turn (full detail in `.gotm/PROTOCOL.md`):
 
-- **Driver / worker / store.** You are the **driver**: you plan, you talk to the human, you run the scheduler loop — and you are the **single writer** of the store. You never edit a work artifact and never read bulk input directly; **all work, however small, is a worker dispatch** (a fresh, ephemeral context with bounded inputs that produces one output). See `.gotm/PROTOCOL.md` → *Architecture* / *The loop*.
-- **Workers mark authored-done; they never self-certify.** A worker's strongest claim is *the artifact exists* (**authored-done**). It cannot grade its own work — by the time anything checks a unit, its author is gone. The driver therefore **always dispatches a separate audit worker** (auditor ≠ author) with bounded context. Downstream waits for a passing verdict — `PASS` or `PASS-FINDINGS`; a `FAIL` blocks and its findings become new units. Deploy/infra/data units get a **verified-done** check that exercises the live artifact. See `.gotm/PROTOCOL.md` → *Audit*.
-- **Born-tiered ledger; re-hydrate from the store.** The ledger is born tiered (hot frontier + cold archive) — read the frontier, never the history. Hold no decision-relevant state only in chat; the on-disk store alone must reconstruct context. On **any** fresh start (cold restart, `/clear`, or after a compaction) re-hydrate via the **session-start reconcile** — reconcile the ledger against disk before acting. **There is NO compaction hook**; re-hydration depends on none. See `.gotm/PROTOCOL.md` → *Resilience & re-hydration*.
-- **Freeze + follow-on ownership.** Done units are frozen: never edit a `done` unit's output — append a follow-on unit (an active unit may own a change to a done output) and put the change there. Same for prior `DECISIONS.md` / `QUESTIONS.md` entries — append, don't rewrite (marking a Status line answered/superseded is the one allowed exception). Living governance docs (`PROTOCOL.md`, `CLAUDE.md`, `README.md`) stay editable. Because the driver is the single writer, the duplicate-row race cannot occur. See `.gotm/PROTOCOL.md` → *Freeze*.
+- **Driver executes nothing; all work is a worker dispatch.** You are the **driver**: plan, talk, run scheduler loop, single-writer of the store. You never execute unit work — **every task spawns a fresh worker** (bounded inputs → one output → gone) for structural audit independence and to prevent self-certification. Dispatch at the gate; auditor ≠ author. See `.gotm/PROTOCOL.md` → *Architecture*.
+- **Dispatch-gate decomposition + Inputs-DAG.** At the scheduler gate, tasks split into subtasks with decimal IDs (U5 → U5.1, U5.2) tracking provenance and dependency. See `.gotm/PROTOCOL.md` → *Dispatch*.
+- **Verify-grain: authored-done + logic-verified / live-verified.** Workers mark `authored-done` (artifact exists). Logic-verified units undergo independent audit (design/code/decisions); live-verified units exercise the artifact on its intended system. Both require auditor ≠ author. See `.gotm/PROTOCOL.md` → *Verify gates*.
+- **Born-tiered ledger; re-hydrate from the store.** Hot frontier + cold archive; read frontier only. On cold start, session-start reconcile re-hydrates from disk (no compaction hook). Mark units `in_progress` before writing output — born `pending`/`in_progress`, never `done`. See `.gotm/PROTOCOL.md` → *Resilience*.
+- **Freeze + follow-on ownership.** Done units are frozen; append a follow-on for any change. Governance docs (`PROTOCOL.md`, `CLAUDE.md`, `README.md`) stay editable. A `PreToolUse` hook at [`.gotm/hooks/gotm-immutability.py`](.gotm/hooks/gotm-immutability.py) enforces the freeze. See `.gotm/PROTOCOL.md` → *Freeze*.
+- **Learning + model tiering. Advisory upward-signals.** Each unit declares a **Tier** (driver resolves to concrete model/effort from `.gotm/tiers.json`). `learn` and `compact` are **separate** driver-scheduled meta-units, prompted (deliberate-or-defer) at each milestone; learnings write **L1** continuously (intra-project recall) and promote to the cross-project **L2** pool once at project end. Workers propose via advisory signals (split/discovery/blocker); the driver disposes. See `.gotm/PROTOCOL.md` and [`prompts/consult.md`](prompts/consult.md).

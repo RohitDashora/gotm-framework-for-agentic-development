@@ -6,3 +6,7 @@
 
 __pycache__/
 *.pyc
+
+# GOTM orchestration store (this repo's own dogfooding workspace — not a published asset)
+.gotm/
+.claude/

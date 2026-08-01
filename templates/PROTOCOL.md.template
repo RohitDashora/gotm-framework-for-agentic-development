@@ -10,7 +10,7 @@ The framework this protocol implements is described in [`docs/`](docs/01-the-pro
 
 > **GOTM is a context-economy discipline. The store is the system of record; every working context is disposable and reconstructable from it. Nothing on the hot path is long-lived.**
 
-Everything below is a consequence of that sentence. The store reconstructs working context — so a session can end at any moment (crash, `/clear`, compaction, closed terminal) and lose nothing. State that lives only in a context is not real state.
+Everything below is a consequence of that sentence. The store reconstructs working context — so a session can end at any moment (crash, `/clear`, compaction, closed terminal) and lose nothing. State that lives only in a context is not real state. The driver executes nothing; all work moves to ephemeral worker dispatch, each one **deliberately scoped at a dispatch gate and never run monolithically**.
 
 ## The three roles
 
@@ -20,27 +20,40 @@ Everything below is a consequence of that sentence. The store reconstructs worki
 | **Worker** — a dispatched subagent | **ephemeral** — one unit, then discarded | only its bounded inputs + its spec; produces exactly one output; returns a terse structured result | any cross-unit state; any context from a prior worker |
 | **Store** — the durable file-set + the repo | durable, **tiered** | hot **frontier** (active units + recovery window) + cold **archive** (closed detail) | — |
 
-**The load-bearing rule:** *the driver plans, talks, and gates; **all work — however small — is a worker dispatch**.* The driver is the **single writer** of the store. It never edits a work artifact, never reads bulk input (it dispatches a read-and-summarize worker when it must inspect), and never holds a worker's output body — only a pointer. The one long-lived context carries the index, not the work.
+**The load-bearing rule:** *the driver plans, talks, and gates; **all work — however small — is a worker dispatch**.* The driver is the **single writer** of the store. It never executes work, never edits a work artifact, never reads bulk input (it dispatches a read-and-summarize worker when it must inspect), and never holds a worker's output body — only a pointer. The one long-lived context carries the index, not the work. **At the dispatch gate** (when picking a task for execution), the driver takes a deliberation pass and either commits it as an atom or splits it into subtasks — stopping at one deliverable per unit, never below.
 
-This is *not* optional for "small" tasks. A one-line fix is still a worker dispatch (batched into a partition-worker if there are several — see `prompts/worker-dispatch.md`). The moment the driver edits an artifact itself, the discipline is gone.
+This is *not* optional for "small" tasks. A one-line fix is still a worker dispatch (batched into a partition-worker if there are several — see `prompts/worker-dispatch.md`). The moment the driver edits an artifact itself or dispatches a task without deliberate scope upfront, the discipline is gone.
 
 ## The five rules
 
-**1. Single writer, single ledger.** The ledger is authoritative, and **only the driver writes it**. State not in the ledger is not real state; if two documents disagree, the ledger wins. Workers report results; the driver records them. (One hand writing the ledger is what makes the v2 duplicate-row race impossible by construction.)
+**1. Single writer, single ledger.** The ledger is authoritative, and **only the driver writes it**. State not in the ledger is not real state; if two documents disagree, the ledger wins. Workers report results; the driver records them. (One hand writing the ledger is what makes the duplicate-row race impossible by construction.)
 
-**2. Atomic units = dispatch specs.** Each row in the ledger is one **self-contained worker dispatch** — bounded inputs + one named output + spec + constraints, complete without the conversation. One deliverable, not two, not "and a small revision." A thing and its test are one unit (build-and-test is one pass); *unrelated* outputs in one unit are forbidden. If a planned unit hides more than one output, split it before dispatching.
+**2. Lazy decomposition at dispatch.** Each row in the ledger is one **self-contained worker dispatch** — bounded inputs + one deliverable + spec + constraints. At the dispatch gate, the driver either commits a task as an atom (no split) or splits it into **subtasks** (decimal children: U3.1, U3.2, U3.3), stopping at one deliverable per unit, never below. A split parent is a pure container (no Output of its own); siblings are independent unless one lists another in `Inputs` — **decimal position is inert; only `Inputs` expresses parallelism.** A thing and its test are one unit (build-and-test is one pass); *unrelated* outputs in one unit are forbidden.
 
 **3. Foundation before drafts — enforced by the DAG, not vigilance.** The ledger is a **DAG**: foundation units are upstream nodes; drafts depend on them. A unit with an unmet dependency is simply absent from the ready set. Drafts that begin before foundation closes fail by producing fluent prose grounded in nothing — the topology prevents it.
 
-**4. Audit before downstream consumes — by an independent worker.** Every authored-done unit is checked by a *fresh* context (never its author) before anything downstream depends on it. Findings become new ledger units, not edits to closed ones. See *Audit gates*.
+**4. Audit before downstream consumes — by an independent worker.** Every authored-done unit is checked by a *fresh* context (never its author) before anything downstream depends on it. For runtime kinds (deploy-infra, data, eval, diagnosis), the same audit also exercises the live artifact as its real consumer — logic-only audit of a runtime unit = FAIL-as-UNVERIFIED. Findings become new ledger units, not edits to closed ones. See *Audit gates*.
 
 **5. Ratification ladder routes human decisions.** Some decisions are the human's; the ladder names which and routes them to `QUESTIONS.md`. See next section.
+
+## The object model: Ask → Task → Subtask → Milestone
+
+| GOTM | Definition | Scope | Ledger row | Output |
+|---|---|---|---|---|
+| **Ask** | Human mission / question | driver reads once per project | implicit, not a row | — |
+| **Task** | Coarse logical plan element | a work area (days to weeks) | **YES** | may be pure-container (empty) |
+| **Subtask** | Physical plan element; born at dispatch | one deliverable (hours to days) | **YES** | concrete artifact |
+| **Milestone** | Live-verification boundary (runtime only) | shuffle point for parallel subtasks | explicit for runtime/eval | implicit (closes when children verified) |
+
+A **Task** is registered coarsely upfront. When the driver reaches it in the ready set, it deliberates and either commits as atom or splits into `Task.1, Task.2, …` (decimal children). A **pure-container Task** has no Output and closes verified-done only when all children pass. A **Milestone** forces live-verification (not logic-only audit) and is explicit in the ledger for runtime tasks; for authoring tasks it is implicit (parent closes when children verified).
 
 ## The ledger micro-schema (the Output cell is a machine key)
 
 The ledger is two things at once — a human narrative and a **machine-authoritative index**. The immutability hook, compaction, and the ready-set computation all reverse-engineer *(unit → owned paths, status, verdict)* out of the table. So the load-bearing cells are typed, not free prose.
 
-**The Output-cell contract.** An Output cell holds **concrete backticked path(s) only** — the literal files the unit produces:
+**Decimal IDs = provenance tree; `Inputs` = dependency DAG.** When a Task splits, decimals record provenance (U3 → U3.1, U3.2) and are append-only (sibling 3 never renumbered). The `Inputs` column alone expresses data dependencies — siblings with no inter-`Inputs` run in parallel. Reading decimal position as sequence destroys parallelism: **only `Inputs` matters**.
+
+**The Output-cell contract.** An Output cell holds **concrete backticked path(s) only** — the literal files the unit produces (or empty for pure containers):
 
 - **No globs, no directories.** `` `src/app.py` `` is valid; `` `src/*` `` or `` `pipelines/` `` is not. A directory Output would freeze every file under it (including new/untracked ones) and over-grant ownership — so it is forbidden, not "matched." List the concrete files.
 - **Multi-file = comma-separated backticks.** A unit that owns a module and its test writes `` `src/app.py`, `src/app_test.py` `` — every path is owned, in both directions (the hook parses **all** backticks, not just the first).
@@ -59,6 +72,16 @@ When a question or decision arises during work, classify it and route:
 | **Ambiguous** | could be either; judge materiality | Surface with a `MATERIAL?` flag. The human routes it. |
 
 The boundary is fixed: the human is never surprised by a mission-level decision made unilaterally, and never pulled into an execution choice. The ladder lives in the driver — the only context that talks to the human.
+
+## The dispatch gate: lazy decomposition
+
+When a Task enters the ready set (all Inputs closed), the driver takes a **deliberation pass** (cheap — metadata only, no bulk data) and decides: split into subtasks or commit as atom? **Stopping rule:** split to the one-deliverable grain, never below. One deliverable = one artifact (a report, query result, PR) that one downstream consumer owns.
+
+**Registration is lazy, not eager.** The parent Task is registered upfront (so downstream sees the dependency). Its children are registered *only when the parent is picked up for execution* — eliminating provisional row churn. Short-circuit (no children) when the task is an atom that requires no split.
+
+**Subtasks are full units.** A subtask (U3.1, U3.2, …) is a ledger row with its own status, audit, and Output. Siblings with no inter-`Inputs` dependencies are independent and run in parallel. Any integration step is itself the final delegated subtask (the "reduce"), never done by the driver.
+
+**Worker signal protocol (advisory only).** A worker may observe a `split` (I found a piece that should be its own unit), a `discovery` (I found a downstream blocker), or a `blocker` (I hit a permission wall). It reports the typed signal; the driver (sole full-context) decides: mint a new unit, reshape scope, merge with an existing unit, absorb (already known), route to human, or decline-with-durable-reason. Triage is inline in the loop; a declined signal leaves a one-line record so it is not re-raised forever. Workers do not act on their own signals.
 
 ## The loop — the driver's scheduler
 
@@ -95,22 +118,36 @@ Rule 4 in full. Two properties make the check meaningful — **structural indepe
 
 **The 7-point checklist.** Unless the unit calls for a specialized check, the auditor runs all seven: (1) **existence** — output exists at the stated path; (2) **spec match** — content matches what the unit promised; (3) **cross-reference integrity** — every `D<n>`/`U<n>`/`Q<n>` cited exists and says what's claimed; (4) **internal consistency** — no contradictions; (5) **decision fidelity** — honors the relevant `DECISIONS.md` entries; (6) **enforcement check** — for each *behavioral* decision, is there a gate/config/assertion that makes it hold, or is it only prose? (a documented-but-unenforced decision is a finding); (7) **multi-site claim check** — any "wired into both X and Y" / "applied across N sites" / "replaced everywhere" claim is verified by grep/count, not by trusting the prose. *(Checks 6–7 close the two blind spots that produced the only field FAILs: a documented-but-unenforced decision, and a half-applied bulk fix.)*
 
-**Typed verified-done — the unit declares a Kind.** "Exercise the live artifact" means something *different* per kind, and the generic check is widest-open exactly where "looks done ≠ is done." Each unit declares a **Kind** (default `authoring`); the auditor reads it and adds **kind-specific dimensions atop the 7-point**:
+**Verify-grain split: logic-verified vs live-verified.** Two distinct verification modes:
 
-| Kind | Dimensions added to the 7-point |
-|---|---|
-| **authoring** (default) | the 7-point alone. |
-| **ui** | **artifact-freshness** — rebuild from *current* source before auditing (never audit a stale served bundle); **objective machine checks** (DOM/bbox/counts, not worker prose about visuals); the driver/auditor views the result **firsthand**. |
-| **eval** (judge/measurement) | **harness-fairness** — equal-fidelity inputs to both sides, a **symmetric yardstick**, position/order bias controlled via **A/B swap**, and confounds controlled or explicitly labelled. For a unit whose *purpose* is to measure, correctness **is** harness fairness — a rigged harness yields confident-wrong conclusions the whole project leans on. |
-| **deploy-infra** | exercise the artifact **end-to-end as the deployed identity** (not "is it RUNNING" — run a real query/request as the app's own principal). A **hardcoded identity/endpoint** is a check-6 **enforcement finding** (a fragile binding that breaks on recreate). |
-| **data** | **re-query the target as the downstream consumer** (a green write is not verification; read it back through the path a consumer actually uses). |
-| **diagnosis** | **reproduce under controlled conditions** (strip model/harness/config confounds) **before** root-causing — never act on a confounded "X underperforms" signal. |
+- **logic-verified** — auditor checks output *against spec*: Does it exist? Does it match the spec? Do cited references say what's claimed? Is there enforcement for behavioral decisions? **Terminal for authoring units** (Kind = `authoring`). A passing logic audit = verified-done.
+- **live-verified** — auditor additionally exercises the output *as the real consumer would*. For different Kinds: `ui` = rebuild + objective DOM/bbox checks; `eval` = harness fairness (equal inputs, symmetric yardstick, A/B-swap for bias, confounds controlled); `deploy-infra` = run a real query as the deployed identity; `data` = re-query as downstream consumer; `diagnosis` = reproduce under controlled conditions. **Required for runtime kinds** (Kind ∈ {deploy-infra, data, eval, diagnosis}) — logic-only audit of a runtime unit = **FAIL-as-UNVERIFIED**, not a pass.
+
+**Milestone forces live-verification.** For a complex runtime task split into parallel subtasks, each subtask is live-verified individually. The **milestone** (explicit ledger row for runtime tasks) is where the system as a whole is live-verified — the re-aggregation gate. If any subtask fails, milestone = FAIL-as-UNVERIFIED.
 
 **Verdict — one of three.** **`PASS`** (no findings above trivial); **`PASS-FINDINGS`** (consumable, but carries MEDIUM/LOW findings that become tracked non-blocking follow-on units); **`FAIL`** (one or more HIGH findings — blocks). HIGH ⇒ FAIL; MEDIUM/LOW-only ⇒ PASS-FINDINGS; clean ⇒ PASS.
 
 **The gate.** A downstream unit may **consume** an input only when that input's `Audit` is a passing verdict (`PASS` / `PASS-FINDINGS`). Drafts and code do not build on `pending` or `FAIL`. `done` (the output exists) and a passing verdict (an independent context checked it) are distinct — the column keeps them honest. **Findings become units, never edits:** the auditor does not fix; HIGH findings become fix units, MEDIUM/LOW become tracked follow-ons, and the audited output stays frozen.
 
 **Weight the audit by risk** (worker economy, not a project budget): a full independent audit for keystone/deploy/runtime units; a light existence+spec+compile worker for mechanical ones — don't spend a heavy audit where it isn't warranted, but never skip the gate.
+
+## Tier binding: altitude defaults & escalation
+
+| Decision | Tier | Details |
+|---|---|---|
+| **Default (by grain)** | leaf → **economy**; keystone → **standard**; milestone → **frontier** | Economical tiers for atomic units; keystones cost more (fresh audit); milestones are live-verify-expensive. |
+| **Kind override** | Kind ∈ {eval, deploy-infra, diagnosis} → **frontier** | Runtime units always get fresh-context audit; live verification is expensive and stakes are high. |
+| **Repeated escalation** | ≥2 watchdog deaths (same Uxx) | escalate +1 tier (economy → standard → frontier) | Repeated failures signal complexity; escalate resources. |
+
+## Meta-units: learn & compact
+
+**`learn` and `compact` are separate driver-scheduled operations**, each born as its own pending unit. Not auto-coupled, not the same settle-event.
+
+- **`learn`** (Kind: `meta`) — distills lessons from a settled subtree. Inputs-gated on verified-done units. Audited for **faithfulness** (every learning traces to real settled units; no invented patterns). Results written to L1 (project learnings store, continuous, high-volume). Tier-matched, delegated like any unit.
+- **`compact`** — lossless GC of frontier. Moves closed+verified units from frontier to cold archive (one-line per unit, audit pointer kept). Born-tiered ledger stays born-tiered. An index operation, not a freeze violation.
+- **Deliberate-or-defer prompt.** When a milestone settles a subtree, the driver MUST answer: "Harvest a `learn` here?" and "Compact now?" — do-it-now or defer-with-recorded-reason. Never silent skip.
+
+**Two-tier learning.** **L1** (project-local store) is written continuously by `learn` units, read by this project's later dispatch gates (intra-project recall). **L2** (cross-project shared pool) is promoted once at project end as a deliberate reconciliation pass (concise, curated, transfer-grade).
 
 ## Destructive-op gate (pre-execution)
 

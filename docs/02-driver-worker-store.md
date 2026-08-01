@@ -1,8 +1,6 @@
 # The architecture: driver / worker / store
 
-The previous chapter ended with a single law — *nothing on the hot path is long-lived* — and a promise that everything else is a consequence of it. This chapter cashes out the first and most important consequence: a three-role architecture. Separate the planner from the doer, route everything they share through disk, and you have **driver**, **worker**, and **store**. The split is not an arrangement of convenience. It is the structure that makes non-monotonicity a property of the system rather than a habit someone has to remember.
-
-The cleanest way to see it is by analogy to Spark, which solved the same problem one layer down: how to run work far larger than any single machine without any single machine accumulating all the state.
+The previous chapter ended with a single law — *the driver executes nothing; every task, however small, goes to a short-lived worker* — and a promise that everything else is a consequence of it. This chapter cashes out the first and most important consequence: a three-role architecture. Separate the planner from the doer, route everything they share through disk, and you have **driver**, **worker**, and **store**. The split is not an arrangement of convenience. It is the structure that makes non-monotonicity a property of the system rather than a habit someone has to remember.
 
 ## The three roles
 
@@ -18,22 +16,6 @@ The cleanest way to see it is by analogy to Spark, which solved the same problem
 
 **The store is `.gotm/` plus the repo — the durable store, the system of record.** It is HDFS and the shuffle file: the only thing that crosses a context boundary, the only place work durably lives. It is **tiered** by design — a hot frontier (the active units and the recent recovery window, read on every turn) and a cold archive (closed-out detail, never on the hot path). Workers read their inputs from it and write their outputs to it. The driver reads the frontier from it. The store is where the parts that must not be lost are kept, and where any discarded context is rebuilt from.
 
-## The load-bearing rule
-
-One rule holds the architecture together:
-
-> **The driver plans and talks; all work — however small — is a worker dispatch.**
-
-Three things fall out of it, and they are the whole discipline.
-
-**The driver never edits a work artifact.** Not a chapter, not a config file, not a line of code. If something needs producing or changing, that is a unit, and a unit is a worker dispatch. There is no threshold below which the driver "just quickly does it itself" — a one-line fix is still a worker, because the moment the driver edits artifacts it starts accumulating work-state, and the accumulation is exactly the monotonicity we are trying to forbid.
-
-**The driver never reads bulk input.** When it must inspect something large — a long file, a directory, a data dump — it does not pull that into its own context. It dispatches a read-and-summarize worker and receives back a terse digest. The bulk stays off the hot path; only the summary reaches the long-lived context.
-
-**The driver is the single writer of the store.** Workers report results; the driver records them. There is exactly one hand that writes the ledger and the durable state, which removes a whole class of races and contention by construction. Many contexts read the store; one writes it.
-
-Put together: the driver is a coordinator that holds an index and a discipline, dispatches all real work to disposable contexts, and is the sole author of the record. It is generous with itself — it is the one context that is orchestrating — and frugal everywhere there are many contexts.
-
 ```mermaid
 flowchart LR
     driver(["driver"])
@@ -45,34 +27,128 @@ flowchart LR
     worker -->|read inputs| store
     driver -->|"write (single writer)"| store
 
-    classDef driverC fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a;
-    classDef workerC fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a;
-    classDef storeC fill:#e6f4ea,stroke:#188038,color:#1a1a1a;
-    class driver driverC;
-    class worker workerC;
-    class store storeC;
+    classDef driver fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    classDef worker fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a
+    classDef store fill:#e6f4ea,stroke:#188038,color:#1a1a1a
+    class driver driver
+    class worker worker
+    class store store
 ```
 
 *The three roles and the four flows: the driver dispatches workers and is the single writer of the store; workers read their inputs from the store and return only a terse result. The bulk never crosses into the long-lived context.*
 
-## The non-monotonicity guarantee, per role
+## The load-bearing rule
 
-The architecture buys non-monotonicity role by role. Two of the three roles get it structurally. The third has an honest limit, and the framework states it plainly rather than papering over it.
+> **The driver plans and talks; all work — however small — is a worker dispatch.**
 
-**Workers are structurally non-monotonic.** A worker is born fresh for one unit and gone after. Its context is bounded by *one unit's* work — forever, regardless of how large the project grows. There is no "rotate the worker" rule to remember and no discipline to slip on, because rotation is not a policy laid over the worker; it *is* the worker's shape. A thousand units cost a thousand bounded contexts, never one growing one.
+Three consequences: (1) The driver never edits artifacts (a one-line fix is still a dispatch; inline execution is how monotonicity creeps in). (2) The driver never reads bulk input (dispatches a summarize worker instead; bulk stays off the hot path). (3) The driver is the single writer of the store (workers report, driver records; one writer means no race).
 
-**The store's hot path is non-monotonic.** The cold archive grows without bound — that is fine, because it is never on the hot path. The ledger is **born tiered**: a small hot frontier the driver and workers actually read, and a cold archive that accumulates but is pulled only on demand. The recurring read stays cheap no matter how much history piles up behind it. Growth is real but quarantined to the part nobody reads on a recurring basis.
+## The dispatch gate: deliberate decomposition before dispatch
 
-**The driver is checkpointed, not stateless — and this is the honest limit.** In an interactive session the driver *is* the session. On most interactive harnesses it cannot be made stateless, and it cannot compact itself on demand: compaction is typically a human action, no hook or model directive fires it, and the auto-compact threshold is not tunable. (Concretely, this is the situation in an interactive Claude Code session — one common runtime — but the limit is a property of interactive harnesses generally, not of one tool.) We do not pretend otherwise. The driver still grows — but *slowly*, because it carries only the plan, the discipline, and a terse frontier, never the work.
+When a Task enters the driver's ready set, the driver does not immediately dispatch it. Instead, it takes a **deliberation pass** — a cheap, metadata-only scan — and decides: does this task split into subtasks, or is it an atomic unit? This decision, made *before* dispatch with more information than was available at plan time, is the engine of deliberate DAG decomposition.
 
-What makes the limit honest rather than fatal is that the driver is **checkpointed**. Its durable state lives in the store, so any fresh start rebuilds it. On a cold restart, after the context is cleared, or after an auto- or manual compaction, the driver reconstructs its working set from the store through the **session-start reconcile** — the same transcript-independence guarantee GOTM has always made. Crucially, **re-hydration is runtime-agnostic and depends on no compaction hook.** An optional hook could auto-inject the manifest on a compaction event where a runtime supports one, but it is at most an accelerator; the framework deliberately does not build on it, because the store-plus-reconcile path works on every runtime without it.
+**The deliberation pass** reads the task spec, the summaries of its upstream inputs, and the stopping rule (split down to one deliverable, never below). It costs nothing but one model invocation and a cursor through the ledger. The driver then either:
+- **Commits it as an atom** and dispatches a single worker to execute it, OR  
+- **Splits it into subtasks** (e.g., U3 becomes U3.1, U3.2, U3.3 — decimal children), registers them all with their internal dependencies, and the original becomes a **pure container** (no Output of its own; closes verified-done only when all children verify).
 
-In an SDK or headless setting the driver gains one extra capability — it *can* compact itself programmatically. That is a bonus where the runtime allows it, not a requirement the architecture leans on. Either way the rule is the same: **never sell a stateless interactive driver.** The driver is a long-lived, slowly-growing, re-hydratable context — and that is enough, because re-hydration, not statelessness, is what makes it survivable.
+Because the decomposition happens *before* dispatch, the worker never gets surprised mid-run. It knows its exact scope when it is born; it knows what to produce and where to write it. No mid-task discovery that the work should have been smaller. No watchdog stalls from a worker realizing halfway through that it should split.
+
+## Workers are atomic, self-contained, and disposable
+
+Atomic means: a worker is born for exactly one deliverable and dies after producing it. Self-contained means: all its required inputs are passed at dispatch; it needs nothing more from the driver once running. Disposable means: it is discarded immediately after reporting its result; it carries no state forward.
+
+The contract is: *given the inputs and the spec, produce the output, report a result (structured: status, output reference, optional typed signal), and vanish.* Because this contract is so narrow, a worker that crashes can be recomputed by simply re-running it — the inputs are on disk, the spec is the same, the result will be identical. And because the worker never holds state across invocations, the driver never has to reason about partial work or recovery loops.
+
+## The verify-grain split: logic-verified vs live-verified
+
+Chapter 1 established that "auditor ≠ author" is structural — the author is discarded before any audit happens. GOTM 4.5 deepens this: the *kind* of verification depends on the *kind* of unit.
+
+**Logic-verified** means: an independent auditor checked the output against the spec and source. Did the chapter exist? Is it on-spec? Is the code syntactically correct and does it compile? Are the configs well-formed? This is terminal verification for pure authoring work (writing, research, documentation).
+
+**Live-verified** means: an auditor exercised the artifact *as a real consumer would*. Did the deployment actually run? Does the data query return results? Does the UI render and respond? Did the eval harness run without flaw? This is required terminal verification for runtime kinds — deploy-infra, data, eval, diagnosis — where logic-only checking misses the point.
+
+A logic-only audit of a runtime unit is a **FAIL-as-UNVERIFIED**, not a pass. The two verify-grains are not interchangeable. Chapter 6 (Keeping it honest) binds each Kind to its required verify-grain and describes how the **Milestone** forces the live-verified gate for runtime tasks.
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending
+    pending --> in_progress: dispatch worker
+    in_progress --> authored_done: worker reports output
+    
+    authored_done --> logic_verified: auditor checks against spec
+    
+    logic_verified --> verified_done_auth: authoring unit
+    
+    authored_done --> live_verified: auditor exercises as consumer
+    live_verified --> verified_done_runtime: runtime unit (deploy/data/eval/diagnosis)
+    
+    logic_verified --> failed: FAIL
+    live_verified --> failed: FAIL
+    
+    failed --> in_progress: dispatch new fix unit
+    
+    verified_done_auth --> [*]
+    verified_done_runtime --> [*]
+
+    classDef driver fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    classDef worker fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a
+    classDef store fill:#e6f4ea,stroke:#188038,color:#1a1a1a
+    
+    class pending,in_progress,authored_done worker
+    class logic_verified,live_verified,verified_done_auth,verified_done_runtime store
+    class failed driver
+```
+
+*Unit lifecycle: born pending, dispatched, worker produces output (authored-done), independent audit (logic-verified or live-verified per Kind), terminal verified-done or FAIL. FAIL becomes a new unit.*
+
+## The upward-signal protocol: workers suggest, drivers decide
+
+A worker may encounter an observation that the driver should know: the task would benefit from being split differently, a downstream dependency is at risk, a block was discovered that the driver should re-route around. The worker has bounded context — it is not the place to decide whether to act on these observations. Instead, the worker returns a **typed signal** — `split` (the work should split here), `discovery` (something unexpected was found), or `blocker` (work cannot proceed) — along with its terse reasoning.
+
+The driver receives the signal and, holding full context, decides whether to act. The options are:
+- **Mint**: turn the signal into a new unit and dispatch it  
+- **Reshape**: fold the signal into an existing pending unit  
+- **Merge**: join the flagged work with a sibling unit  
+- **Absorb**: note the signal as context for the next dispatch-gate pass, but take no immediate action  
+- **Route-to-human**: surface it for human ratification  
+- **Decline with reason**: do nothing, and record the reason durably (so the signal is not re-raised forever)
+
+The last option is crucial: if a signal is declined, the decision must be recorded in the store, *not* discarded from the driver's context. Otherwise, the same signal comes back again later, creating infinite churn. This is the discipline that fixes the knowledge-graph failure: a worker discovered an adjacent problem, self-resolved it, and took the live app down. Now: workers report what they find; drivers decide whether to fix it; declined decisions are durable.
+
+```mermaid
+flowchart TD
+    worker["Worker produces output + signal<br/>split / discovery / blocker"]
+    driver["Driver receives signal<br/>reads full context"]
+    mint["Mint: turn signal<br/>into new unit"]
+    reshape["Reshape: fold into<br/>existing pending unit"]
+    merge["Merge: join with<br/>sibling unit"]
+    absorb["Absorb: note as context<br/>for next dispatch gate"]
+    route["Route-to-human:<br/>surface for ratification"]
+    decline["Decline: record reason<br/>durably in store"]
+    
+    worker -->|signal + reasoning| driver
+    driver -->|full-context decision| mint
+    driver -->|full-context decision| reshape
+    driver -->|full-context decision| merge
+    driver -->|full-context decision| absorb
+    driver -->|full-context decision| route
+    driver -->|full-context decision| decline
+    
+    decline -->|durable record| store["Store: declined reason<br/>prevents re-raise"]
+    
+    classDef driverC fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    classDef workerC fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a
+    classDef storeC fill:#e6f4ea,stroke:#188038,color:#1a1a1a
+    
+    class driver,mint,reshape,merge,absorb,route driverC
+    class worker workerC
+    class decline,store storeC
+```
+
+*Upward signals: workers report observations (split / discovery / blocker); the driver (sole full-context) decides whether to mint, reshape, merge, absorb, route, or decline with a durable reason.*
 
 ## The net principle
 
-That is the architecture: a thin, checkpointed driver that plans and talks; disposable workers that each do one unit and vanish; a durable, tiered store that is the only thing crossing context boundaries. Every consequence in the rest of this framework — the scheduler loop, parallel fan-out, structural audit independence, resilience — rides on this split. And the split exists to honor one sentence:
+The architecture: thin checkpointed driver (plans, talks, decides), disposable workers (one atomic unit each), durable tiered store (only thing crossing context boundaries). Everything downstream — scheduler loop, fan-out, audit independence, resilience — rides on this split. The principle: **no context on the hot path is long-lived; the one long-lived context carries the index, not the work.**
 
-> *No context on the hot path is long-lived; the one long-lived context carries the index, not the work.*
-
-The next chapter makes the driver's plan concrete: work as a DAG — units as self-contained dispatch specs, the ledger as the DAG and scheduler state, and foundation as topology.
+The next chapter makes the driver's plan concrete: work as a DAG.
