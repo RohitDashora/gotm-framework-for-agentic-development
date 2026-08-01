@@ -119,25 +119,18 @@ changed value *supersedes* the old rather than duplicating. **Six `kind`s** — 
 candidate `pattern` learning; it `links` to the method-learning that grounds it). `context.py` regenerates the Index at the top of the pool's
 `CONTEXT.md`; you author records, the tool builds the index.
 
-## Confirm-and-merge — the end-of-project write-back
+## Confirm-and-merge — the end-of-project write-back (L1 → L2)
 
 At project end, run one pass that reads `.gotm/CONTEXT.md` + `DECISIONS.md` and:
 
 1. **Decompose** any still-bundled observations into a fact + a method, cross-linked
    (per *Decompose-on-produce* above; the method goes to `outcome-analysis` in the
    same pass).
-2. **Set `shareable` — the privacy gate. Default `yes`.** This is the load-bearing
-   decision the learning pool doesn't have. At the **user-context level** (the L2 home
-   pool is a single user's own store), a user's own facts are shareable within their own
-   pool by default — the flag is the **L2→L3 gate**, not an L1→L2 skip. So **assume
-   `shareable: yes`** and set `shareable: no` **only** for genuinely private detail
-   (accounts, comp, secrets, an individual's schedule). A `shareable: no` fact **still
-   merges** into the L2 user pool — it is *not* dropped or skipped at merge — but it is
-   flagged `NEVER-EXPORT` so it **never rises** to `shared`/L3.
+2. **Set `shareable` — the privacy gate. Default `yes`.** The **L2** pool (cross-project) holds **L1** (project-local) facts promoted at project end. At the L2 level (user's own pool), facts are shareable within their own pool by default — the flag is the **L2→L3 gate** (enterprise layer, pluggable, not built here), not an L1→L2 skip. So **assume `shareable: yes`** and set `shareable: no` **only** for genuinely private detail. A `shareable: no` fact **still merges** into the L2 pool but is flagged `NEVER-EXPORT`.
 3. **Set `volatility`** — `stable` (a schema fact), `slow`, or `volatile` (a fact
    with an expiry, e.g. a transition date) — which sets the pool's re-verify cadence
    and staleness banner.
-4. **Merge the shareable facts up:**
+4. **Merge the L1 facts up to L2:**
 
        context.py merge .gotm/CONTEXT.md --project <name> --user <id>
 

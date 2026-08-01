@@ -26,18 +26,16 @@ This is **not** an audit and **not** a foundation unit that produces a deliverab
 It produces a short context note — the project's working set of relevant prior
 lessons — and nothing it surfaces is binding; see *Confidence* below.
 
-## The pool — a real merged store
+## The pool — a real merged store (L2 learning pool)
 
 `outcome-analysis.md`'s produce step doesn't just write a lonely `LEARNINGS.md`; it
 **merges** each project's records into a shared pool. So consulting is not a glob over
 scattered files — it is a **query over one merged store**: a single corpus holding one
 record per `claim` (with `evidence` appended across the projects that hit it), fronted
-by a regenerated tag Index. The pool lives at the **user tier** — a convention
+by a regenerated tag Index. The **L2** pool lives at the **user tier** — a convention
 location, default `~/.gotm/learnings/` (resolved from `$HOME`, so it is cross-project
 by construction); reading it is a **platform binding** (a generically-named query
-operation over the pool dir), the same boundary `docs/09` draws around the store. It is
-the L2 rung of a scope ladder that reaches, higher up, a team git repo or an enterprise
-index / knowledge graph — pluggable via a `--pool`-style override, not built here.
+operation over the pool dir). It is the second rung (L1 = project-local, L2 = user-scoped learnings, L3 = enterprise — pluggable, not built here).
 
 If the pool is empty or does not exist yet, that is a valid result: record "no pool
 consulted" and move on. Be honest about an empty pool; "nothing relevant found" is a

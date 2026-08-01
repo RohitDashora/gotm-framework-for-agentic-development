@@ -6,15 +6,11 @@ One invariant underneath all of it: **transcript independence** — on-disk stat
 
 ## The crash model has exactly two levels
 
-Only two kinds of context in this architecture can die — the worker and the driver — so there are only two crash cases to handle.
+**A worker crash is a task retry.** A worker is a function of its inputs: born with a bounded payload, it produces one output and holds nothing else. When a worker crashes, recovery is a lineage recompute — dispatch a fresh worker on the same unit, using the same on-disk inputs. No partial state is lost because the driver (single writer) never recorded a result it did not receive. Retries are safe for the same reason tier-escalation (Chapter 5) is safe: the killed worker's partial output never landed in the ledger, so re-running produces the same result.
 
-**A worker crash is a task retry.** A worker is a function of its inputs (chapter 2): born with a bounded payload, it produces one output and holds nothing else. So when a worker crashes — times out, errors, returns garbage — recovery is simply to dispatch a fresh worker on the same unit. This is the loop's step 5 (chapter 4): the inputs still live on disk, untouched, so re-running the unit is a safe **lineage** recompute. The crashed worker held nothing irreplaceable, because by construction it held nothing the store does not already have. **retry** is not a special error path bolted on; it is the same dispatch the scheduler always does, aimed again at a unit whose inputs never moved. The discipline that makes this safe is idempotence — re-running produces an equivalent output, never a corrupt half-write or double-applied side effect. And because the driver is the single writer (chapter 2), a worker's partial output never lands in the ledger: the driver never records a result it did not receive, and the next attempt overwrites whatever the dead worker left behind. (Model tiering, chapter 5, rides on exactly this: a retry can respawn the fresh worker **one tier up** — the same lineage recompute, a stronger model — which is safe for the same reason, since the killed worker's partial output never landed.)
+**A driver crash is a re-hydrate.** The driver is **checkpointed**, not stateless: its durable state (plan, frontier, open questions) lives in the store. On any fresh start — cold restart, context clear, auto-compaction — the driver rebuilds via **session-start reconcile**: read frontier, reconcile against disk, reconstruct manifest (active units + their input pointers + recovery-log window + QUESTIONS), and resume.
 
-**A driver crash is a re-hydrate.** This is the harder case, because the driver is the one long-lived context — and here the framework states its honest limit plainly. In an interactive session the driver *is* the session: on most interactive harnesses it cannot be made stateless and **it cannot self-trigger compaction** (compaction is typically human-only; no hook or model directive fires it; the auto-compact threshold is not tunable). (Concretely, this is the situation in an interactive Claude Code session — one common runtime — but the limit is a property of interactive harnesses generally, not of one tool.) So we do not promise a driver that never dies — we promise one that always comes back.
-
-What makes that real is that the driver is **checkpointed**, not stateless. Its durable state — the plan, the frontier, the open questions — lives in the store, never only in chat. So on *any* fresh start — a cold restart, a context clear, or the far side of an auto- or manual compaction — the driver rebuilds its working set from the store through the **session-start reconcile** (chapter 4's opening step): it reads the **frontier**, checks it against disk, and reconstructs the manifest — the active-unit row plus its inputs as pointers, the rolling recovery-log window, and the open `QUESTIONS`. The driver is back where it was, holding the index again, ready to dispatch.
-
-The load-bearing property is that **re-hydration is runtime-agnostic and depends on no compaction hook.** It works on every runtime because it leans on nothing but the store and the reconcile — the same transcript-independence guarantee GOTM has always made. An optional session-start hook *could* auto-inject the manifest the instant a compaction fires, making recovery feel instantaneous; but it is at most an accelerator, and the framework deliberately does not build on it. (In an SDK or headless setting the driver gains one more capability — it can additionally compact *itself* programmatically — but that too is a bonus where the runtime allows it, never a dependency.) Because the recovery path needs no hook, "no context loss across any session end" holds for the *accidental and hard* endings — the crash, the killed terminal, the surprise compaction — not just the clean ones. A guarantee covering only graceful shutdown would be no resilience guarantee.
+Re-hydration is **runtime-agnostic and hook-independent** — it works on every runtime using only the store and reconcile, the same transcript-independence guarantee GOTM always made. An optional hook could accelerate it, but is not required. Because recovery depends on no hook, the guarantee holds for the hard ends — crashes, killed terminals, surprise compactions — not just clean shutdowns.
 
 ## Three tiers, each reconstructing the one above it
 
@@ -24,7 +20,7 @@ Resilience and economy turn out to be the same mechanism from two sides. The sto
 |---|---|---|
 | **T1 — conversation** | the driver itself: plan, discipline, frontier, the live human thread | **checkpointed**, slow-growing; the only volatile tier |
 | **T2 — hot durable** | the ledger **frontier** — ready/active units and their immediate inputs | **born tiered**, **compacted** on a threshold; small and roughly constant |
-| **T3 — cold durable** | the **archive** plus `audits/`, `DECISIONS.md`, `docs/` | grows without bound; pulled on demand, **never on the hot path** |
+| **T3 — cold durable** | the **archive** plus `audits/`, `DECISIONS.md`, `docs/`, learning & facts stores | grows without bound; pulled on demand, **never on the hot path** |
 
 ```mermaid
 flowchart TB
@@ -35,7 +31,7 @@ flowchart TB
         D2["ready/active units + inputs<br/>born tiered · compacted"]
     end
     subgraph T3["T3 — cold durable (archive)"]
-        D3["archive · audits/ · DECISIONS · docs/<br/>grows, never on hot path"]
+        D3["archive · audits/ · DECISIONS · docs/<br/>L1 learning store · facts store<br/>grows, never on hot path"]
     end
     T2 -->|"re-hydrate"| T1
     T3 -->|"pull on demand"| T2
@@ -65,8 +61,81 @@ Two things keep this honest. First, compaction is **an index operation, not an e
 
 This is why the ledger is **born tiered** rather than compacted as an afterthought (chapter 3): compaction is not a cleanup someone remembers to run, it is the steady-state behavior that keeps T2 small while T3 absorbs the growth — off the hot path, where unbounded growth costs nothing per turn.
 
+## L1/L2 learning tiers
+
+Learning and fact-gathering happen during project execution. The same tiered principle that keeps the durable store lean also applies to the cross-project knowledge stores: **learning is continuous to L1; promoted once to L2 at project end.**
+
+**L1 — Project-local learning (continuous write).** When a project completes a `learn` meta-unit (chapter 4, chapter 9), the distilled lessons are written to the project's own L1 store, read by this project's *later* dispatch gates for intra-project recall. L1 is high-volume and local — a project may generate contradictory learnings mid-run as understanding evolves; that is expected. A dispatch gate reading L1 asks: "What did this project already figure out that might apply to this new subtask?" — anchored in this project's own experience, not broader pools. Likewise, facts discovered mid-project and pinned (chapter 9) are written continuously to a project-local L1 facts store. Both are private, temporal, and allowed to be messy.
+
+**L2 — Cross-project pool (end-reconcile only).** At project end, a deliberate reconciliation pass reads the entire L1 record (learnings and facts) and promotes a curated, contradiction-free subset into L2, the shared cross-project pool. The L2 pass is a single deliberate action, not continuous churn. It filters: removes mid-project reversals, merges contradictions with supporting evidence, surfaces only transfer-grade knowledge. Because compaction keeps raw detail in the cold tier (lossless), the L2 pass never needs to be "sufficient" — it only filters for "faithful" (every promoted lesson traces to a real settled unit; no invented patterns). L2 is what future projects consult at bootstrap (chapter 4, chapter 9) — concise, curated, trustworthy.
+
+```mermaid
+flowchart TB
+    subgraph "L1 continuous (project-local)"
+        Learn1["learn meta-units<br/>distill lessons"]
+        Pin1["facts pinned<br/>on discovery"]
+        L1Store["L1 learning store<br/>L1 facts store<br/>read by this project"]
+    end
+    subgraph "L2 end-reconcile (cross-project)"
+        Reconcile["project-end<br/>deliberate pass"]
+        L2Store["L2 pool<br/>curated, transfer-grade<br/>consulted by future projects"]
+    end
+    Learn1 --> L1Store
+    Pin1 --> L1Store
+    L1Store --> Reconcile
+    Reconcile --> L2Store
+    classDef meta fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a;
+    classDef l1 fill:#e6f4ea,stroke:#188038,color:#1a1a1a;
+    classDef l2 fill:#e6f4ea,stroke:#188038,color:#1a1a1a;
+    class Learn1,Pin1 meta;
+    class L1Store l1;
+    class L2Store l2;
+```
+
+*L1/L2 learning flows: L1 accumulates continuously, read by the current project's own gates; L2 is promoted once at end, curated for transfer to future projects.*
+
+## The deliberate-or-defer prompt at milestones
+
+A milestone is where a subtree of work settles and is verified complete (chapter 6). At that moment, the driver faces two non-optional prompts — neither skippable, each a driver judgment call.
+
+### Learn now?
+
+When a milestone settles verified-done, the driver **must** decide: **do I harvest a `learn` meta-unit here, or defer with recorded reason?** This is not "is learning possible" but "is learning opportune now?" The driver might defer because: the learning is still incubating (contradictions are live), the settled units are tactical (not generalizable), the project is fast-wrapping and L1 will be small anyway. But the *question itself* is not optional — the framework enforces it as a prompt, never a silent skip. This is the anti-pattern guard (feedback from six projects: learnings simply never got generated). The driver's answer is recorded as-is in a durable log line, so a later reconciliation pass can honor those deferred windows if the project timeline shifts.
+
+### Compact now?
+
+Similarly, when a milestone settles, the driver **must** decide: **do I trigger compaction on the frontier now, or defer?** Compaction is lossless; it costs nothing to defer. But the deliberate gate prevents the "frontier just keeps growing" monotonicity that sank v2 projects. The driver might compact early if a subtree is very large and unlikely to be re-opened; might defer if the next phase is adjacent and will read those details. Again, the decision is logged, so intent is clear downstream.
+
+Both prompts are **driver's judgment, not automatic.** The framework asks; the driver decides; the decision is durable. Chapter 9 describes how these prompts interact with the end-of-project pool reconciliation.
+
+```mermaid
+stateDiagram-v2
+    [*] --> SubtreeReady: Units verified-done
+    SubtreeReady --> LearnPrompt: Milestone settles
+    LearnPrompt --> LearnDecision: Learn now?
+    LearnDecision --> HarvestLearn: Yes
+    LearnDecision --> DeferLearn: No + reason
+    LearnDecision --> CompactPrompt: Both answers
+    HarvestLearn --> CompactPrompt: Emit learn meta-unit
+    DeferLearn --> CompactPrompt: Log deferral
+    CompactPrompt --> CompactDecision: Compact now?
+    CompactDecision --> DoCompact: Yes
+    CompactDecision --> DeferCompact: No + reason
+    DoCompact --> [*]
+    DeferCompact --> [*]
+    
+    classDef driver fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a;
+    classDef prompt fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a;
+    classDef action fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a;
+    class SubtreeReady,LearnPrompt,CompactPrompt driver;
+    class LearnDecision,CompactDecision prompt;
+    class HarvestLearn,DoCompact,DeferLearn,DeferCompact action;
+```
+
+*Milestone → deliberate-or-defer: the driver must answer "learn now?" and "compact now?" — never skipped, always logged for durable record.*
+
 ## The invariant, restated
 
-Strip away the tiers and triggers and one thing remains: **transcript independence** — the property that on-disk state alone reconstructs working context. Worker retry depends on it (inputs on disk, so lineage recompute is safe); driver re-hydration *is* it (the store rebuilds the session); compaction preserves it (moving detail between tiers, never out of the store). Every resilience move in this chapter is the same bet: keep the truth on disk, treat every context as a cache of it, and no session boundary — clean or violent — can take the work with it.
+Strip away the tiers, prompts, and triggers and one thing remains: **transcript independence** — the property that on-disk state alone reconstructs working context. Worker retry depends on it (inputs on disk, so lineage recompute is safe); driver re-hydration *is* it (the store rebuilds the session); compaction preserves it (moving detail between tiers, never out of the store); L1/L2 tiering preserves it (learning flows from T3 without polluting T1). Every resilience move in this chapter is the same bet: keep the truth on disk, treat every context as a cache of it, and no session boundary — clean or violent — can take the work with it. Learning happens asynchronously through the meta-unit channel (chapter 9), never by the driver copying from chat into the store.
 
 The next chapter, *In practice*, turns these guarantees into adoption: how the interactive and SDK drivers differ, how to bootstrap a GOTM project, and how this very rewrite is its own worked example.

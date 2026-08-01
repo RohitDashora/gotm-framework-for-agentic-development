@@ -112,11 +112,10 @@ These were validated in the field and re-emerge from first principles — keep t
 
 **Templates (`templates/`):** `PROTOCOL.md.template` (rewritten around driver/worker/store + the loop), `LEDGER.md.template` (DAG + born-tiered: frontier table + archive table), `DECISIONS.md.template`, `QUESTIONS.md.template`, `README.md.template`, `LEARNINGS.md.template`, `CONSULTED.md.template`. Runtime hooks (immutability w/ follow-on fix; `SessionStart` re-hydration) are *described* here, *shipped* by the plugin (the two-repo split holds).
 
-## 9. Migration & dogfooding
+## 9. Dogfooding & plugin derivation
 
-- Drive the rewrite **as a v3 GOTM project**: foundation (this doc) → chapter/prompt/template units (each a worker dispatch reading this doc) → independent audit workers → meta-example migration.
-- The framework's own `.gotm/` migrates to the **v3 ledger shape** (frontier + archive, DAG) as a late unit — the repo becomes a live demonstration of v3, as it is of v2 today.
-- **v2 projects migrate (decided).** Ship a `MIGRATION.md` + a one-shot **v2→v3 ledger converter** (tier the flat ledger into frontier + archive, record the DAG deps); existing projects (geniefy, knowledge-graph, this repo) convert. The converter generalizes the knowledge-graph `compact_ledger.py`.
+- Drive the rewrite **as a v3 GOTM project**: foundation (this doc) → chapter/prompt/template units (each a worker dispatch reading this doc) → independent audit workers.
+- The framework's own `.gotm/` adopts the **v3 ledger shape** (frontier + archive, DAG) as a late unit — the repo becomes a live demonstration of v3.
 - Then the **plugin v3.0** is derived from the finished framework: the scheduler runtime + worker-dispatch command (driver loop = prompt-discipline baseline, plus command + Workflow-script tiers), the born-tiered ledger template, the compaction script, and the immutability hook (with the follow-on fix). Re-hydration is the **session-start reconcile, not a compaction hook**.
 
 ## 10. Decisions (all foundational questions resolved — the blueprint is stable)
@@ -124,7 +123,6 @@ These were validated in the field and re-emerge from first principles — keep t
 - **Q-v3-1 — partitioning → AMORTIZED BATCHING.** Always dispatch; batch trivia into one partition-worker; the driver never edits a work artifact.
 - **Q-v3-2 — re-hydration → STORE + SESSION-START RECONCILE (no compaction hook).** The driver rebuilds from the store on any fresh start; we do **not** depend on a `SessionStart(compact)` hook. Manifest = active-unit row + its inputs (pointers) + recovery-log window + open `QUESTIONS`.
 - **Q-v3-3 — scheduler home → PROMPT DISCIPLINE (baseline) + all three tiers.** The driver loop is fundamentally a prompt discipline the driver follows; a plugin command and a Workflow-style script are additional adoption tiers.
-- **Q-v3-4 — backward compatibility → MIGRATE.** v2 projects convert to v3 via a `MIGRATION.md` + ledger converter (§9).
 - **Q-v3-5 — verification → WORKERS MARK `authored-done` ONLY; THE DRIVER ALWAYS LAUNCHES AUDIT WORKERS.** Producing workers never self-certify; an independent driver-launched audit worker verifies — and performs the runtime `verified-done` check for deploy/infra/data units.
 - **Q-v3-6 — token budgets → NO PROJECT BUDGETS.** Worker-context minimalism; the driver may be larger because it orchestrates.
 - **Q-v3-7 — fan-in → HARD RULE.** Merges always run as a fan-in worker reading the store; the driver never holds N results.
@@ -152,12 +150,12 @@ These were validated in the field and re-emerge from first principles — keep t
 
 **✅ DOCS PHASE COMPLETE** — 9 chapters drafted (driver/worker), harmonized, and diagrammed. ch1/2/3/5/6/7 carry standalone independent audits (zero HIGH/FAIL); ch4/8/9 were validated within the fan-in coherence pass, not standalone-gated (see the risk-tiering note above).
 
-**Deferred to later phases (still open):** the `CLAUDE.md`/README ref to old `docs/05-in-practice.md` → fix in migration (in-practice is now `08-in-practice.md`); ch9's prose refs to `prompts/consult.md` + `outcome-analysis.md` + `LEARNINGS.md.template` → link once the prompts/templates units land; old v2 `docs/01–06` → removed in the meta-example migration.
+**Deferred to later phases (still open):** the `CLAUDE.md`/README ref to old `docs/05-in-practice.md` → update (in-practice is now `08-in-practice.md`); ch9's prose refs to `prompts/consult.md` + `outcome-analysis.md` + `LEARNINGS.md.template` → link once the prompts/templates units land; old v2 `docs/01–06` → removed in consolidation.
 
-**✅ PROMPTS PHASE COMPLETE** — `driver-loop` + `worker-dispatch` (new), `audit` + `session-start` (v3 rewrites), `consult` + `outcome-analysis` (recast to v3 cold-tier); harmonized + validated (worker-dispatch & audit PASS, no HIGH/FAIL). `subagent-dispatch.md` superseded → remove in migration.
+**✅ PROMPTS PHASE COMPLETE** — `driver-loop` + `worker-dispatch` (new), `audit` + `session-start` (v3 rewrites), `consult` + `outcome-analysis` (recast to v3 cold-tier); harmonized + validated (worker-dispatch & audit PASS, no HIGH/FAIL). `subagent-dispatch.md` superseded → remove.
 
 **✅ TEMPLATES PHASE COMPLETE** — PROTOCOL.md.template (keystone, PASS) · born-tiered LEDGER.md.template (PASS) · DECISIONS/QUESTIONS/README/LEARNINGS (updated) · CONSULTED (new). Cross-refs resolved + terminology harmonized.
 
 **✅✅ FRAMEWORK v3 CONTENT COMPLETE** — docs (9 chapters + 9 diagrams) · prompts (6) · templates (7) — all produced driver/worker. The decision-critical chapters (ch5/ch6/ch7), the keystone PROTOCOL template, and worker-dispatch/audit got full standalone independent audits; the rest (ch4/ch8/ch9, the remaining prompts, the other templates) were validated within the fan-in coherence pass rather than via standalone per-unit audits — a logged audit-budget tiering, not a silent skip. The later **build-process audit** (reports under `.gotm/audits/v3-build-*.md`) served as the deferred independent audit of that previously-unaudited set (PROTOCOL surface, prompts, tooling, ch4/8/9). Uncommitted in the working tree.
 
-**Next phases:** (4) meta-example migration (repo README rewrite, delete v2 docs, MIGRATION.md + converter) · (5) plugin v3.0 (hook follow-on fix, compaction script, scheduler runtime).
+**Next phases:** (4) repo consolidation (README rewrite, delete v2 docs) · (5) plugin v3.0 (hook follow-on fix, compaction script, scheduler runtime).

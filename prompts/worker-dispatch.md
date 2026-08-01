@@ -115,8 +115,7 @@ kill-and-respawn escalation ladder, live with the driver's scheduling
 
 **Detail-to-disk is mandatory, not a preference.** The worker writes its full
 detail — the artifact, the report, the findings, the numbers — to its output
-file, and **returns ≤ ~8 lines**: a pointer plus a few index facts, plus a
-blocker if any. **Never the body.** The body stays on disk; the driver merges
+file, and **returns ≤ ~8 lines**: a pointer plus a few index facts, plus signals/gaps if any. **Never the body.** The body stays on disk; the driver merges
 *pointers*, not bodies. This is what makes context economy mechanical rather than
 aspirational: if the driver absorbed worker bodies, every join would
 re-concentrate work into the one long-lived context — monotonicity, reintroduced
@@ -127,6 +126,7 @@ at each barrier (`docs/05` → the hard rule).
     - Status: authored-done   (see "no self-certification" below)
     - One-line summary: <what it is>
     - Index facts: <e.g. word count, section list, headline number>
+    - Upward signal (optional): split / discovery / blocker: <suggestion>
     - Blocker / gaps surfaced: <missing input / ambiguous spec, or "none">
 
 An **over-cap return is a defect** — a worker that returns the body instead of a
@@ -134,16 +134,20 @@ pointer has broken the contract, and the driver treats it as a failed dispatch
 (the detail belongs on disk; re-dispatch or trim). If the result would not fit in
 a handful of lines, the worker is returning work, not an index.
 
+**Upward-signal protocol (worker → driver, advisory only).** A worker may observe
+something and *suggest* an action to the driver, but the worker **never acts**:
+- **`split`** — "my piece is done; the next logical part should be its own Subtask: [scope]"
+- **`discovery`** — "I found a downstream issue / missing precondition: [what], suggest [action]"
+- **`blocker`** — "I hit a hard dependency / permission wall: [what], suggest [action]"
+
+The driver (sole full-context holder) **decides whether to mint, reshape, merge, absorb, route to human, or decline**. The worker has no ownership of outcome. (This is the knowledge-graph U30 fix: a worker that self-resolved an adjacent problem took the live app down because the driver had no visibility.)
+
 **`ESCALATE:` — the out-of-depth return.** A worker that finds itself out of its
 depth returns `ESCALATE: <reason>` in its terse return **instead of** producing a
 low-quality output — a worker cheaper-tiered than the task turned out to need does
-**not** grind out garbage and leave it for the audit to catch. This is a *hint* to
-the driver to re-dispatch a fresh worker **one tier up** (`driver-loop.md` →
-kill-and-respawn); it is **not** trusted on its own — a small worker may over- or
-under-estimate itself, so the **independent audit remains the reliable backstop**.
+**not** grind out garbage. This is a *hint* to the driver to re-dispatch **one tier up**; it is **not** trusted on its own — the **independent audit remains the reliable backstop**.
 `ESCALATE:` is a whole-return convention: the worker returns the escalate line and
-its reason *in place of* the pointer + index facts, having written no output worth
-keeping.
+its reason *in place of* the pointer + index facts, having written no output worth keeping.
 
 ## Rules the worker obeys
 

@@ -47,9 +47,14 @@ last_updated: <YYYY-MM-DD>
 
 | ID | Title | Inputs | Output | Kind | Tier | Status | Audit |
 |---|---|---|---|---|---|---|---|
-| U7 | <some pending unit title> | U3, U5 | `<output/path>` | authoring | standard | pending | — |
+| U3 | <a task split into parallel subtasks> | U1, U2 | — | authoring | standard | verified-done | — |
+| U3.1 | <subtask 1 — one deliverable> | U1 | `<output/path>` | authoring | economy | verified-done | PASS→audits/U3.1.md |
+| U3.2 | <subtask 2 — one deliverable> | U1 | `<output/path>` | authoring | economy | verified-done | PASS→audits/U3.2.md |
+| U3.3 | <subtask 3 — one deliverable> | U3.1, U3.2 | `<output/path>` | authoring | standard | verified-done | PASS→audits/U3.3.md |
+| U7 | <some pending unit (atom, not split)> | U3 | `<output/path>` | authoring | standard | pending | — |
 | U8 | <a module + its test — one deliverable> | U3 | `<src/thing.ts>`, `<src/thing.test.ts>` | authoring | standard | pending | — |
-| U9 | <a dashboard/component unit> | U6 | `<app/panel.tsx>` | ui | economy | pending | — |
+| U9 | <a dashboard/component — live-verify> | U6 | `<app/panel.tsx>` | ui | economy | pending | — |
+| U10-learn | <harvest learnings from U3 subtree> | U3.1, U3.2, U3.3 | `<learnings/path.md>` | meta | standard | pending | — |
 | U6 | <some closed unit in the recent window> | U2 | `<output/path>` | authoring | frontier | verified-done | PASS→audits/U6.md |
 
 ## Archive
@@ -92,8 +97,14 @@ Conventions:
   return a terse structured result (status + output pointer + index facts); the
   driver — the single writer — records it. This kills the v2 dup-row race by
   construction (no second context ever writes back). See docs/03-work-as-a-dag.md.
-- IDs are flat (U1, U2, U3...). No prefixes for hierarchy. The DAG's structure
-  lives in the `Inputs` edges, not in the IDs.
+- IDs follow **decimal provenance** (U1, U2, U3, U3.1, U3.2, U3.3, U4...).
+  When a Task splits, children are registered as decimals (U3.1, U3.2, ...).
+  Decimals are **append-only** (siblings 2,3,4... never renumbered) and record
+  **provenance**, not sequence. The DAG's **control flow** (what runs when) lives
+  in the `Inputs` edges — siblings with no inter-`Inputs` run in parallel.
+  Reading decimal position as sequence destroys parallelism: **only `Inputs`
+  matters**. A pure-container parent (U3) has no Output; it closes verified-done
+  when all children (U3.1, U3.2, U3.3) pass.
 - Each row produces ONE deliverable (atomicity rule). A module + its test file
   count as ONE unit (the natural grain) — atomicity is one deliverable, not
   literally one file.
@@ -112,32 +123,34 @@ Conventions:
       row: it freezes nothing for that row rather than trust a shifted index.)
 - `Kind` types the unit so the audit picks the right verified-done dimensions.
   Values (default `authoring`):
-    authoring     — code/docs; the standard 7-point audit.
+    authoring     — code/docs; the standard 7-point audit. Terminal: logic-verified.
     ui            — a rendered/visual artifact; audit rebuilds from CURRENT source
-                    + objective machine checks (DOM/bbox/counts), no reliance on
-                    worker prose about visuals.
+                    + objective machine checks (DOM/bbox/counts). Terminal: live-verified.
     eval          — a measurement/judge/comparison; audit checks HARNESS FAIRNESS
                     (equal-fidelity inputs, symmetric yardstick, A/B-swap for
-                    position bias, confounds controlled/labelled).
+                    position bias, confounds controlled/labelled). Terminal: live-verified.
     deploy-infra  — a deployed/stateful resource; audit exercises it end-to-end AS
                     the deployed identity (a hardcoded identity/endpoint is a finding).
+                    Terminal: live-verified.
     data          — a produced dataset/table; audit re-queries it as the downstream
-                    consumer.
+                    consumer. Terminal: live-verified.
     diagnosis     — a "why is X broken" unit; audit requires a CONTROLLED
                     reproduction (strip model/harness/config confounds) before any
-                    root-cause is accepted.
+                    root-cause is accepted. Terminal: live-verified.
+    meta          — `learn` (harvest lessons) or `compact` (GC frontier).
+                    Not work-deliverable units; driver-scheduled meta-operations.
+                    Terminal: faithfulness-verified (learn) or no output (compact).
 - `Tier` is a STATIC PER-UNIT LABEL — the worker's model tier — the driver sets
   by the rubric at plan time, like `Kind`. Values (default `standard`):
-    economy   — small/fast model, low effort — mechanical extraction/reformat.
-    standard  — mid model, medium effort — routine authoring/data. (default)
-    frontier  — strong model, high effort — diagnosis/design/keystone/irreversible.
-  `Kind` largely PREDICTS Tier (eval/deploy-infra/diagnosis → frontier;
-  ui/mechanical → economy); the exception is `authoring`, which splits on
-  keystone-ness — so `Tier` stays its OWN column, not a value derived from `Kind`.
+    economy   — small/fast model, low effort — mechanical leaf units.
+    standard  — mid model, medium effort — routine authoring/keystones. (default)
+    frontier  — strong model, high effort — eval/deploy-infra/diagnosis/live-verify/milestones.
+  Default tiers: leaf → economy, keystone → standard, milestone → frontier.
+  `Kind` override: Kind ∈ {eval, deploy-infra, diagnosis} → frontier (live-verify expensive).
+  Escalation: ≥2 watchdog deaths (same Uxx) → +1 tier (economy→standard→frontier).
   The runtime binds `tier → (model, effort)` and sets it at spawn (the worker
-  never reads its own tier). It is NOT a cost governor / budget scheduler — just a
-  static difficulty label; escalation (kill-and-respawn one tier up on audit-FAIL)
-  handles a mis-tiered unit at run time. See docs/05 model tiering.
+  never reads its own tier). It is NOT a cost governor — just a static difficulty
+  label; escalation handles mis-tiered units. See PROTOCOL.md → Tier binding.
 - `Inputs` lists prior units whose outputs this one consumes — the dependency
   edges of the DAG. A unit is dispatchable only once every input is closed and
   past its audit gate (foundation = upstream topology, not a reminder).
@@ -167,6 +180,16 @@ Conventions:
   output exists, and to `verified-done` only after an independent worker passes
   it (crash-safe ordering; avoids the immutability hook locking you out of the
   file you are producing). See PROTOCOL.md -> Resilience.
+- **Pure-container units** (split parents) have **empty Output** (shown as `—`).
+  A pure container (U3 above) is a parent that split into children (U3.1, U3.2, U3.3).
+  It holds no Output of its own; it closes verified-done only when all children
+  are verified-done. Any integration step is itself the final delegated child
+  (the "reduce"), never done by the driver.
+- **Verify-grain split:** Runtime kinds (deploy-infra, data, eval, diagnosis) MUST
+  reach `live-verified` (exercised as real consumer) to pass; authoring/ui kinds
+  reach `logic-verified` (checked against spec) and terminate there. A logic-only
+  audit of a runtime unit = FAIL-as-UNVERIFIED, not a pass. Milestones force
+  live-verified aggregation for runtime tasks.
 - Closed units are never edited. To revise, append a follow-on unit.
 - COMPACTION is an index op, not a freeze violation. At session-start reconcile,
   when the ledger crosses a size/count threshold, move aged-out closed+verified

@@ -54,7 +54,7 @@ question from how well it is *grounded*. Do not collapse them into one ranking.
 `DECISIONS.md` still governs; a consulted fact that shapes a decision is cited in that
 decision's rationale.
 
-## The pool — a real merged store
+## The pool — a real merged store (L2 context pool)
 
 `context-analysis.md`'s produce step doesn't just write a lonely `CONTEXT.md`; it
 **merges** each project's shareable facts into a shared pool. So consulting is not a
@@ -62,11 +62,10 @@ glob over scattered files — it is a **query over one merged store**: a single 
 holding one current record per `subject` (its merge key — a fully-qualified
 column / path / convention name), with provenance appended across the projects and
 users that hit it, older values retained behind `superseded_by`, fronted by a
-regenerated Index. The pool lives at the **user tier** — a convention location,
+regenerated Index. The **L2** pool lives at the **user tier** — a convention location,
 default `~/.gotm/context/` (resolved from `$HOME`, so cross-project by construction);
 reading it is a **platform binding** (`context.py query` over the pool dir),
-overridable with `--pool DIR`. It is the L2 rung; L3 (a team / enterprise index that
-mints `shared`/`canonical` across users) sits above and is pluggable, not built here.
+overridable with `--pool DIR`. It is the second rung (L1 = project-local facts, L2 = user-scoped context, L3 = enterprise — pluggable, not built here).
 
 If the pool is empty or does not exist yet, that is a valid result: record "no
 context pool consulted" and move on. "Nothing relevant found" is a valid, auditable

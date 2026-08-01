@@ -4,13 +4,9 @@ A **loop-engineering** discipline for surviving bounded-context agentic executio
 
 ## Why care — in 60 seconds
 
-**In plain English:** GOTM keeps a long-running agent's work from collapsing under context drift by moving memory out of the chat and into a durable **project store** — the agents become disposable **workers**, and the **project** becomes the source of truth.
+GOTM moves memory out of chat into a durable **project store** — agents become disposable **workers**, the **project** becomes the source of truth. It avoids two traps: (1) **Driver inline execution** — small tasks accumulate until the driver stalls; (2) **Monolithic dispatch** — large unbounded workers stall watchdogs. GOTM solves both via **deliberate DAG decomposition at the dispatch gate** and **aggressive delegation** (every task, however small, is a worker dispatch). The driver plans; execution is always ephemeral.
 
-**Where it sits:** GOTM is **loop engineering** — the layer above prompt engineering (the turn) and context engineering (the window): engineering the *repeated process* so it survives thousands of iterations.
-
-The trap it avoids: serious agentic work spans hundreds of sessions and fits in none of them. Context fills up, quality quietly degrades, and everything the agent "knew" vanishes at the session boundary — so it drifts, repeats itself, and eventually stalls. GOTM writes the plan, the decisions, and the progress to disk; runs each unit of work in a fresh throwaway agent; and rebuilds any lost context from the store. Nothing load-bearing lives only in the conversation.
-
-**Use it** for multi-session work where drift is expensive. **Skip it** for one-off tasks. New here? Start at [`docs/01`](docs/01-the-problem-and-thesis.md) — everything below is the same idea in more depth.
+**Use it** for multi-session work. **Skip it** for one-offs. Start at [`docs/01`](docs/01-the-problem-and-thesis.md).
 
 ---
 
@@ -26,7 +22,42 @@ GOTM fixes monotonicity with one law: **nothing on the hot path is long-lived.**
 
 Everything else is a consequence of that sentence.
 
-## At a glance — driver / worker / store
+## At a glance — the Spark model: Ask → Task → Subtask → Worker
+
+GOTM models orchestration on Apache Spark: the driver is the Spark driver (plans, schedules, executes nothing); workers are executors (short-lived, one unit each). A human mission spawns coarse Tasks (the logical plan, registered upfront); when the driver picks a task up, it takes a deliberation pass and either commits it as atomic or splits it into Subtasks (the physical plan). Every subtask goes to its own fresh worker.
+
+```mermaid
+flowchart LR
+    Ask["Ask<br/>Human mission"]
+    Task["Task<br/>Coarse logical<br/>plan element<br/>(registered upfront)"]
+    Gate["Dispatch Gate<br/>Deliberation pass<br/>split or atom?"]
+    Subtask["Subtask<br/>Physical plan element<br/>(one deliverable)"]
+    Worker["Worker<br/>Short-lived<br/>ephemeral<br/>then discarded"]
+    
+    Ask -->|"driver reads"| Task
+    Task -->|"driver picks up"| Gate
+    Gate -->|"splits"| Subtask
+    Gate -->|"atom"| Worker
+    Subtask -->|"dispatch"| Worker
+    
+    classDef ask fill:#e6f4ea,stroke:#188038,color:#1a1a1a
+    classDef task fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    classDef gate fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    classDef subtask fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    classDef worker fill:#fef7e0,stroke:#f9ab00,color:#1a1a1a
+    
+    class Ask ask
+    class Task task
+    class Gate gate
+    class Subtask subtask
+    class Worker worker
+```
+
+<sub>The driver plans (the cheap part) but executes nothing. Every task — however small — becomes a worker dispatch, keeping driver context clean and enabling parallel execution. Deliberate decomposition at the dispatch gate (before execution) prevents monolithic long-running workers and their un-auditable outputs.</sub>
+
+---
+
+## Three roles: driver / worker / store
 
 ```mermaid
 flowchart TB
