@@ -103,7 +103,7 @@ stateDiagram-v2
 
 ## The upward-signal protocol: workers suggest, drivers decide
 
-A worker may encounter an observation that the driver should know: the task would benefit from being split differently, a downstream dependency is at risk, a block was discovered that the driver should re-route around. The worker has bounded context — it is not the place to decide whether to act on these observations. Instead, the worker returns a **typed signal** — `split` (the work should split here), `discovery` (something unexpected was found), or `blocker` (work cannot proceed) — along with its terse reasoning.
+A worker may encounter an observation that the driver should know: the task would benefit from being split differently, a downstream dependency is at risk, a block was discovered that the driver should re-route around. The worker has bounded context — it is not the place to decide whether to act on these observations. Instead, the worker returns a **typed signal** — `split` (the work should split here), `discovery` (something unexpected was found), `blocker` (work cannot proceed), or `dependency` (the worker needs an upstream input that isn't wired in) — along with its terse reasoning.
 
 The driver receives the signal and, holding full context, decides whether to act. The options are:
 - **Mint**: turn the signal into a new unit and dispatch it  
@@ -117,7 +117,7 @@ The last option is crucial: if a signal is declined, the decision must be record
 
 ```mermaid
 flowchart TD
-    worker["Worker produces output + signal<br/>split / discovery / blocker"]
+    worker["Worker produces output + signal<br/>split / discovery / blocker / dependency"]
     driver["Driver receives signal<br/>reads full context"]
     mint["Mint: turn signal<br/>into new unit"]
     reshape["Reshape: fold into<br/>existing pending unit"]
@@ -145,7 +145,7 @@ flowchart TD
     class decline,store storeC
 ```
 
-*Upward signals: workers report observations (split / discovery / blocker); the driver (sole full-context) decides whether to mint, reshape, merge, absorb, route, or decline with a durable reason.*
+*Upward signals: workers report observations (split / discovery / blocker / dependency); the driver (sole full-context) decides whether to mint, reshape, merge, absorb, route, or decline with a durable reason.*
 
 ## The net principle
 

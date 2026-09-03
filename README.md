@@ -1,6 +1,6 @@
 # GOTM
 
-A **loop-engineering** discipline for surviving bounded-context agentic execution — when serious work spans hundreds of LLM sessions and many subagents and fits in none of them.
+A **graph-engineering + learning-engineering** framework for surviving bounded-context agentic execution — when serious work spans hundreds of LLM sessions and many subagents and fits in none of them.
 
 ## Why care — in 60 seconds
 
@@ -105,8 +105,8 @@ The framework from first principles, each chapter a consequence of the one befor
 
 - [`docs/01-the-problem-and-thesis.md`](docs/01-the-problem-and-thesis.md) — context as the scarce, lossy, bounded resource; the monotonicity failure; the thesis and the one law
 - [`docs/02-driver-worker-store.md`](docs/02-driver-worker-store.md) — the three roles, their lifetimes, the Spark analogy; the non-monotonicity guarantee and its honest limit
-- [`docs/03-work-as-a-dag.md`](docs/03-work-as-a-dag.md) — the unit as a self-contained worker dispatch spec; the ledger as DAG + scheduler state, born tiered; foundation as topology
-- [`docs/04-the-loop.md`](docs/04-the-loop.md) — the driver's deterministic scheduler: read frontier, compute ready set, dispatch, collect, retry by lineage recompute
+- [`docs/03-work-as-a-dag.md`](docs/03-work-as-a-dag.md) — the unit as a self-contained worker dispatch spec; the ledger as DAG + scheduler state, born tiered; foundation as topology; dependencies as first-class `depends_on` edges (distinct from the read-set)
+- [`docs/04-the-loop.md`](docs/04-the-loop.md) — the driver's deterministic scheduler: read frontier, compute ready set, dispatch, collect, retry by lineage recompute; the living DAG the driver reshapes — CAN-run vs SHOULD-run
 - [`docs/05-scaling-and-economy.md`](docs/05-scaling-and-economy.md) — fan-out/fan-in (fan-in = a worker reading the store, never the driver holding N results), worker-context minimalism, amortized batching, risk-tiered audits, model tiering
 - [`docs/06-keeping-it-honest.md`](docs/06-keeping-it-honest.md) — structural audit independence (a worker cannot grade itself); authored-done vs verified-done; the freeze
 - [`docs/07-resilience-and-memory.md`](docs/07-resilience-and-memory.md) — the two-level crash model (worker retry, driver re-hydrate) and the three-tier memory economy

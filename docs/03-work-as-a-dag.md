@@ -1,6 +1,6 @@
 # Work as a DAG: units, decomposition, and the ledger
 
-The previous chapter introduced the Spark reframe: the driver plans and schedules, never executes. That means the driver must be deliberate about how a coarse task becomes a set of concrete, executable pieces. This chapter describes how work decomposes: how a **Task** becomes **Subtasks** (via a deliberate dispatch gate), how those pieces relate through dependencies, and how the ledger records both the provenance (decimal IDs) and the data flow (Inputs). We start with the unit — the atomic dispatch spec — and then build the mechanisms of deliberate decomposition and tiered storage that keep the driver's context cheap.
+The previous chapter introduced the Spark reframe: the driver plans and schedules, never executes. That means the driver must be deliberate about how a coarse task becomes a set of concrete, executable pieces. This chapter describes how work decomposes: how a **Task** becomes **Subtasks** (via a deliberate dispatch gate), how those pieces relate through dependencies, and how the ledger records both the provenance (decimal IDs) and the dependencies (`depends_on`). We start with the unit — the atomic dispatch spec — and then build the mechanisms of deliberate decomposition and tiered storage that keep the driver's context cheap.
 
 ## The unit is a self-contained worker dispatch spec
 
@@ -23,19 +23,43 @@ The corollary is that the driver never edits a work artifact directly, no matter
 
 See Chapter 4 (§The loop, step 2) and Chapter 2 (§The dispatch gate) for full mechanics. Briefly: when a Task enters the ready set, the driver takes a **deliberation pass** using closed information (closed upstream outputs, frontier state) and decides: atomic or split? The **stopping rule**: split down to one-deliverable grain (one artifact, one owner), never below. Registration is **lazy**: the parent Task is upfront in the coarse plan; children are minted only when the parent is picked up, eliminating provisional row churn.
 
-## Decimal IDs, Inputs, and the parallelism trap
+## Decimal IDs, `depends_on`, and the parallelism trap
 
 When Task U5 splits into three subtasks, it mints `U5.1`, `U5.2`, `U5.3` — **decimal IDs** that form an append-only tree. The parent becomes a **pure container**: it has no Output cell of its own; it closes verified-done only when all its children pass. Any integration or convergence step is itself the final delegated subtask (the "reduce"), never done by the driver.
 
-Here is where a critical distinction emerges, and it is load-bearing: **decimal position is inert; Inputs is everything.**
+Here is where a critical distinction emerges, and it is load-bearing: **decimal position is inert; `depends_on` is everything.**
 
-**Decimal IDs** (`U3.1`, `U3.2`, `U3.3`) represent **provenance** — "these subtasks came from the split of U3." They are a tree structure that records *how* the task decomposed, not *when* or *in what order* the pieces execute.
+These are two orthogonal first-class relations over the same units. **Provenance** (decimal IDs — `U3.1`, `U3.2`, `U3.3`) records *how* a unit was born — "these subtasks came from the split of U3." It is an append-only tree, and it **carries no execution meaning**: it says nothing about *when* or *in what order* the pieces run.
 
-**The `Inputs` column** (or dependencies listed in a unit's statement) represents the **dependency DAG** — "this unit needs the output of that one before it can start." Inputs are data dependencies, the only mechanism for expressing sequence.
+**Dependency** (`depends_on`) records *what must be satisfied* before a unit can start. It is the graph edge and the **sole** carrier of ordering: **`depends_on` is the only mechanism for expressing sequence.** All gating lives here — data dependencies, ordering barriers, blockers, human-waits.
 
-**Critical rule: sibling decimals do not imply sequence.** Reading `U3.1, U3.2, U3.3` and concluding they run sequentially is a silent misread that destroys parallelism. Sibling parallelism comes *only* from empty inter-sibling Inputs: if `U5.1`, `U5.2`, and `U5.3` list no dependencies on each other (only on their common upstream `U4`), they are **data-independent** and **run in parallel**. If `U5.2` lists `Inputs: U5.1` — declaring a dependency on U5.1's output — then U5.2 must wait for U5.1; but U5.3 may still run in parallel with U5.1 if it has no dependency on U5.1.
+A unit's **read-set** — the data the worker actually consumes — is a **subset** of its `depends_on` (a unit may depend on an upstream for ordering without reading it); unstated, it defaults to the full set.
+
+Anything that gates can-run is a **node and an edge**, never a status flag: a blocker, wait, or barrier is a **conditional unit** — a real unit whose spec is "await X," satisfied when X arrives — so can-run stays purely graph-derived and "a unit is a dispatch spec → output" still holds.
+
+**Critical rule: sibling decimals do not imply sequence.** Reading `U3.1, U3.2, U3.3` and concluding they run sequentially is a silent misread that destroys parallelism. Sibling parallelism comes *only* from empty inter-sibling `depends_on`: if `U5.1`, `U5.2`, and `U5.3` list no dependencies on each other (only on their common upstream `U4`), they are **data-independent** and **run in parallel**. If `U5.2` lists `depends_on: U5.1` — declaring a dependency on U5.1's output — then U5.2 must wait for U5.1; but U5.3 may still run in parallel with U5.1 if it has no dependency on U5.1.
 
 This is the *only* mechanism for expressing parallelism. Decimal position means nothing.
+
+```mermaid
+flowchart TD
+    subgraph prov["Provenance — how it was born (inert)"]
+        P0["U5"]
+        P0 --> P1["U5.1"]
+        P0 --> P2["U5.2"]
+        P0 --> P3["U5.3"]
+    end
+    subgraph dep["Dependency — what CAN run (drives sequence)"]
+        D1["U5.1"] --> DM["U5.3<br/>integration"]
+        D2["U5.2"] --> DM
+    end
+    prov -.->|"same units,<br/>two orthogonal relations"| dep
+
+    classDef prov fill:#e8f0fe,stroke:#1a73e8,color:#1a1a1a
+    classDef dep fill:#e6f4ea,stroke:#188038,color:#1a1a1a
+    class P0,P1,P2,P3 prov
+    class D1,D2,DM dep
+```
 
 ## Milestones: forced live-verification boundaries
 
@@ -79,7 +103,7 @@ Here is the key rule: **a milestone is where the verify-grain shifts from logic-
 
 Units do not float free. They depend on each other: a draft depends on research; a synthesis depends on chapters; an audit depends on what it checks. Those dependencies form a **DAG** — directed, acyclic, no loops.
 
-The **ledger** records both the graph topology (which units exist, what each depends on) and the scheduler state (ready, active, done, blocked). It is the plan and the runtime state in one structure.
+The **ledger** records both the graph topology (which units exist, what each depends on) and the scheduler state (ready, active, done, blocked). It is the plan and the runtime state in one structure. Its canonical form is a **machine-native flat file** — one line per unit; the human-readable table is a **derived, read-only view** of it (never hand-edited), and the mission/recovery narrative is a **separate prose surface**.
 
 GOTM's ledger is **born tiered**, split from the first unit into two storage tiers, not compacted retroactively:
 
@@ -93,7 +117,7 @@ The frontier is the only part on the **hot path**. The driver reads the frontier
 A frontier row is terse by design:
 
 ```
-| id     | unit                            | Inputs      | status        | Output                  |
+| id     | unit                            | depends_on  | status        | Output                  |
 |--------|----------------------------------|-------------|---------------|-------------------------|
 | U5     | Deploy: 3-region replication    | U4          | authored-done | (pure-container)        |
 | U5.1   | Deploy to us-west (Oregon)      | U4          | verified-done | `deploy/us-west.log`    |
@@ -106,6 +130,8 @@ A frontier row is terse by design:
 Notice the structure: U5 has no Output (it is a pure container); U5.1–U5.3 are the actual work units with concrete artifacts; U5-m is the milestone that re-aggregates. All five rows are in the ledger. The driver records status and pointers; workers do not touch the ledger.
 
 One more rule makes the ledger safe: **only the driver writes it.** Workers execute and return a terse result; the driver — the single writer — records status and output pointers. This eliminates the duplicate-row race: a unit cannot land twice because only one context writes.
+
+This graph is not fixed — the driver reshapes it as reality changes (Chapter 4).
 
 ## Foundation is just graph topology
 
@@ -125,4 +151,4 @@ These are distinct ledger states, not decoration. The full treatment of audit in
 
 ---
 
-Work is a DAG of self-contained unit specs; the ledger records provenance (decimal IDs) and dependencies (Inputs). Deliberate decomposition at the dispatch gate keeps the driver reasoning about scope, not drowning in execution state. The next chapter (**the loop**) sets this in motion.
+Work is a DAG of self-contained unit specs; the ledger records provenance (decimal IDs) and dependencies (`depends_on`). Deliberate decomposition at the dispatch gate keeps the driver reasoning about scope, not drowning in execution state. The next chapter (**the loop**) sets this in motion.
