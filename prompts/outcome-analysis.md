@@ -47,6 +47,11 @@ sufficient.
   decision is an **intention** that may never have been exercised; it is weaker
   evidence than an observed correction (a ledger revert or an audit FAIL).
 
+**Graph-evolution telemetry is instrumentation, not a learning source — do not
+distill learnings from it.** It is an append-only record of DAG mutations
+(actor + reason), captured for operational visibility. Learning *from* the
+shape of graphs is a later version's subject; the sources above are unchanged.
+
 ## How to extract — filter, generalize, dedupe
 
 1. **Filter to transferable.** Keep only claims a *different* project could act on.
@@ -110,7 +115,7 @@ payment on the next one. A future project's *consume* step
 
 ## Learn as a meta-unit (GOTM 4.5 discipline)
 
-The `learn` unit is **Inputs-gated** on the settled subtree it distills (cannot run on un-audited work). It is **independently audited for faithfulness** (not sufficiency — every learning traces to a real settled unit; contradictions flagged). It is **tier-matched and delegated** like any unit. Results go to **L1 (project-local store)** — high-volume, private, allowed to be messy/contradictory. At project end, a deliberate reconciliation pass promotes **verified L1 → L2** (cross-project pool) as concise, curated, transfer-grade records. The `learn` unit is separate from milestone closure; the driver must **explicitly decide** (deliberate-or-defer prompt) whether to harvest learnings at each milestone.
+The `learn` unit is **dependency-gated** on the settled subtree it distills (cannot run on un-audited work). It is **independently audited for faithfulness** (not sufficiency — every learning traces to a real settled unit; contradictions flagged). It is **tier-matched and delegated** like any unit. Results go to **L1 (project-local store)** — high-volume, private, allowed to be messy/contradictory. At project end, a deliberate reconciliation pass promotes **verified L1 → L2** (cross-project pool) as concise, curated, transfer-grade records. The `learn` unit is separate from milestone closure; the driver must **explicitly decide** (deliberate-or-defer prompt) whether to harvest learnings at each milestone.
 
 ## Merge into the shared pool — the write-back step
 

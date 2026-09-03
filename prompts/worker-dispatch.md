@@ -58,7 +58,9 @@ dispatch*, across dozens of workers (`docs/05-scaling-and-economy.md` → worker
 minimalism). A worker that turns out to need more does **not** get it pushed in
 "just in case": it **reads it from the store itself** (a pointed read) or **fans
 out** to sub-workers. The driver filters context *down* to this unit; it never
-broadens it.
+broadens it. These bounded inputs are the worker's **read-set** — a **subset** of
+the unit's `depends_on`; the driver may gate a unit on an upstream for ordering
+without handing that upstream's output into the dispatch.
 
 ### 4. Output path (concrete backticked path(s))
 
@@ -126,7 +128,7 @@ at each barrier (`docs/05` → the hard rule).
     - Status: authored-done   (see "no self-certification" below)
     - One-line summary: <what it is>
     - Index facts: <e.g. word count, section list, headline number>
-    - Upward signal (optional): split / discovery / blocker: <suggestion>
+    - Upward signal (optional): split / discovery / blocker / dependency: <suggestion>
     - Blocker / gaps surfaced: <missing input / ambiguous spec, or "none">
 
 An **over-cap return is a defect** — a worker that returns the body instead of a
@@ -139,6 +141,7 @@ something and *suggest* an action to the driver, but the worker **never acts**:
 - **`split`** — "my piece is done; the next logical part should be its own Subtask: [scope]"
 - **`discovery`** — "I found a downstream issue / missing precondition: [what], suggest [action]"
 - **`blocker`** — "I hit a hard dependency / permission wall: [what], suggest [action]"
+- **`dependency`** — "I need an upstream input that isn't wired in: [what]"
 
 The driver (sole full-context holder) **decides whether to mint, reshape, merge, absorb, route to human, or decline**. The worker has no ownership of outcome. (This is the knowledge-graph U30 fix: a worker that self-resolved an adjacent problem took the live app down because the driver had no visibility.)
 
@@ -170,13 +173,15 @@ self-grading is structurally impossible — which is the point.
 **A worker reads only its inputs.** It does not range across the project to "get
 context." If a bounded input proves insufficient, the worker reads from the store
 or fans out — it never silently widens its own scope or invents missing decisions.
+The driver **never mutates a worker's scope mid-flight**; if the graph around it
+changes, the worker is **killed and re-dispatched** on the same on-disk inputs
+(its world is stable for its whole life).
 
 **A worker never runs destructive shell operations outside its own task scratch
 directory.** No `rm -rf`, force-overwrite, `git clean`, or truncation anywhere but
 the worker's own scratch — and **NEVER** against the cross-project home stores under
 `~/.gotm/` (the learning pool `~/.gotm/learnings/` and the context pool
-`~/.gotm/context/`). When a unit exercises a pool/context tool (`pool.py` /
-`context.py`) to verify behavior, the worker always points it at a scratch store
+`~/.gotm/context/`). When a unit exercises the cross-project pool tooling to verify behavior, the worker always points it at a scratch store
 (`--pool <tmpdir>`) — it never operates on the default `~/.gotm` path and never
 deletes a home directory. These stores are cross-project and irreplaceable, and the
 driver's destructive-op pre-execution gate does **not** reach inside a dispatched
@@ -223,6 +228,7 @@ The driver fills this in and sends it to the worker runner:
     - Status: authored-done
     - One-line summary
     - Index facts (word count / sections / headline number)
+    - Upward signal (if any): split / discovery / blocker / dependency: <suggestion>
     - Blocker / gaps surfaced, or "none"
     (Out of depth? Return `ESCALATE: <reason>` in place of the above — do not
     ship a low-quality output.)

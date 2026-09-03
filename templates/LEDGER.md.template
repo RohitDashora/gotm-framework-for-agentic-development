@@ -11,6 +11,11 @@ last_updated: <YYYY-MM-DD>
      file the driver re-reads each turn stays small and roughly constant in cost,
      however many units the project closes. Only the DRIVER writes this file;
      workers execute and return a terse structured result, the driver records it.
+     THREE SURFACES. The CANONICAL ledger is a machine-native flat file, one line
+     per unit — each line carrying that unit's `depends_on`, state, spec, read-set,
+     and output key. THIS markdown table is the DERIVED, read-only human view
+     rendered from it: never hand-edited, no two-way sync. The mission/recovery
+     narrative (`## Recent updates`) is a SEPARATE, append-only prose surface.
      See PROTOCOL.md -> Audit gates / Resilience, and docs/03-work-as-a-dag.md. -->
 
 ## Mission
@@ -31,27 +36,30 @@ last_updated: <YYYY-MM-DD>
 <!-- THE HOT TIER — re-read every turn; keep it small. It holds only:
        - every `pending` / `in_progress` unit (the ready-set lives here),
        - the last ~N (≈10) closed units (the recent-completion window), and
-       - any older closed unit that a still-open unit lists in `Inputs`
+       - any older closed unit that a still-open unit lists in `depends_on`
          (so the consumer can see its input's audit verdict without a cold read).
      A frontier row is an INDEX ENTRY, not a record of the work — the work
      itself lives in the output file, and the audit detail lives in its
      `audits/` report. When a closed unit ages past the window AND no open unit
      still cites it as an input, COMPACT it down to a one-line `## Archive`
-     entry (see Conventions -> compaction). `Inputs` lists the prior units whose
-     outputs this one consumes — the dependency edges of the DAG (foundation
-     gate). `Status` distinguishes the states (see Conventions). `Kind` types
+     entry (see Conventions -> compaction). `depends_on` lists the units that gate
+     this one — the dependency edges of the DAG and the sole carrier of ordering
+     (foundation gate); a unit's read-set (what its worker actually reads) is a
+     subset of `depends_on` and defaults to it. `Status` distinguishes the states
+     (see Conventions). `Kind` types
      the unit so the audit picks the right verified-done dimensions (see
      Conventions). `Tier` is the static per-unit model tier the driver sets by
      the rubric — `Kind` largely predicts it (see Conventions). `Audit` holds the
      verdict + a pointer to the report. -->
 
-| ID | Title | Inputs | Output | Kind | Tier | Status | Audit |
+| ID | Title | depends_on | Output | Kind | Tier | Status | Audit |
 |---|---|---|---|---|---|---|---|
 | U3 | <a task split into parallel subtasks> | U1, U2 | — | authoring | standard | verified-done | — |
 | U3.1 | <subtask 1 — one deliverable> | U1 | `<output/path>` | authoring | economy | verified-done | PASS→audits/U3.1.md |
 | U3.2 | <subtask 2 — one deliverable> | U1 | `<output/path>` | authoring | economy | verified-done | PASS→audits/U3.2.md |
 | U3.3 | <subtask 3 — one deliverable> | U3.1, U3.2 | `<output/path>` | authoring | standard | verified-done | PASS→audits/U3.3.md |
-| U7 | <some pending unit (atom, not split)> | U3 | `<output/path>` | authoring | standard | pending | — |
+| U11 | <blocker: "await external sign-off" — a conditional unit (node+edge), not a status flag> | — | — | authoring | economy | pending | — |
+| U7 | <some pending unit (atom, not split)> | U3, U11 | `<output/path>` | authoring | standard | pending | — |
 | U8 | <a module + its test — one deliverable> | U3 | `<src/thing.ts>`, `<src/thing.test.ts>` | authoring | standard | pending | — |
 | U9 | <a dashboard/component — live-verify> | U6 | `<app/panel.tsx>` | ui | economy | pending | — |
 | U10-learn | <harvest learnings from U3 subtree> | U3.1, U3.2, U3.3 | `<learnings/path.md>` | meta | standard | pending | — |
@@ -97,14 +105,17 @@ Conventions:
   return a terse structured result (status + output pointer + index facts); the
   driver — the single writer — records it. This kills the v2 dup-row race by
   construction (no second context ever writes back). See docs/03-work-as-a-dag.md.
-- IDs follow **decimal provenance** (U1, U2, U3, U3.1, U3.2, U3.3, U4...).
-  When a Task splits, children are registered as decimals (U3.1, U3.2, ...).
-  Decimals are **append-only** (siblings 2,3,4... never renumbered) and record
-  **provenance**, not sequence. The DAG's **control flow** (what runs when) lives
-  in the `Inputs` edges — siblings with no inter-`Inputs` run in parallel.
-  Reading decimal position as sequence destroys parallelism: **only `Inputs`
-  matters**. A pure-container parent (U3) has no Output; it closes verified-done
-  when all children (U3.1, U3.2, U3.3) pass.
+- PROVENANCE AND DEPENDENCY ARE TWO ORTHOGONAL, FIRST-CLASS RELATIONS.
+  · PROVENANCE — IDs follow **decimal provenance** (U1, U2, U3, U3.1, U3.2, U3.3,
+    U4...). When a Task splits, children are registered as decimals (U3.1, U3.2,
+    ...). Decimals are **append-only** (siblings 2,3,4... never renumbered) and
+    form an inert tree recording **where a unit came from — no execution meaning**.
+  · DEPENDENCY — the DAG's **control flow** (what runs when) lives ONLY in the
+    `depends_on` edges, the **sole carrier of ordering**; siblings with no inter-
+    `depends_on` run in parallel. Reading decimal position as sequence destroys
+    parallelism: **only `depends_on` matters**.
+  A pure-container parent (U3) has no Output; it closes verified-done when all
+  children (U3.1, U3.2, U3.3) pass.
 - Each row produces ONE deliverable (atomicity rule). A module + its test file
   count as ONE unit (the natural grain) — atomicity is one deliverable, not
   literally one file.
@@ -151,9 +162,16 @@ Conventions:
   The runtime binds `tier → (model, effort)` and sets it at spawn (the worker
   never reads its own tier). It is NOT a cost governor — just a static difficulty
   label; escalation handles mis-tiered units. See PROTOCOL.md → Tier binding.
-- `Inputs` lists prior units whose outputs this one consumes — the dependency
-  edges of the DAG. A unit is dispatchable only once every input is closed and
-  past its audit gate (foundation = upstream topology, not a reminder).
+- `depends_on` lists the units that gate this one — the dependency edges of the
+  DAG and the **sole carrier of ordering**. A unit's read-set (what the worker
+  actually reads) is a **subset of `depends_on`** and defaults to it: a unit may
+  depend on an upstream for ordering without reading its output. A unit is
+  dispatchable only once every `depends_on` is closed and past its audit gate
+  (foundation = upstream topology, not a reminder).
+- GRAPH INTEGRITY. The `depends_on` graph must stay ACYCLIC with no dangling or
+  self edges; a `depends_on` pointing at a `superseded` unit is re-pointed to its
+  successor. This validity is CHECKED (whole-graph validation — see PROTOCOL.md),
+  never STORED — the graph carries only its edges, not a verdict about them.
 - Status — the lifecycle, FIVE states:
     pending        — born, not yet dispatched (a leaf of the ready-set once
                      its inputs clear).
@@ -203,6 +221,12 @@ Conventions:
   and is newest-first; `## Active unit` is a one-line pointer, never a dated
   banner stack. A second de-facto log forming is a reconciliation smell.
   See PROTOCOL.md -> Resilience.
+- GRAPH-EVOLUTION TELEMETRY IS A SEPARATE, APPEND-ONLY SURFACE. Meaningful graph
+  mutations (insert, split, add/remove/re-point an edge, supersede, status/audit
+  transitions) are recorded there one entry per structural edit — each with its
+  ACTOR and REASON — kept OUT of the unit rows so the ledger stays clean. It is
+  INSTRUMENTATION, not a learning channel: captured here, never promoted to the
+  cross-project pool. See PROTOCOL.md -> Graph-evolution telemetry.
 - A frontier row is also machine-parsed (the immutability hook reads it by
   COLUMN NAME to decide what to freeze). Keep every `| U<n> |` row well-formed —
   correct column count (matching the header), a valid status, a parseable Output
@@ -210,13 +234,15 @@ Conventions:
   what the hook freezes. The hook parses ALL backticked Output paths (multi-file
   ownership) and FAILS SAFE on a mis-split row (freezes nothing for it rather than
   trust a shifted index). See PROTOCOL.md -> Anti-drift & the freeze / Resilience.
-- LOCKSTEP CAVEAT — a column change shifts positional indices. Any runtime parser
-  that reads ledger columns BY POSITION (the immutability hook, the compaction
-  script) MUST be updated in the SAME change that lands this `Tier` column, and
-  RUN against a real ledger — inserting a column silently re-numbers every column
-  after it, so a stale positional parser reads the wrong cells (freezes the wrong
-  path, mis-reads Status). This is the v3.35 ledger-shape lesson: never ship a
-  column move without its parser update + a real-ledger parse test.
+- LOCKSTEP CAVEAT — a column change (a rename OR an insert) moves what the parsers
+  read. Any runtime parser that reads ledger columns BY NAME or BY POSITION (the
+  immutability hook, the compaction script) MUST be updated in the SAME change
+  that lands this `Inputs → depends_on` rename, and RUN against a real ledger — a
+  rename breaks a name-keyed parser even though positions hold, and inserting a
+  column silently re-numbers every column after it, so a stale parser reads the
+  wrong cells (freezes the wrong path, mis-reads Status). This is the v3.35
+  ledger-shape lesson: never ship a column move without its parser update +
+  a real-ledger parse test.
 - ARCHIVE ENTRIES ARE ALSO MACHINE-PARSED, AND IN ONE CANONICAL SHAPE. The
   `## Archive` cold tier is a one-line BULLET per unit — never a table — in this
   exact form (fields separated by " · "; an adopter's immutability hook,
