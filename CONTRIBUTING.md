@@ -6,13 +6,14 @@ This repo holds the GOTM framework — concept chapters, platform-neutral prompt
 
 ## How GOTM itself is organized
 
-This project is itself GOTM-orchestrated, using the `.gotm/` subfolder layout. The operating protocol is `.gotm/PROTOCOL.md`. The ledger is `.gotm/LEDGER.md`. Ratified decisions live in `.gotm/DECISIONS.md`. Unresolved questions blocking work live in `.gotm/QUESTIONS.md`. New work follows the same five rules:
+This project is itself GOTM-orchestrated, using the `.gotm/` subfolder layout. The operating protocol is `.gotm/PROTOCOL.md`. The ledger is `.gotm/LEDGER.md`. Ratified decisions live in `.gotm/DECISIONS.md`. Unresolved questions blocking work live in `.gotm/QUESTIONS.md`. New work follows the same six rules:
 
 1. Single ledger — `.gotm/LEDGER.md` is authoritative.
 2. Atomic units — one execution pass produces one named output file.
 3. Foundation before drafts — foundation work precedes drafting.
 4. Audit before downstream consumes — claimed-done units are checked.
 5. Ratification ladder — the human owns mission-level decisions; the agent owns execution-level ones.
+6. First principles — reason and verify from ground truth, never from a worker's prose or a copied pattern; re-check negative claims against the source; never say one thing and do another.
 
 See `docs/` for the full framework and `.gotm/PROTOCOL.md` for the operating contract.
 
@@ -35,8 +36,8 @@ See `docs/` for the full framework and `.gotm/PROTOCOL.md` for the operating con
 
 ## How to contribute
 
-- Open an issue first for anything larger than a typo or single-paragraph edit. Describe the gap and how it ties to the five rules.
-- For substantial changes, sketch a unit in your issue using the row shape from `templates/LEDGER.md.template` (ID, title, inputs, output, status).
+- Open an issue first for anything larger than a typo or single-paragraph edit. Describe the gap and how it ties to the six rules.
+- For substantial changes, sketch a unit in your issue using the row shape from `templates/LEDGER.md.template` (ID, title, depends_on, output, status).
 - Pull requests are small and focused — one concern per PR, referencing the issue. Multi-concern PRs are returned for splitting.
 - Run `prompts/audit.md` against your change as part of self-review. Include the verdict in the PR description.
 - All contributions are licensed under Apache 2.0 per `LICENSE`.

@@ -10,6 +10,10 @@ Here is the construction. The executor that produces a unit is an ephemeral work
 
 This is the exact failure the design eliminates. In v2 one long-lived doer planned, executed, deployed, and then validated *its own* deploy work — judged by the same context that did it. That is no audit at all. GOTM does not ask the doer to be disciplined about not grading itself; it removes the doer before the grading happens. Self-grading is not discouraged — it is unavailable. So the loop has a built-in seam: a unit becomes authored-done when its worker returns, and only a *second* worker, launched by the driver, can move it further. Independence is structural.
 
+### First principles
+
+Reason and verify from ground truth — never from a worker's prose, an assumption, or a copied pattern; re-check negative claims against the source rather than accepting them at face value; never say one thing and do another. This is the epistemology the audit gate already enforces, promoted to a standing obligation on every context: an audit that trusts the artifact's own account of itself — or accepts a negative claim ("nothing references this") without checking the source — is a **failed audit**. (This is the framework's sixth ground rule.)
+
 ## The typed verification gate: logic-verified vs live-verified
 
 The two states are not synonyms for "drafted" and "reviewed." They mark *who* established the claim, *what they checked*, and *what kind of unit matters*.

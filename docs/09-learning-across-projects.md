@@ -41,6 +41,8 @@ Within a project, the learning pool mirrors the fact store (chapter 9, section *
 
 This closes the v4 asymmetry: facts were continuous (pinned on discovery) but learnings were end-only (batch). Now **both stores are continuous into L1 and curated into L2 at end** — the same story told twice, one for declarative knowledge and one for procedural.
 
+v4.6 additionally **captures graph-evolution telemetry** — an append-only record of how the execution structure evolved (inserts, splits, edge changes, supersessions, status/audit transitions; each with its actor and reason). This is the **bridge from graph engineering to learning engineering** — the record that could one day turn *how the graph evolved* into learning data. For now it is **instrumentation, not a learning channel**: v4.6 records it but does **not** promote it into the cross-project pool. Learning *from* the shape of successful graphs is a later version's subject — **capture now, learn later.**
+
 ## The consume / produce loop
 
 The cross-project layer is two moves, one at each end of a project's life.

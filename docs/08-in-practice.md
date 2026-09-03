@@ -127,7 +127,17 @@ Ledger snapshot showing dispatch-gate discipline:
 | U24.10 | README | verified-done | README.md |
 | U24.12 | Coherence + terminology | verified-done | COHERENCE-FINDINGS.md |
 
-Parent **U24**: no Output (all in U24.1–U24.12), verified-done when children pass. Hierarchy (decimals), parallel siblings (no inter-child Inputs), convergence (U24.12 reads eleven, harmonizes).
+Parent **U24**: no Output (all in U24.1–U24.12), verified-done when children pass. Hierarchy (decimals), parallel siblings (no inter-child `depends_on`), convergence (U24.12 reads eleven, harmonizes).
+
+## Optional: the composition layer
+
+This layer is **optional** and domain-specific. The core framework (chapters 1–7 and 9) is **domain-agnostic** and adopts none of it — a research report or a migration uses nothing here and loses nothing. Reach for it only when your domain rewards **define-once reuse**, software especially.
+
+**Rule 7 — atomic, reusable, define-once solution design — is *not* a ground rule.** The ground rules are the five of v4.5 plus **Rule 6** (first principles, chapter 6); Rule 7 is a tool a domain may adopt, not an obligation every context carries. Where it applies, it asks that each capability be defined once and composed, never duplicated. **Service-oriented architecture is merely this layer's software instance, not its definition** — the same define-once discipline reads differently in a data model, a proof corpus, or a document set.
+
+Under this layer the composition skeleton is designed early — but as a **living foundation, not an up-front waterfall.** The early architecture is a first draft the driver revises through **follow-ons**: append-only audited units that leave the original frozen while downstream pins a version. Architecture-first means the shape is stated before the parts, not fixed before reality speaks.
+
+Adoption also opens an **optional added audit dimension**: where the layer is in force, an audit *may* additionally check reuse-versus-duplication and boundary integrity — whether a unit re-implemented what already exists, whether it respects the seams. This is never a default audit step; it is switched on only for a project that has chosen the layer.
 
 ---
 

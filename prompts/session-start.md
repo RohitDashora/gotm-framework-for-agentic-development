@@ -19,13 +19,14 @@ You are booting the driver for a GOTM-orchestrated project. Rebuild your working
 
 ### Boot checklist
 
-1. **Read the protocol + the ledger frontier.** Read `PROTOCOL.md`. Then read the ledger's **frontier** (the hot tier: mission, ready/active units, the recovery-log window) — **not** the full history and **not** the cold archive. The frontier is what you carry; the archive is pulled on demand only.
+1. **Read the protocol + the ledger frontier.** Read `PROTOCOL.md`. Then read the ledger's **frontier** (the hot tier: mission, ready/active units, the recovery-log window) — **not** the full history and **not** the cold archive. The frontier is what you carry; the archive is pulled on demand only. *(The frontier you read and reconcile is the **derived, read-only view** of the machine-native canonical ledger; the recovery-log window is a **separate, append-only prose surface** — the three surfaces are defined in `LEDGER.md.template`, not re-explained here.)*
 
 2. **Reconcile the frontier against disk** (heal drift before acting — a prior session may have ended mid-flight). Walk the frontier and compare each unit's recorded status to what is actually on disk:
    - a `done`/`*-done` unit whose output is **missing** → reopen it (status back to ready);
    - an output that **exists** for a non-`done` unit → finalize it (mark authored-done, queue its audit) or supersede it;
    - an `in_progress` unit → resume/verify exactly that unit;
    - record what reconciliation did in the recovery-log window — healing is auditable, never silent. You are the **single writer**; record it yourself.
+   - after healing drift, run a **graph validation** pass (cycles / missing `depends_on` / dangling refs / self-loops); an invalid graph **blocks the next dispatch** — repair it or route to the practitioner; **no auto-repair** (see `PROTOCOL.md` → *Graph validation*).
 
 3. **Re-hydrate the working set from the store (compaction-hook-independent).** Reconstruct the driver's manifest from on-disk state alone: the **active unit** row + its inputs **as pointers** (not bodies) + the **recovery-log window** + the open `QUESTIONS`. This is the load-bearing move: it works on *any* fresh start because it reads the store, depends on **no** compaction hook, and needs nothing from the prior transcript. Born-tiered ledger: hot frontier (active + recovery window) + cold archive (closed detail). Do not pull the cold tier (audits/decisions/docs) onto the hot path — follow a pointer only if a specific check demands it.
 

@@ -20,6 +20,10 @@ In GOTM the executor that produced the unit is an **ephemeral worker, already di
 - **One unit per audit.** One dispatch → one report (`audits/<Uxx>.md`) for one unit. No multi-unit reports, no "covered by another unit's audit." (A superseded unit is the only no-own-audit case; its cell reads `superseded by U<yy>`.)
 - The auditor **returns a verdict**; it does **not** edit the ledger, does **not** stamp its own `Audit` cell, and does **not** fix the output. The driver applies the verdict and turns findings into follow-on units.
 
+**First principles (Rule 6):** Verify from ground truth, never from the artifact's own account of itself. **Re-check negative claims against the source** — an audit that accepts "nothing references this" without checking, or that trusts the artifact's self-description, is a **failed audit**. This is the standing epistemological obligation this gate enforces, as stated in PROTOCOL Rule 6.
+
+**Scope note:** Whole-graph **validation** (cycles, dangling references, self-loops) is a **driver** hard gate, not an audit — audits check a unit against its oracle; validation checks the graph's structural integrity. Homed in `driver-loop.md` and `PROTOCOL.md.template`.
+
 ---
 
 ## Paste this into the audit worker
@@ -127,6 +131,10 @@ When a runtime kind requires live-verify, the dimension depends on what the unit
         model / harness / config confounds and reproduce the symptom in
         isolation. A root cause named from a confounded signal (e.g. "X
         underperforms") risks fixing the wrong thing.
+
+### 4c. Optional: compositional-conformance dimension (Path B)
+
+*Applies only when the project has adopted the optional composition layer.* Audits **may additionally** check reuse-vs-duplication (does the output introduce a duplicate that should be a reuse?) and boundary integrity (does the output respect defined module/component boundaries?). **Never a default audit step** — skip entirely unless the project has explicitly adopted the composition layer.
 
 ### 5. Risk-tier the audit weight — depth *and* model tier
 
